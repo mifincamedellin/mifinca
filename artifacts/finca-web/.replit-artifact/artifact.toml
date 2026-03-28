@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Finca"
+version = "1.0.0"
+id = "artifacts/finca-web"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22821
+
+[services.development]
+run = "pnpm --filter @workspace/finca-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/finca-web", "run", "build" ]
+publicDir = "artifacts/finca-web/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22821"
+BASE_PATH = "/"

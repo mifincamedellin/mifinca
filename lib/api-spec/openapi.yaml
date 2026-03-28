@@ -1,22 +1,37 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Finca Farm Management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: farms
+    description: Farm management
+  - name: animals
+    description: Animal management
+  - name: weights
+    description: Weight records
+  - name: medical
+    description: Medical records
+  - name: inventory
+    description: Inventory management
+  - name: activity
+    description: Activity log
+  - name: zones
+    description: Zone management
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +39,653 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/profile:
+    put:
+      operationId: updateProfile
+      tags: [auth]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /farms:
+    get:
+      operationId: listFarms
+      tags: [farms]
+      summary: List farms for current user
+      responses:
+        "200":
+          description: List of farms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Farm"
+    post:
+      operationId: createFarm
+      tags: [farms]
+      summary: Create a new farm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFarmRequest"
+      responses:
+        "201":
+          description: Created farm
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Farm"
+
+  /farms/{farmId}:
+    get:
+      operationId: getFarm
+      tags: [farms]
+      summary: Get farm details
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Farm details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Farm"
+    put:
+      operationId: updateFarm
+      tags: [farms]
+      summary: Update farm
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFarmRequest"
+      responses:
+        "200":
+          description: Updated farm
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Farm"
+
+  /farms/{farmId}/members:
+    get:
+      operationId: listFarmMembers
+      tags: [farms]
+      summary: List farm members
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Farm members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FarmMember"
+    post:
+      operationId: inviteFarmMember
+      tags: [farms]
+      summary: Invite a member to farm
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteMemberRequest"
+      responses:
+        "201":
+          description: Member invited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FarmMember"
+
+  /farms/{farmId}/members/{userId}:
+    delete:
+      operationId: removeFarmMember
+      tags: [farms]
+      summary: Remove a member from farm
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Member removed
+
+  /farms/{farmId}/stats:
+    get:
+      operationId: getFarmStats
+      tags: [farms]
+      summary: Get farm dashboard stats
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Farm stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FarmStats"
+
+  /farms/{farmId}/animals:
+    get:
+      operationId: listAnimals
+      tags: [animals]
+      summary: List animals for a farm
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: species
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: breed
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of animals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Animal"
+    post:
+      operationId: createAnimal
+      tags: [animals]
+      summary: Add an animal to the farm
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAnimalRequest"
+      responses:
+        "201":
+          description: Created animal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+
+  /farms/{farmId}/animals/{animalId}:
+    get:
+      operationId: getAnimal
+      tags: [animals]
+      summary: Get animal details
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: animalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Animal details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnimalDetail"
+    put:
+      operationId: updateAnimal
+      tags: [animals]
+      summary: Update animal
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: animalId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAnimalRequest"
+      responses:
+        "200":
+          description: Updated animal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Animal"
+
+  /farms/{farmId}/animals/{animalId}/weights:
+    get:
+      operationId: listWeightRecords
+      tags: [weights]
+      summary: List weight records for an animal
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: animalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Weight records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeightRecord"
+    post:
+      operationId: createWeightRecord
+      tags: [weights]
+      summary: Add weight record
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: animalId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWeightRecordRequest"
+      responses:
+        "201":
+          description: Created weight record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeightRecord"
+
+  /farms/{farmId}/animals/{animalId}/medical:
+    get:
+      operationId: listMedicalRecords
+      tags: [medical]
+      summary: List medical records for an animal
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: animalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Medical records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MedicalRecord"
+    post:
+      operationId: createMedicalRecord
+      tags: [medical]
+      summary: Add medical record
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: animalId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMedicalRecordRequest"
+      responses:
+        "201":
+          description: Created medical record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MedicalRecord"
+
+  /farms/{farmId}/inventory:
+    get:
+      operationId: listInventoryItems
+      tags: [inventory]
+      summary: List inventory items
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+    post:
+      operationId: createInventoryItem
+      tags: [inventory]
+      summary: Add inventory item
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInventoryItemRequest"
+      responses:
+        "201":
+          description: Created inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+
+  /farms/{farmId}/inventory/{itemId}:
+    get:
+      operationId: getInventoryItem
+      tags: [inventory]
+      summary: Get inventory item details
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItemDetail"
+    put:
+      operationId: updateInventoryItem
+      tags: [inventory]
+      summary: Update inventory item
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInventoryItemRequest"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+
+  /farms/{farmId}/inventory/{itemId}/log:
+    post:
+      operationId: logInventoryAction
+      tags: [inventory]
+      summary: Log inventory action (use/restock/adjust)
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogInventoryActionRequest"
+      responses:
+        "201":
+          description: Log entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryLog"
+
+  /farms/{farmId}/activity:
+    get:
+      operationId: listActivity
+      tags: [activity]
+      summary: List activity log for a farm
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activity log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEntry"
+
+  /farms/{farmId}/zones:
+    get:
+      operationId: listZones
+      tags: [zones]
+      summary: List zones for a farm
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Zone"
+    post:
+      operationId: createZone
+      tags: [zones]
+      summary: Create a zone
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateZoneRequest"
+      responses:
+        "201":
+          description: Created zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Zone"
+
+  /search:
+    get:
+      operationId: globalSearch
+      tags: [farms]
+      summary: Global search across animals and inventory
+      parameters:
+        - name: farmId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResults"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +696,589 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [owner, worker]
+        preferredLanguage:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        preferredLanguage:
+          type: string
+
+    Farm:
+      type: object
+      properties:
+        id:
+          type: string
+        ownerId:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        totalHectares:
+          type: number
+        createdAt:
+          type: string
+        userRole:
+          type: string
+      required:
+        - id
+        - name
+
+    CreateFarmRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        totalHectares:
+          type: number
+      required:
+        - name
+
+    UpdateFarmRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        totalHectares:
+          type: number
+
+    FarmMember:
+      type: object
+      properties:
+        id:
+          type: string
+        farmId:
+          type: string
+        userId:
+          type: string
+        role:
+          type: string
+        permissions:
+          type: object
+        profile:
+          $ref: "#/components/schemas/Profile"
+        createdAt:
+          type: string
+      required:
+        - id
+        - farmId
+        - userId
+
+    InviteMemberRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        role:
+          type: string
+          enum: [owner, worker]
+      required:
+        - email
+
+    FarmStats:
+      type: object
+      properties:
+        totalAnimals:
+          type: integer
+        animalsBySpecies:
+          type: array
+          items:
+            type: object
+            properties:
+              species:
+                type: string
+              count:
+                type: integer
+        lowStockCount:
+          type: integer
+        upcomingMedicalCount:
+          type: integer
+        recentActivityCount:
+          type: integer
+        upcomingMedical:
+          type: array
+          items:
+            $ref: "#/components/schemas/MedicalRecord"
+        lowStockItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryItem"
+      required:
+        - totalAnimals
+        - lowStockCount
+
+    Animal:
+      type: object
+      properties:
+        id:
+          type: string
+        farmId:
+          type: string
+        customTag:
+          type: string
+        species:
+          type: string
+          enum: [cattle, chicken, pig, goat, sheep, horse, other]
+        breed:
+          type: string
+        name:
+          type: string
+        sex:
+          type: string
+          enum: [male, female, unknown]
+        dateOfBirth:
+          type: string
+        status:
+          type: string
+          enum: [active, sold, deceased, transferred]
+        photoUrl:
+          type: string
+        notes:
+          type: string
+        currentWeight:
+          type: number
+        currentZoneId:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - farmId
+        - species
+
+    AnimalDetail:
+      allOf:
+        - $ref: "#/components/schemas/Animal"
+        - type: object
+          properties:
+            weightRecords:
+              type: array
+              items:
+                $ref: "#/components/schemas/WeightRecord"
+            medicalRecords:
+              type: array
+              items:
+                $ref: "#/components/schemas/MedicalRecord"
+            offspring:
+              type: array
+              items:
+                $ref: "#/components/schemas/Animal"
+            mother:
+              $ref: "#/components/schemas/Animal"
+            father:
+              $ref: "#/components/schemas/Animal"
+
+    CreateAnimalRequest:
+      type: object
+      properties:
+        customTag:
+          type: string
+        species:
+          type: string
+          enum: [cattle, chicken, pig, goat, sheep, horse, other]
+        breed:
+          type: string
+        name:
+          type: string
+        sex:
+          type: string
+          enum: [male, female, unknown]
+        dateOfBirth:
+          type: string
+        status:
+          type: string
+          enum: [active, sold, deceased, transferred]
+        motherId:
+          type: string
+        fatherId:
+          type: string
+        currentZoneId:
+          type: string
+        notes:
+          type: string
+      required:
+        - species
+
+    UpdateAnimalRequest:
+      type: object
+      properties:
+        customTag:
+          type: string
+        species:
+          type: string
+        breed:
+          type: string
+        name:
+          type: string
+        sex:
+          type: string
+        dateOfBirth:
+          type: string
+        status:
+          type: string
+        motherId:
+          type: string
+        fatherId:
+          type: string
+        currentZoneId:
+          type: string
+        photoUrl:
+          type: string
+        notes:
+          type: string
+
+    WeightRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        animalId:
+          type: string
+        weightKg:
+          type: number
+        recordedAt:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - animalId
+        - weightKg
+        - recordedAt
+
+    CreateWeightRecordRequest:
+      type: object
+      properties:
+        weightKg:
+          type: number
+        recordedAt:
+          type: string
+        notes:
+          type: string
+      required:
+        - weightKg
+
+    MedicalRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        animalId:
+          type: string
+        recordType:
+          type: string
+          enum: [vaccination, treatment, checkup, surgery, deworming, other]
+        title:
+          type: string
+        description:
+          type: string
+        vetName:
+          type: string
+        costCop:
+          type: number
+        recordDate:
+          type: string
+        nextDueDate:
+          type: string
+        createdAt:
+          type: string
+        animalName:
+          type: string
+        animalTag:
+          type: string
+      required:
+        - id
+        - animalId
+        - recordType
+        - title
+        - recordDate
+
+    CreateMedicalRecordRequest:
+      type: object
+      properties:
+        recordType:
+          type: string
+          enum: [vaccination, treatment, checkup, surgery, deworming, other]
+        title:
+          type: string
+        description:
+          type: string
+        vetName:
+          type: string
+        costCop:
+          type: number
+        recordDate:
+          type: string
+        nextDueDate:
+          type: string
+      required:
+        - recordType
+        - title
+        - recordDate
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        farmId:
+          type: string
+        category:
+          type: string
+          enum: [feed, medicine, tools, supplies]
+        name:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+          enum: [kg, liters, units, bags, doses, other]
+        lowStockThreshold:
+          type: number
+        costPerUnitCop:
+          type: number
+        supplierName:
+          type: string
+        supplierContact:
+          type: string
+        expirationDate:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+          enum: [ok, low, expired]
+        createdAt:
+          type: string
+      required:
+        - id
+        - farmId
+        - category
+        - name
+        - quantity
+        - unit
+
+    InventoryItemDetail:
+      allOf:
+        - $ref: "#/components/schemas/InventoryItem"
+        - type: object
+          properties:
+            logs:
+              type: array
+              items:
+                $ref: "#/components/schemas/InventoryLog"
+
+    CreateInventoryItemRequest:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [feed, medicine, tools, supplies]
+        name:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+          enum: [kg, liters, units, bags, doses, other]
+        lowStockThreshold:
+          type: number
+        costPerUnitCop:
+          type: number
+        supplierName:
+          type: string
+        supplierContact:
+          type: string
+        expirationDate:
+          type: string
+        notes:
+          type: string
+      required:
+        - category
+        - name
+        - quantity
+        - unit
+
+    UpdateInventoryItemRequest:
+      type: object
+      properties:
+        category:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        lowStockThreshold:
+          type: number
+        costPerUnitCop:
+          type: number
+        supplierName:
+          type: string
+        supplierContact:
+          type: string
+        expirationDate:
+          type: string
+        notes:
+          type: string
+
+    LogInventoryActionRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [added, used, adjusted, expired]
+        quantityChange:
+          type: number
+        animalId:
+          type: string
+        notes:
+          type: string
+      required:
+        - action
+        - quantityChange
+
+    InventoryLog:
+      type: object
+      properties:
+        id:
+          type: string
+        itemId:
+          type: string
+        action:
+          type: string
+        quantityChange:
+          type: number
+        animalId:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - itemId
+        - action
+        - quantityChange
+
+    ActivityEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        farmId:
+          type: string
+        userId:
+          type: string
+        actionType:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+        profile:
+          $ref: "#/components/schemas/Profile"
+      required:
+        - id
+        - farmId
+        - actionType
+        - entityType
+
+    Zone:
+      type: object
+      properties:
+        id:
+          type: string
+        farmId:
+          type: string
+        name:
+          type: string
+        zoneType:
+          type: string
+          enum: [grazing, feeding, water, waste, crops, shelter, storage, other]
+        color:
+          type: string
+        capacity:
+          type: integer
+        areaHectares:
+          type: number
+        notes:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - farmId
+        - name
+
+    CreateZoneRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        zoneType:
+          type: string
+        color:
+          type: string
+        capacity:
+          type: integer
+        areaHectares:
+          type: number
+        notes:
+          type: string
+      required:
+        - name
+
+    SearchResults:
+      type: object
+      properties:
+        animals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Animal"
+        inventory:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryItem"
+      required:
+        - animals
+        - inventory

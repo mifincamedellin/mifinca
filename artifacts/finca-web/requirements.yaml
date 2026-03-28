@@ -1,0 +1,22 @@
+packages:
+  "zustand": "Global state management for auth and active farm"
+  "react-i18next": "Internationalization"
+  "i18next": "Internationalization core"
+  "recharts": "Data visualization for farm stats"
+  "date-fns": "Date formatting and manipulation"
+  "framer-motion": "Animations for page transitions and UI elements"
+  "@hookform/resolvers": "Zod validation for react-hook-form"
+  "react-hook-form": "Form state management"
+  "zod": "Schema validation"
+
+images:
+  - path: "artifacts/finca-web/public/images/auth-bg.png"
+    description: "Warm cinematic photo of a lush agricultural farm landscape at sunrise, soft golden light, misty hills, highly detailed, premium photography"
+    aspect_ratio: "9:16"
+  - path: "artifacts/finca-web/public/images/empty-farm.png"
+    description: "Warm minimal aesthetic abstract illustration of farm fields and crops, earthy tones sage and clay, vector art, flat design"
+    aspect_ratio: "16:9"
+
+notes:
+  - Adding global fetch interceptor to inject Authorization header since OpenAPI spec doesn't natively include auth endpoints.
+  - Using Zustand to manage the selected farm context globally.

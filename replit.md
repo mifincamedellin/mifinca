@@ -1,96 +1,113 @@
-# Workspace
+# Finca — Farm Management Web App
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Finca is a farm management web app for small and mid-size farm owners in Colombia. It lets them track animals, manage inventory, and view a dashboard — all from one clean, modern interface. Spanish-first UI with English toggle.
+
+Built as a pnpm workspace monorepo with a React + Vite frontend and an Express API backend.
 
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
 - **Node.js version**: 24
 - **Package manager**: pnpm
-- **TypeScript version**: 5.9
+- **Frontend**: React + Vite + TypeScript (artifacts/finca-web)
+- **Styling**: Tailwind CSS with Finca earthy custom theme
+- **Fonts**: Fraunces (serif headings), DM Sans (body)
+- **State**: Zustand (auth + farm context), TanStack React Query
+- **Routing**: Wouter (frontend), Express (API)
+- **i18n**: react-i18next — Spanish default, English toggle
+- **Charts**: Recharts
+- **Forms**: react-hook-form + zod
+- **Animations**: framer-motion
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **Validation**: Zod
+- **Auth**: JWT (bcryptjs) stored in localStorage
 - **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Build**: esbuild (ESM bundle)
+
+## Color Palette
+
+| Name | Hex | Usage |
+|------|-----|-------|
+| earth | #2C1810 | Primary dark — headers, nav, buttons |
+| sage | #4A6741 | Primary accent — success, animal module |
+| sage-light | #6B8F61 | Hover states, secondary green |
+| sand | #F5F0E8 | Card backgrounds |
+| cream | #FDFAF5 | Page background |
+| clay | #C4956A | Warm accent — land module, highlights |
+| clay-light | #E8D5BF | Tags, badges, soft accents |
+| ink | #1A1A1A | Primary text |
+| muted | #6B6560 | Secondary text |
+| border | #E0D8CE | Borders, dividers |
 
 ## Structure
 
 ```text
 artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
+├── artifacts/
+│   ├── api-server/         # Express API server (auth, farms, animals, inventory, etc.)
+│   └── finca-web/          # React + Vite frontend
+├── lib/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
+│   ├── api-zod/            # Generated Zod schemas
 │   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+├── scripts/                # Utility scripts
+└── ...
 ```
 
-## TypeScript & Composite Projects
+## Database Schema
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+Auth: Custom `auth_users` table created on first registration (id, email, password_hash).
 
-## Root Scripts
+## Pages
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+- `/` → `/login` (auth redirect)
+- `/login` — Email/password login
+- `/register` — Sign up + create first farm
+- `/dashboard` — Stats, charts, activity feed, upcoming tasks
+- `/animals` — Animal list with filters + search
+- `/animals/:id` — Animal detail (tabs: overview, weight history, medical, lineage)
+- `/inventory` — Inventory by category
+- `/land` — Coming soon stub
+- `/settings` — Farm, team, account settings
 
-## Packages
+## API Routes
 
-### `artifacts/api-server` (`@workspace/api-server`)
+All under `/api`:
+- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`, `PUT /api/auth/profile`
+- `GET/POST /api/farms`, `GET/PUT /api/farms/:id`
+- `GET/POST /api/farms/:id/members`, `DELETE /api/farms/:id/members/:userId`
+- `GET /api/farms/:id/stats`
+- `GET/POST /api/farms/:id/animals`, `GET/PUT /api/farms/:id/animals/:animalId`
+- `GET/POST /api/farms/:id/animals/:animalId/weights`
+- `GET/POST /api/farms/:id/animals/:animalId/medical`
+- `GET/POST /api/farms/:id/inventory`, `GET/PUT /api/farms/:id/inventory/:itemId`
+- `POST /api/farms/:id/inventory/:itemId/log`
+- `GET /api/farms/:id/activity`
+- `GET/POST /api/farms/:id/zones`
+- `GET /api/search?farmId=&q=`
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+## Development
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+```bash
+# Start API server
+pnpm --filter @workspace/api-server run dev
 
-### `lib/db` (`@workspace/db`)
+# Start frontend
+pnpm --filter @workspace/finca-web run dev
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+# Push DB schema
+pnpm --filter @workspace/db run push
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
+# Run codegen (after OpenAPI spec changes)
+pnpm --filter @workspace/api-spec run codegen
+```
 
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+## Future: React Native Mobile App
 
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+All business logic lives in the API server. The mobile app can connect to the same backend by hitting the same API endpoints with Bearer token auth. The `lib/api-client-react` generated hooks can be adapted for React Native with minimal changes.
