@@ -10,7 +10,6 @@ import {
   Map as MapIcon, 
   Settings, 
   LogOut,
-  Globe
 } from "lucide-react";
 import {
   Sidebar,
@@ -162,9 +161,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full hover-elevate" title="Toggle Language">
-                <Globe className="h-5 w-5 text-muted-foreground" />
-              </Button>
+              <button
+                onClick={toggleLanguage}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/5 hover:bg-black/10 border border-black/8 text-sm font-medium text-foreground/70 hover:text-foreground transition-all"
+              >
+                <span className={i18n.language === "es" ? "opacity-100 text-primary font-semibold" : "opacity-40"}>ES</span>
+                <span className="opacity-30">/</span>
+                <span className={i18n.language === "en" ? "opacity-100 text-primary font-semibold" : "opacity-40"}>EN</span>
+              </button>
             </div>
           </header>
           <main className="flex-1 p-6 md:p-8 overflow-y-auto w-full max-w-7xl mx-auto">
