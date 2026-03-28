@@ -1,4 +1,5 @@
 import { ReactNode, useEffect } from "react";
+import { FarmAdvisor } from "@/components/FarmAdvisor";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
@@ -176,6 +177,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </main>
         </div>
       </div>
+      <FarmAdvisor />
     </SidebarProvider>
   );
 }

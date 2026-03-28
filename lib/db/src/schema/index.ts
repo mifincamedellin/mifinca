@@ -8,3 +8,5 @@ export * from "./medicalRecords";
 export * from "./inventoryItems";
 export * from "./inventoryLogs";
 export * from "./activityLog";
+export * from "./conversations";
+export * from "./messages";

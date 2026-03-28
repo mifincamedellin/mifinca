@@ -60,7 +60,7 @@ artifacts-monorepo/
 
 ## Database Schema
 
-Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`
+Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`, `conversations`, `messages`
 
 Auth: Custom `auth_users` table created on first registration (id, email, password_hash).
 
@@ -91,6 +91,9 @@ All under `/api`:
 - `GET /api/farms/:id/activity`
 - `GET/POST /api/farms/:id/zones`
 - `GET /api/search?farmId=&q=`
+- `POST /api/chat/conversations` — create a new AI conversation
+- `POST /api/chat/conversations/:id/messages` — send message, stream SSE AI response
+- `GET /api/chat/conversations/:id/messages` — get conversation history
 
 ## Development
 

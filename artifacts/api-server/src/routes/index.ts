@@ -7,6 +7,7 @@ import inventoryRouter from "./inventory.js";
 import activityRouter from "./activity.js";
 import zonesRouter from "./zones.js";
 import searchRouter from "./search.js";
+import chatRouter from "./chat.js";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(inventoryRouter);
 router.use(activityRouter);
 router.use(zonesRouter);
 router.use(searchRouter);
+router.use(chatRouter);
 
 export default router;
