@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { db, pool } from "@workspace/db";
 import { profilesTable, farmsTable, farmMembersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -7,8 +7,6 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 
 const router = Router();
-
-const usersTable_local: Map<string, { id: string; email: string; passwordHash: string; }> = new Map();
 
 const JWT_SECRET = process.env["SESSION_SECRET"] || "finca-secret-key";
 
@@ -24,40 +22,36 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+async function ensureAuthTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_users (
+      id UUID PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+}
+
 router.post("/auth/register", async (req, res) => {
   try {
     const parsed = registerSchema.parse(req.body);
     const { email, password, fullName, farmName } = parsed;
 
-    const existing = await db.execute(
-      db.select().from(profilesTable).where(eq(profilesTable.id, email)).toSQL()
-    );
+    await ensureAuthTable();
 
-    const existingUser = await db.execute(
-      { sql: "SELECT id FROM auth_users WHERE email = $1", params: [email] }
-    ).catch(() => null);
-
-    if (existingUser && (existingUser as { rows: unknown[] }).rows?.length > 0) {
+    const existing = await pool.query("SELECT id FROM auth_users WHERE email = $1", [email]);
+    if (existing.rows.length > 0) {
       return res.status(409).json({ error: "conflict", message: "Email already registered" });
     }
 
     const id = crypto.randomUUID();
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await db.execute({
-      sql: `CREATE TABLE IF NOT EXISTS auth_users (
-        id UUID PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT now()
-      )`,
-      params: [],
-    });
-
-    await db.execute({
-      sql: "INSERT INTO auth_users (id, email, password_hash) VALUES ($1, $2, $3)",
-      params: [id, email, passwordHash],
-    });
+    await pool.query(
+      "INSERT INTO auth_users (id, email, password_hash) VALUES ($1, $2, $3)",
+      [id, email, passwordHash]
+    );
 
     await db.insert(profilesTable).values({
       id,
@@ -100,27 +94,18 @@ router.post("/auth/login", async (req, res) => {
     const parsed = loginSchema.parse(req.body);
     const { email, password } = parsed;
 
-    await db.execute({
-      sql: `CREATE TABLE IF NOT EXISTS auth_users (
-        id UUID PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT now()
-      )`,
-      params: [],
-    });
+    await ensureAuthTable();
 
-    const result = await db.execute({
-      sql: "SELECT id, email, password_hash FROM auth_users WHERE email = $1",
-      params: [email],
-    });
+    const result = await pool.query(
+      "SELECT id, email, password_hash FROM auth_users WHERE email = $1",
+      [email]
+    );
 
-    const rows = (result as { rows: { id: string; email: string; password_hash: string; }[] }).rows;
-    if (!rows || rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ error: "unauthorized", message: "Invalid credentials" });
     }
 
-    const user = rows[0]!;
+    const user = result.rows[0] as { id: string; email: string; password_hash: string };
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
       return res.status(401).json({ error: "unauthorized", message: "Invalid credentials" });

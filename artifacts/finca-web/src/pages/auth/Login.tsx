@@ -23,6 +23,10 @@ export function Login() {
     login.mutate(data);
   };
 
+  const handleDemoLogin = () => {
+    login.mutate({ email: "demo@finca.co", password: "demo1234" });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
       {/* Background Image Setup */}
@@ -94,7 +98,27 @@ export function Login() {
             </form>
           </Form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-4">
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-black/10" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card/95 px-2 text-muted-foreground">o</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full py-6 text-base rounded-xl border-2 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 transition-all font-medium"
+              onClick={handleDemoLogin}
+              disabled={login.isPending}
+            >
+              🌾 Entrar como demo
+            </Button>
+          </div>
+
+          <div className="mt-6 text-center">
             <Link href="/register" className="text-sm text-primary hover:text-accent font-medium hover:underline transition-colors">
               {t('auth.noAccount')}
             </Link>
