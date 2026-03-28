@@ -1,0 +1,379 @@
+# Finca — Web App Build Prompt (Replit)
+
+## What We're Building
+
+Finca is a farm management web app for small and mid-size farm owners in Colombia. It lets them track their animals, manage inventory, and view a dashboard — all from one clean, modern interface. Spanish-first UI with an English toggle.
+
+This is the **web app (Phase 1)**. A React Native mobile companion will connect to the same Supabase backend later, so architecture decisions here need to account for that — keep all business logic in Supabase (RLS policies, database functions) rather than in the web app layer.
+
+---
+
+## Tech Stack
+
+- **Frontend:** React + TypeScript + Vite
+- **Styling:** Tailwind CSS with a custom theme (colors specified below)
+- **Backend/DB:** Supabase (Postgres + Auth + Row Level Security + Realtime)
+- **Auth:** Supabase Auth — email/password + Google OAuth
+- **State Management:** React Query (TanStack Query) for server state, React Context for UI state
+- **Routing:** React Router v6
+- **Icons:** Lucide React
+- **Charts:** Recharts (for dashboard)
+- **Maps:** Leaflet with React Leaflet (for Land module — Phase 1.5, stub the route for now)
+- **i18n:** react-i18next — Spanish default, English toggle
+- **File uploads:** Supabase Storage (animal photos, documents)
+
+---
+
+## Design System & Color Palette
+
+Use these exact colors as Tailwind CSS custom theme values:
+
+```
+earth:       #2C1810   (primary dark — headers, nav, buttons)
+sage:        #4A6741   (primary accent — success states, animal module)
+sage-light:  #6B8F61   (hover states, secondary green)
+sand:        #F5F0E8   (card backgrounds, secondary surfaces)
+cream:       #FDFAF5   (page background)
+clay:        #C4956A   (warm accent — land module, highlights)
+clay-light:  #E8D5BF   (tags, badges, soft accents)
+ink:         #1A1A1A   (primary text)
+muted:       #6B6560   (secondary text, captions)
+border:      #E0D8CE   (borders, dividers)
+white:       #FFFFFF   (cards, inputs)
+```
+
+### Typography
+- **Headings:** Use a serif font — Google Fonts "Fraunces" (variable weight)
+- **Body:** Use "DM Sans" from Google Fonts
+- **General feel:** Warm, earthy, professional but approachable. NOT cold/corporate. Think modern agricultural brand.
+
+### UI Principles
+- Clean whitespace, rounded corners (8-10px), subtle borders
+- Cards on white backgrounds with 1px border in `border` color
+- Color-coded modules: Animals = sage, Land = clay, Inventory = earth
+- No unnecessary features or UI clutter. Every element earns its place.
+- Mobile-responsive from day one (farmers will use this on phones via browser too)
+- Smooth page transitions and micro-interactions (subtle hover states, loading skeletons)
+
+---
+
+## Supabase Database Schema
+
+### `profiles`
+```sql
+id UUID PRIMARY KEY REFERENCES auth.users(id)
+full_name TEXT
+role TEXT CHECK (role IN ('owner', 'worker')) DEFAULT 'owner'
+preferred_language TEXT DEFAULT 'es'
+created_at TIMESTAMPTZ DEFAULT now()
+updated_at TIMESTAMPTZ DEFAULT now()
+```
+
+### `farms`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE
+name TEXT NOT NULL
+location TEXT
+total_hectares DECIMAL
+created_at TIMESTAMPTZ DEFAULT now()
+updated_at TIMESTAMPTZ DEFAULT now()
+```
+
+### `farm_members`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+farm_id UUID REFERENCES farms(id) ON DELETE CASCADE
+user_id UUID REFERENCES profiles(id) ON DELETE CASCADE
+role TEXT CHECK (role IN ('owner', 'worker')) DEFAULT 'worker'
+permissions JSONB DEFAULT '{"can_edit": false, "can_add_animals": true, "can_log_inventory": true}'
+created_at TIMESTAMPTZ DEFAULT now()
+UNIQUE(farm_id, user_id)
+```
+
+### `animals`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+farm_id UUID REFERENCES farms(id) ON DELETE CASCADE
+custom_tag TEXT
+species TEXT NOT NULL CHECK (species IN ('cattle', 'chicken', 'pig', 'goat', 'sheep', 'horse', 'other'))
+breed TEXT
+name TEXT
+sex TEXT CHECK (sex IN ('male', 'female', 'unknown'))
+date_of_birth DATE
+status TEXT CHECK (status IN ('active', 'sold', 'deceased', 'transferred')) DEFAULT 'active'
+mother_id UUID REFERENCES animals(id) ON DELETE SET NULL
+father_id UUID REFERENCES animals(id) ON DELETE SET NULL
+current_zone_id UUID REFERENCES zones(id) ON DELETE SET NULL
+photo_url TEXT
+notes TEXT
+created_at TIMESTAMPTZ DEFAULT now()
+updated_at TIMESTAMPTZ DEFAULT now()
+```
+
+### `weight_records`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+animal_id UUID REFERENCES animals(id) ON DELETE CASCADE
+weight_kg DECIMAL NOT NULL
+recorded_at DATE NOT NULL DEFAULT CURRENT_DATE
+notes TEXT
+created_by UUID REFERENCES profiles(id)
+created_at TIMESTAMPTZ DEFAULT now()
+```
+
+### `medical_records`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+animal_id UUID REFERENCES animals(id) ON DELETE CASCADE
+record_type TEXT CHECK (record_type IN ('vaccination', 'treatment', 'checkup', 'surgery', 'deworming', 'other')) NOT NULL
+title TEXT NOT NULL
+description TEXT
+vet_name TEXT
+cost_cop DECIMAL
+record_date DATE NOT NULL DEFAULT CURRENT_DATE
+next_due_date DATE
+created_by UUID REFERENCES profiles(id)
+created_at TIMESTAMPTZ DEFAULT now()
+```
+
+### `zones`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+farm_id UUID REFERENCES farms(id) ON DELETE CASCADE
+name TEXT NOT NULL
+zone_type TEXT CHECK (zone_type IN ('grazing', 'feeding', 'water', 'waste', 'crops', 'shelter', 'storage', 'other'))
+color TEXT DEFAULT '#4A6741'
+capacity INTEGER
+area_hectares DECIMAL
+geometry JSONB -- GeoJSON polygon for map rendering (Phase 1.5)
+notes TEXT
+created_at TIMESTAMPTZ DEFAULT now()
+updated_at TIMESTAMPTZ DEFAULT now()
+```
+
+### `inventory_items`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+farm_id UUID REFERENCES farms(id) ON DELETE CASCADE
+category TEXT CHECK (category IN ('feed', 'medicine', 'tools', 'supplies')) NOT NULL
+name TEXT NOT NULL
+quantity DECIMAL NOT NULL DEFAULT 0
+unit TEXT CHECK (unit IN ('kg', 'liters', 'units', 'bags', 'doses', 'other')) NOT NULL
+low_stock_threshold DECIMAL
+cost_per_unit_cop DECIMAL
+supplier_name TEXT
+supplier_contact TEXT
+expiration_date DATE
+notes TEXT
+created_at TIMESTAMPTZ DEFAULT now()
+updated_at TIMESTAMPTZ DEFAULT now()
+```
+
+### `inventory_logs`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+item_id UUID REFERENCES inventory_items(id) ON DELETE CASCADE
+action TEXT CHECK (action IN ('added', 'used', 'adjusted', 'expired')) NOT NULL
+quantity_change DECIMAL NOT NULL
+animal_id UUID REFERENCES animals(id) ON DELETE SET NULL -- optional: which animal it was used on
+notes TEXT
+created_by UUID REFERENCES profiles(id)
+created_at TIMESTAMPTZ DEFAULT now()
+```
+
+### `activity_log`
+```sql
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+farm_id UUID REFERENCES farms(id) ON DELETE CASCADE
+user_id UUID REFERENCES profiles(id)
+action_type TEXT NOT NULL
+entity_type TEXT NOT NULL
+entity_id UUID
+description TEXT
+created_at TIMESTAMPTZ DEFAULT now()
+```
+
+---
+
+## Row Level Security (Critical)
+
+Every table must have RLS enabled. Policies should ensure:
+
+1. Users can only see data for farms they belong to (via `farm_members`)
+2. Owners have full CRUD on their farms
+3. Workers have access scoped by their `permissions` JSONB
+4. The `profiles` table: users can read/update only their own profile
+5. Activity logs are insert-only for all members, read-only for owners
+
+Write all RLS policies using Supabase SQL. Do NOT rely on client-side filtering for security.
+
+---
+
+## App Structure & Pages
+
+### Layout
+- **Sidebar navigation** (collapsible on mobile → hamburger menu)
+- Sidebar items: Dashboard, Animals, Inventory, Land (disabled/coming soon badge), Settings
+- Top bar: Farm name selector (for multi-farm), user avatar, language toggle (ES/EN)
+- All content in a main area to the right of the sidebar
+
+### Pages
+
+#### 1. Auth Pages
+- `/login` — Email/password + Google OAuth button
+- `/register` — Name, email, password, farm name (creates profile + first farm on signup)
+- `/forgot-password` — Standard reset flow
+- Clean centered card layout, Finca logo on top, earth/cream color scheme
+
+#### 2. Dashboard (`/dashboard`)
+- **Welcome header** with farm name and today's date
+- **Stat cards row:** Total animals (by species breakdown), Low stock items count, Upcoming tasks (medical due dates), Recent activity count
+- **Charts:** Animal count by species (bar chart), Weight trend for selected animal or group (line chart)
+- **Recent activity feed** (last 10 entries from activity_log)
+- **Upcoming tasks panel:** Next vaccinations due, Items expiring soon, Low stock alerts
+
+#### 3. Animals (`/animals`)
+- **List view** (default): Filterable table/card grid with search, species filter, status filter, breed filter
+- Each animal card shows: photo thumbnail (or species icon placeholder), custom tag, name, species/breed, status badge, current weight
+- **Add animal** button → opens slide-over panel or modal form
+- **Animal detail page** (`/animals/:id`):
+  - Header with photo, name, tag, species/breed, status badge
+  - Tab sections: Overview (basic info + current zone), Weight History (chart + log entries), Medical History (timeline view), Lineage (parent info + list of offspring)
+  - Edit button, status change dropdown (mark as sold, deceased, etc.)
+  - "Add weight record" and "Add medical record" quick action buttons
+
+#### 4. Inventory (`/inventory`)
+- **Category tabs:** All, Feed, Medicine, Tools, Supplies
+- **Table view** with columns: Name, Category, Quantity + Unit, Status (OK / Low / Expired), Cost, Supplier
+- Status badges: green (OK), yellow (low stock), red (expired or critical)
+- **Add item** button → modal form
+- **Item detail** slide-over: Edit fields, usage history log, restock action
+- **Low stock summary** banner at top when items are below threshold
+
+#### 5. Land (`/land`) — STUB FOR NOW
+- Show a "Coming Soon" page with the Finca map illustration or placeholder
+- Display text: "El módulo de Tierra llegará pronto. Podrás mapear zonas, asignar animales y visualizar tu finca."
+- This route should exist in the router but the full map UI is Phase 1.5
+
+#### 6. Settings (`/settings`)
+- **Farm settings:** Farm name, location, total hectares
+- **Team management:** Invite workers by email, manage permissions, remove members
+- **Account:** Update name, email, password, preferred language
+- **Danger zone:** Delete farm (with confirmation)
+
+---
+
+## Key Features & Behaviors
+
+### Multi-farm Support
+- Users can own or be members of multiple farms
+- Farm selector in the top bar switches the active farm context
+- All data queries filter by the active `farm_id`
+- Store active farm in React Context and localStorage
+
+### Internationalization (i18n)
+- Default language: Spanish (`es`)
+- Toggle to English (`en`) in the top bar
+- All UI strings in translation files — NO hardcoded text in components
+- Number formatting: Use Colombian conventions (1.000,50 for Spanish, 1,000.50 for English)
+- Currency: Always COP with proper formatting
+- Date format: DD/MM/YYYY for Spanish, MM/DD/YYYY for English
+
+### Activity Logging
+- Automatically log these actions: Animal created/updated/status changed, Weight record added, Medical record added, Inventory item added/updated, Inventory used/restocked, Team member added/removed
+- Log format: `{ action_type, entity_type, entity_id, description }`
+- Show in dashboard feed and on relevant detail pages
+
+### Search & Filtering
+- Global search in the top bar that searches across animals (by name, tag, breed) and inventory (by name)
+- Per-page filters: Animals page has species, status, breed filters. Inventory page has category, status filters.
+- Filters should use URL query params so they're shareable/bookmarkable
+
+### File Uploads
+- Animal photos upload to Supabase Storage bucket `animal-photos`
+- Resize/compress on client before upload (max 1200px wide, JPEG quality 80%)
+- Show placeholder icon (species-specific) when no photo uploaded
+
+### Responsive Design
+- Sidebar collapses to hamburger on screens < 768px
+- Tables switch to card layout on mobile
+- Forms use full-width stacked layout on mobile
+- Touch-friendly tap targets (min 44px)
+
+---
+
+## API Layer Architecture
+
+Create a clean API layer that the React Native app can reuse later:
+
+```
+src/
+  lib/
+    supabase.ts          -- Supabase client init
+    api/
+      animals.ts         -- All animal CRUD + queries
+      inventory.ts       -- All inventory CRUD + queries
+      farms.ts           -- Farm CRUD + member management
+      medical.ts         -- Medical record CRUD
+      weights.ts         -- Weight record CRUD
+      activity.ts        -- Activity log queries
+      zones.ts           -- Zone CRUD (stub for now)
+    types/
+      database.ts        -- TypeScript types matching DB schema
+      api.ts             -- Request/response types
+  hooks/
+    useAnimals.ts        -- React Query hooks wrapping api/animals
+    useInventory.ts      -- React Query hooks wrapping api/inventory
+    useFarm.ts           -- React Query hooks wrapping api/farms
+    useDashboard.ts      -- Aggregated dashboard data hooks
+  contexts/
+    AuthContext.tsx       -- Auth state + Supabase auth listeners
+    FarmContext.tsx       -- Active farm selection
+    LanguageContext.tsx   -- i18n language state
+```
+
+The `lib/api/` layer should be pure TypeScript functions with NO React dependencies — this is what gets shared with React Native later. The `hooks/` layer wraps these in React Query for the web app.
+
+---
+
+## What NOT to Build (Keep It Simple)
+
+- No real-time chat or messaging
+- No complex financial accounting — just basic cost tracking on inventory
+- No AI features
+- No marketplace or e-commerce
+- No complex report builder — just the dashboard charts and CSV/PDF export
+- No notification system beyond in-app alerts (push notifications come with mobile app)
+- No dark mode (the warm earth-tone palette is the identity)
+- No onboarding wizard or tour — the UI should be self-explanatory
+
+---
+
+## Seed Data for Development
+
+Create a seed script that generates realistic demo data for a Colombian farm:
+
+- 1 farm: "Finca La Esperanza" in Antioquia
+- 25 cattle (mix of Brahman, Holstein, Angus — common in Colombia), 40 chickens, 10 pigs
+- Weight records for the last 6 months for cattle
+- Medical records: vaccination schedules, deworming
+- 15 inventory items across all categories with realistic Colombian pricing in COP
+- 3 zones: Potrero Norte (grazing), Establo Principal (shelter), Bodega (storage)
+- 1 owner account, 1 worker account
+- 30 days of activity log entries
+
+---
+
+## Launch Checklist (Before Shipping)
+
+- [ ] All RLS policies tested — worker cannot access other farms
+- [ ] Spanish translations complete for all UI strings
+- [ ] Responsive tested on iPhone SE, iPhone 14, iPad, and desktop
+- [ ] Empty states designed for every list (animals, inventory, etc.)
+- [ ] Loading skeletons on all data-fetching pages
+- [ ] Error boundaries with friendly error messages in Spanish
+- [ ] Form validation with inline error messages
+- [ ] Supabase environment variables properly configured
+- [ ] Animal photo upload working with storage bucket
+- [ ] CSV export working for animals and inventory lists
