@@ -11,6 +11,8 @@ import {
   Map as MapIcon, 
   Settings, 
   LogOut,
+  DollarSign,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -72,6 +74,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { title: t('nav.dashboard'), url: "/dashboard", icon: Home },
     { title: t('nav.animals'), url: "/animals", icon: PawPrint },
     { title: t('nav.inventory'), url: "/inventory", icon: Package },
+    { title: t('nav.finances'), url: "/finances", icon: DollarSign },
+    { title: t('nav.contacts'), url: "/contacts", icon: Users },
     { title: t('nav.land'), url: "/land", icon: MapIcon },
     { title: t('nav.settings'), url: "/settings", icon: Settings },
   ];

@@ -60,7 +60,7 @@ artifacts-monorepo/
 
 ## Database Schema
 
-Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`, `conversations`, `messages`
+Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`, `conversations`, `messages`, `finance_transactions`, `contacts`
 
 Auth: Custom `auth_users` table created on first registration (id, email, password_hash).
 
@@ -73,6 +73,8 @@ Auth: Custom `auth_users` table created on first registration (id, email, passwo
 - `/animals` — Animal list with filters + search
 - `/animals/:id` — Animal detail (tabs: overview, weight history, medical, lineage)
 - `/inventory` — Inventory by category
+- `/finances` — Income/expense tracking with monthly charts and transaction table
+- `/contacts` — Contact directory (suppliers, buyers, vets, transport, other)
 - `/land` — Coming soon stub
 - `/settings` — Farm, team, account settings
 
@@ -91,6 +93,10 @@ All under `/api`:
 - `GET /api/farms/:id/activity`
 - `GET/POST /api/farms/:id/zones`
 - `GET /api/search?farmId=&q=`
+- `GET/POST /api/farms/:id/finances` — list / create finance transactions
+- `PUT/DELETE /api/farms/:id/finances/:txId` — update / delete a transaction
+- `GET/POST /api/farms/:id/contacts` — list / create contacts
+- `PUT/DELETE /api/farms/:id/contacts/:contactId` — update / delete a contact
 - `POST /api/chat/conversations` — create a new AI conversation
 - `POST /api/chat/conversations/:id/messages` — send message, stream SSE AI response
 - `GET /api/chat/conversations/:id/messages` — get conversation history

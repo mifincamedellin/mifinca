@@ -8,6 +8,8 @@ import activityRouter from "./activity.js";
 import zonesRouter from "./zones.js";
 import searchRouter from "./search.js";
 import chatRouter from "./chat.js";
+import financesRouter from "./finances.js";
+import contactsRouter from "./contacts.js";
 
 const router: IRouter = Router();
 
@@ -20,5 +22,7 @@ router.use(activityRouter);
 router.use(zonesRouter);
 router.use(searchRouter);
 router.use(chatRouter);
+router.use(financesRouter);
+router.use(contactsRouter);
 
 export default router;

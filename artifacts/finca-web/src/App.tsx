@@ -17,6 +17,8 @@ import { AnimalDetail } from "@/pages/animals/AnimalDetail";
 import { InventoryList } from "@/pages/inventory/InventoryList";
 import { Land } from "@/pages/Land";
 import { Settings } from "@/pages/Settings";
+import { Finances } from "@/pages/Finances";
+import { Contacts } from "@/pages/Contacts";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +50,8 @@ function Router() {
       <Route path="/animals/:id" component={() => <ProtectedRoute component={AnimalDetail} />} />
       <Route path="/inventory" component={() => <ProtectedRoute component={InventoryList} />} />
       <Route path="/land" component={() => <ProtectedRoute component={Land} />} />
+      <Route path="/finances" component={() => <ProtectedRoute component={Finances} />} />
+      <Route path="/contacts" component={() => <ProtectedRoute component={Contacts} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
 
       <Route component={NotFound} />
