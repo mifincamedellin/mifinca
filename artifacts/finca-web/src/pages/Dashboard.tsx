@@ -23,7 +23,7 @@ export function Dashboard() {
     query: { enabled: !!activeFarmId }
   });
 
-  if (!activeFarmId) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
+  if (!activeFarmId) return <div className="p-8 text-center text-muted-foreground">{t('common.loading')}</div>;
 
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: i18n.language === 'es' ? es : undefined });
   const colors = ['#4A6741', '#C4956A', '#2C1810', '#6B8F61', '#E8D5BF'];
