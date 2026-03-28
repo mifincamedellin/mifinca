@@ -70,6 +70,12 @@ export function InventoryList() {
     return 'bg-secondary/10 text-secondary border-secondary/20';
   };
 
+  const getStatusLabel = (status: string | undefined, qty: number, threshold?: number) => {
+    if (status === 'expired') return t('inventory.status.expired');
+    if (status === 'low' || (threshold && qty <= threshold)) return t('inventory.status.low');
+    return t('inventory.status.ok');
+  };
+
   return (
     <div className="space-y-8 pb-10">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -88,7 +94,7 @@ export function InventoryList() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre del Producto</FormLabel>
+                    <FormLabel>{t('inventory.productName')}</FormLabel>
                     <FormControl><Input {...field} className="rounded-xl"/></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -100,10 +106,10 @@ export function InventoryList() {
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl><SelectTrigger className="rounded-xl"><SelectValue/></SelectTrigger></FormControl>
                         <SelectContent className="rounded-xl">
-                          <SelectItem value="feed">Alimento</SelectItem>
-                          <SelectItem value="medicine">Medicina</SelectItem>
-                          <SelectItem value="tools">Herramientas</SelectItem>
-                          <SelectItem value="supplies">Insumos</SelectItem>
+                          <SelectItem value="feed">{t('inventory.cat.feed')}</SelectItem>
+                          <SelectItem value="medicine">{t('inventory.cat.medicine')}</SelectItem>
+                          <SelectItem value="tools">{t('inventory.cat.tools')}</SelectItem>
+                          <SelectItem value="supplies">{t('inventory.cat.supplies')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -111,15 +117,15 @@ export function InventoryList() {
                   )}/>
                   <FormField control={form.control} name="unit" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Unidad</FormLabel>
+                      <FormLabel>{t('inventory.unit')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl><SelectTrigger className="rounded-xl"><SelectValue/></SelectTrigger></FormControl>
                         <SelectContent className="rounded-xl">
-                          <SelectItem value="kg">Kg</SelectItem>
-                          <SelectItem value="liters">Litros</SelectItem>
-                          <SelectItem value="units">Unidades</SelectItem>
-                          <SelectItem value="bags">Bolsas</SelectItem>
-                          <SelectItem value="doses">Dosis</SelectItem>
+                          <SelectItem value="kg">{t('inventory.unit.kg')}</SelectItem>
+                          <SelectItem value="liters">{t('inventory.unit.liters')}</SelectItem>
+                          <SelectItem value="units">{t('inventory.unit.units')}</SelectItem>
+                          <SelectItem value="bags">{t('inventory.unit.bags')}</SelectItem>
+                          <SelectItem value="doses">{t('inventory.unit.doses')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -136,13 +142,13 @@ export function InventoryList() {
                   )}/>
                   <FormField control={form.control} name="lowStockThreshold" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Alerta Mínima</FormLabel>
-                      <FormControl><Input type="number" {...field} className="rounded-xl" placeholder="Opcional"/></FormControl>
+                      <FormLabel>{t('inventory.minAlert')}</FormLabel>
+                      <FormControl><Input type="number" {...field} className="rounded-xl" placeholder={t('common.optional')}/></FormControl>
                     </FormItem>
                   )}/>
                 </div>
                 <Button type="submit" disabled={createItem.isPending} className="w-full rounded-xl mt-6 py-6 bg-primary hover:bg-primary/90">
-                  {createItem.isPending ? "Guardando..." : t('common.save')}
+                  {createItem.isPending ? t('common.saving') : t('common.save')}
                 </Button>
               </form>
             </Form>
@@ -153,10 +159,10 @@ export function InventoryList() {
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         <Tabs value={category} onValueChange={setCategory} className="w-full md:w-auto">
           <TabsList className="bg-card shadow-sm p-1 rounded-xl h-12 w-full md:w-auto overflow-x-auto justify-start">
-            <TabsTrigger value="all" className="rounded-lg px-4">Todos</TabsTrigger>
-            <TabsTrigger value="feed" className="rounded-lg px-4">Alimento</TabsTrigger>
-            <TabsTrigger value="medicine" className="rounded-lg px-4">Medicina</TabsTrigger>
-            <TabsTrigger value="tools" className="rounded-lg px-4">Herramientas</TabsTrigger>
+            <TabsTrigger value="all" className="rounded-lg px-4">{t('inventory.tab.all')}</TabsTrigger>
+            <TabsTrigger value="feed" className="rounded-lg px-4">{t('inventory.cat.feed')}</TabsTrigger>
+            <TabsTrigger value="medicine" className="rounded-lg px-4">{t('inventory.cat.medicine')}</TabsTrigger>
+            <TabsTrigger value="tools" className="rounded-lg px-4">{t('inventory.cat.tools')}</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="relative w-full md:w-72">
@@ -175,17 +181,17 @@ export function InventoryList() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-primary/5 text-primary border-b border-border/50">
-                <th className="py-4 px-6 font-semibold font-sans">Producto</th>
-                <th className="py-4 px-6 font-semibold font-sans">Categoría</th>
-                <th className="py-4 px-6 font-semibold font-sans">Cantidad</th>
-                <th className="py-4 px-6 font-semibold font-sans">Estado</th>
-                <th className="py-4 px-6 font-semibold font-sans text-right">Acciones</th>
+                <th className="py-4 px-6 font-semibold font-sans">{t('inventory.col.product')}</th>
+                <th className="py-4 px-6 font-semibold font-sans">{t('inventory.col.category')}</th>
+                <th className="py-4 px-6 font-semibold font-sans">{t('inventory.col.quantity')}</th>
+                <th className="py-4 px-6 font-semibold font-sans">{t('inventory.col.status')}</th>
+                <th className="py-4 px-6 font-semibold font-sans text-right">{t('inventory.col.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-muted-foreground">Cargando inventario...</td>
+                  <td colSpan={5} className="py-10 text-center text-muted-foreground">{t('inventory.loading')}</td>
                 </tr>
               ) : items && items.length > 0 ? (
                 items.map((item: InventoryItem) => (
@@ -197,18 +203,15 @@ export function InventoryList() {
                     </td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(item.status, item.quantity, item.lowStockThreshold)}`}>
-                        {item.status === 'low' || (item.lowStockThreshold && item.quantity <= item.lowStockThreshold) ? (
-                          <><AlertCircle className="w-3 h-3 mr-1" /> Bajo</>
-                        ) : item.status === 'expired' ? (
-                          'Expirado'
-                        ) : (
-                          'Adecuado'
+                        {(item.status === 'low' || (item.lowStockThreshold && item.quantity <= item.lowStockThreshold)) && (
+                          <AlertCircle className="w-3 h-3 mr-1" />
                         )}
+                        {getStatusLabel(item.status, item.quantity, item.lowStockThreshold)}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <Button variant="ghost" size="sm" className="text-primary hover:text-accent hover:bg-accent/10 rounded-lg">
-                        Ajustar
+                        {t('inventory.adjust')}
                       </Button>
                     </td>
                   </tr>
@@ -218,7 +221,7 @@ export function InventoryList() {
                   <td colSpan={5} className="py-20 text-center">
                     <div className="flex flex-col items-center">
                       <PackageOpen className="h-12 w-12 text-border mb-4" />
-                      <p className="text-muted-foreground">No se encontraron productos en el inventario.</p>
+                      <p className="text-muted-foreground">{t('inventory.empty')}</p>
                     </div>
                   </td>
                 </tr>

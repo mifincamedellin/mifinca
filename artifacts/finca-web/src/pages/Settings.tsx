@@ -53,12 +53,12 @@ export function Settings() {
       data 
     }, {
       onSuccess: () => {
-        toast({ title: "Guardado", description: "Los detalles de la finca han sido actualizados." });
+        toast({ title: t('settings.saved'), description: t('settings.savedDesc') });
         queryClient.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/farms`] });
       },
       onError: () => {
-        toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar." });
+        toast({ variant: "destructive", title: t('common.error'), description: t('settings.errorDesc') });
       }
     });
   };
@@ -73,25 +73,24 @@ export function Settings() {
         </div>
         <div>
           <h1 className="text-3xl font-serif text-primary font-bold">{t('nav.settings')}</h1>
-          <p className="text-muted-foreground">Configura los detalles y preferencias de tu finca</p>
+          <p className="text-muted-foreground">{t('settings.subtitle')}</p>
         </div>
       </div>
 
       <Card className="p-8 rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm">
         <h2 className="text-2xl font-serif text-primary mb-6 border-b border-border/50 pb-4">{t('settings.farmDetails')}</h2>
-        
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
           <div className="space-y-2">
-            <Label className="text-foreground">Nombre de la Finca</Label>
+            <Label className="text-foreground">{t('settings.farmName')}</Label>
             <Input {...form.register("name")} className="rounded-xl py-6 bg-white/50" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label className="text-foreground">Ubicación</Label>
+              <Label className="text-foreground">{t('settings.location')}</Label>
               <Input {...form.register("location")} placeholder="Ciudad, Región" className="rounded-xl py-6 bg-white/50" />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground">Total Hectáreas</Label>
+              <Label className="text-foreground">{t('settings.hectares')}</Label>
               <Input type="number" step="0.1" {...form.register("totalHectares")} className="rounded-xl py-6 bg-white/50" />
             </div>
           </div>
@@ -100,7 +99,7 @@ export function Settings() {
             disabled={updateFarm.isPending || !form.formState.isDirty} 
             className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6"
           >
-            {updateFarm.isPending ? "Guardando..." : t('common.save')}
+            {updateFarm.isPending ? t('settings.saving') : t('common.save')}
           </Button>
         </form>
       </Card>
@@ -110,7 +109,7 @@ export function Settings() {
         <h2 className="text-xl font-serif text-destructive mb-2 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" /> {t('settings.dangerZone')}
         </h2>
-        <p className="text-sm text-muted-foreground mb-6">Esta acción es irreversible. Se eliminarán permanentemente todos los animales, inventario y registros de esta finca.</p>
+        <p className="text-sm text-muted-foreground mb-6">{t('settings.dangerDesc')}</p>
         <Button variant="destructive" className="rounded-xl hover-elevate">
           {t('settings.deleteFarm')}
         </Button>

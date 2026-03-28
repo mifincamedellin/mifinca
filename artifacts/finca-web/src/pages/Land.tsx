@@ -17,11 +17,11 @@ export function Land() {
           <div className="mx-auto w-24 h-24 bg-accent/10 rounded-full flex items-center justify-center mb-8">
             <Map className="h-12 w-12 text-accent" />
           </div>
-          <h1 className="text-4xl font-serif text-primary font-bold mb-4">Módulo de Tierra</h1>
+          <h1 className="text-4xl font-serif text-primary font-bold mb-4">{t('land.title')}</h1>
           <p className="text-lg text-muted-foreground leading-relaxed">
             {t('land.comingSoon')}
             <br />
-            <span className="text-sm mt-4 block">Pronto podrás gestionar tus potreros, rotaciones de pastos y zonas de cultivo directamente desde aquí.</span>
+            <span className="text-sm mt-4 block">{t('land.desc')}</span>
           </p>
         </Card>
       </motion.div>

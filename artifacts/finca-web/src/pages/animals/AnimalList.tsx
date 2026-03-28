@@ -47,10 +47,7 @@ export function AnimalList() {
     if (!activeFarmId) return;
     createAnimal.mutate({ 
       farmId: activeFarmId, 
-      data: {
-        ...data,
-        status: "active"
-      } as CreateAnimalRequest
+      data: { ...data, status: "active" } as CreateAnimalRequest
     }, {
       onSuccess: () => {
         setIsDialogOpen(false);
@@ -100,12 +97,12 @@ export function AnimalList() {
                 )}/>
                 <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre</FormLabel>
-                    <FormControl><Input {...field} className="rounded-xl" placeholder="Opcional"/></FormControl>
+                    <FormLabel>{t('animals.name')}</FormLabel>
+                    <FormControl><Input {...field} className="rounded-xl" placeholder={t('common.optional')}/></FormControl>
                   </FormItem>
                 )}/>
                 <Button type="submit" disabled={createAnimal.isPending} className="w-full rounded-xl mt-6 py-6 bg-primary hover:bg-primary/90">
-                  {createAnimal.isPending ? "Guardando..." : t('common.save')}
+                  {createAnimal.isPending ? t('common.saving') : t('common.save')}
                 </Button>
               </form>
             </Form>
@@ -149,7 +146,7 @@ export function AnimalList() {
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-serif font-bold text-lg text-primary truncate">{animal.name || 'Sin nombre'}</h3>
+                    <h3 className="font-serif font-bold text-lg text-primary truncate">{animal.name || t('animals.noName')}</h3>
                     <p className="text-muted-foreground text-sm capitalize mt-1 flex items-center gap-2">
                       <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
                       {animal.species} {animal.breed ? `• ${animal.breed}` : ''}
@@ -170,8 +167,8 @@ export function AnimalList() {
       ) : (
         <div className="text-center py-20 bg-card/30 rounded-3xl border border-dashed border-border">
           <PawPrint className="mx-auto h-16 w-16 text-muted-foreground/30 mb-4" />
-          <h3 className="text-xl font-serif text-primary">No se encontraron animales</h3>
-          <p className="text-muted-foreground mt-2 max-w-md mx-auto">Comienza añadiendo animales a tu finca para llevar un registro de su salud, peso y genealogía.</p>
+          <h3 className="text-xl font-serif text-primary">{t('animals.empty.title')}</h3>
+          <p className="text-muted-foreground mt-2 max-w-md mx-auto">{t('animals.empty.desc')}</p>
         </div>
       )}
     </div>
