@@ -11,8 +11,12 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { motion } from "framer-motion";
 
 export function Register() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { register } = useAuth();
+
+  const toggleLang = () => {
+    i18n.changeLanguage(i18n.language === "es" ? "en" : "es");
+  };
   
   const form = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
@@ -25,6 +29,16 @@ export function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden py-12">
+      {/* Language Toggle */}
+      <button
+        onClick={toggleLang}
+        className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium hover:bg-white/30 transition-all"
+      >
+        <span className={i18n.language === "es" ? "opacity-100" : "opacity-50"}>ES</span>
+        <span className="opacity-40">/</span>
+        <span className={i18n.language === "en" ? "opacity-100" : "opacity-50"}>EN</span>
+      </button>
+
       <div className="absolute inset-0 z-0">
         <img 
           src={`${import.meta.env.BASE_URL}images/auth-bg.png`} 

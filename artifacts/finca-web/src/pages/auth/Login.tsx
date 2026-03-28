@@ -11,8 +11,12 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { motion } from "framer-motion";
 
 export function Login() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { login } = useAuth();
+
+  const toggleLang = () => {
+    i18n.changeLanguage(i18n.language === "es" ? "en" : "es");
+  };
   
   const form = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -29,6 +33,16 @@ export function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      {/* Language Toggle */}
+      <button
+        onClick={toggleLang}
+        className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium hover:bg-white/30 transition-all"
+      >
+        <span className={i18n.language === "es" ? "opacity-100" : "opacity-50"}>ES</span>
+        <span className="opacity-40">/</span>
+        <span className={i18n.language === "en" ? "opacity-100" : "opacity-50"}>EN</span>
+      </button>
+
       {/* Background Image Setup */}
       <div className="absolute inset-0 z-0">
         <img 
