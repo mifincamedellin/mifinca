@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { FarmAdvisor } from "@/components/FarmAdvisor";
 import { SeedButton } from "@/components/SeedButton";
+import { SidebarThemePicker } from "@/components/SidebarThemePicker";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
@@ -40,7 +41,7 @@ import { Button } from "@/components/ui/button";
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t, i18n } = useTranslation();
   const [location, setLocation] = useLocation();
-  const { token, logout, activeFarmId, setActiveFarmId } = useStore();
+  const { token, logout, activeFarmId, setActiveFarmId, sidebarTheme } = useStore();
 
   const { data: user } = useGetMe({
     query: { enabled: !!token, retry: false }
@@ -94,6 +95,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex min-h-screen w-full bg-background">
+        <div data-sidebar-theme={sidebarTheme}>
         <Sidebar className="border-r-border/50">
           <SidebarContent>
             <div className="p-6">
@@ -140,7 +142,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </SidebarFooter>
         </Sidebar>
-        
+        </div>
+
         <div className="flex flex-col flex-1 min-w-0">
           <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-30">
             <div className="flex items-center gap-4">
@@ -184,6 +187,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </div>
       <FarmAdvisor />
       <SeedButton />
+      <SidebarThemePicker />
     </SidebarProvider>
   );
 }

@@ -128,6 +128,53 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* ── Sidebar Themes ── */
+[data-sidebar-theme="tierra"] {
+  --sidebar: 15 60% 13%;
+  --sidebar-foreground: 40 57% 97%;
+  --sidebar-border: 15 40% 20%;
+  --sidebar-primary: 113 22% 33%;
+  --sidebar-primary-foreground: 40 57% 97%;
+  --sidebar-accent: 15 40% 20%;
+  --sidebar-accent-foreground: 40 57% 97%;
+}
+
+[data-sidebar-theme="bosque"] {
+  --sidebar: 150 52% 8%;
+  --sidebar-foreground: 130 20% 94%;
+  --sidebar-border: 150 38% 16%;
+  --sidebar-primary: 150 30% 26%;
+  --sidebar-primary-foreground: 130 20% 94%;
+  --sidebar-accent: 150 38% 16%;
+  --sidebar-accent-foreground: 130 20% 94%;
+}
+
+[data-sidebar-theme="oceano"] {
+  --sidebar: 222 58% 10%;
+  --sidebar-foreground: 210 40% 96%;
+  --sidebar-border: 222 45% 19%;
+  --sidebar-primary: 222 40% 27%;
+  --sidebar-primary-foreground: 210 40% 96%;
+  --sidebar-accent: 222 45% 19%;
+  --sidebar-accent-foreground: 210 40% 96%;
+}
+
+[data-sidebar-theme="vaca"] {
+  --sidebar: 40 28% 92%;
+  --sidebar-foreground: 0 0% 12%;
+  --sidebar-border: 0 0% 72%;
+  --sidebar-primary: 0 0% 22%;
+  --sidebar-primary-foreground: 40 28% 92%;
+  --sidebar-accent: 0 0% 84%;
+  --sidebar-accent-foreground: 0 0% 12%;
+}
+
+[data-sidebar-theme="vaca"] [data-sidebar="sidebar"] {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23F4EFE4'/><ellipse cx='35' cy='35' rx='28' ry='18' fill='%23111' transform='rotate(-15 35 35)'/><ellipse cx='140' cy='22' rx='20' ry='30' fill='%23111' transform='rotate(8 140 22)'/><ellipse cx='182' cy='88' rx='15' ry='22' fill='%23111' transform='rotate(-25 182 88)'/><ellipse cx='58' cy='120' rx='34' ry='21' fill='%23111' transform='rotate(12 58 120)'/><ellipse cx='158' cy='158' rx='24' ry='16' fill='%23111' transform='rotate(-8 158 158)'/><ellipse cx='14' cy='175' rx='17' ry='26' fill='%23111' transform='rotate(5 14 175)'/><ellipse cx='108' cy='186' rx='30' ry='14' fill='%23111' transform='rotate(-10 108 186)'/></svg>");
+  background-size: 200px 200px;
+  background-repeat: repeat;
+}
+
 @layer base {
   * {
     @apply border-border;
