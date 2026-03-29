@@ -22,6 +22,7 @@ export const animalsTable = pgTable("animals", {
   fatherId: uuid("father_id"),
   currentZoneId: uuid("current_zone_id").references(() => zonesTable.id, { onDelete: "set null" }),
   photoUrl: text("photo_url"),
+  animalType: text("animal_type"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

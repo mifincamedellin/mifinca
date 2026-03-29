@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
@@ -7,14 +7,13 @@ import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ArrowRight, PawPrint, X } from "lucide-react";
+import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const createAnimalSchema = z.object({
   species: z.enum(["cattle", "chicken", "pig", "goat", "sheep", "horse", "other"]),
@@ -22,7 +21,20 @@ const createAnimalSchema = z.object({
   name: z.string().optional(),
   breed: z.string().optional(),
   sex: z.enum(["male", "female", "unknown"]).optional(),
+  animalType: z.string().optional(),
+  initialWeight: z.coerce.number().positive().optional().or(z.literal("")),
+  photoUrl: z.string().optional(),
 });
+
+const ANIMAL_TYPE_SUGGESTIONS: Record<string, string[]> = {
+  cattle:  ["Carne", "Leche", "Doble propósito"],
+  pig:     ["Carne", "Cría", "Engorde"],
+  horse:   ["Trabajo", "Silla", "Deporte", "Carga"],
+  goat:    ["Carne", "Leche"],
+  sheep:   ["Carne", "Lana", "Leche"],
+  chicken: ["Huevo", "Carne (Broiler)"],
+  other:   [],
+};
 
 const SPECIES_EMOJI: Record<string, string> = {
   cattle: "🐄",
@@ -40,6 +52,8 @@ export function AnimalList() {
   const [search, setSearch] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const { data: animals, isLoading } = useListAnimals(activeFarmId || '',
@@ -49,19 +63,49 @@ export function AnimalList() {
 
   const createAnimal = useCreateAnimal();
 
-  const form = useForm<z.infer<typeof createAnimalSchema>>({
-    resolver: zodResolver(createAnimalSchema),
-    defaultValues: { species: "cattle" }
+  const addWeight = useMutation({
+    mutationFn: async ({ animalId, weightKg }: { animalId: string; weightKg: number }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals/${animalId}/weights`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weightKg, recordedAt: new Date().toISOString().split("T")[0] }),
+      });
+      if (!res.ok) throw new Error("weight failed");
+    },
   });
 
-  const onSubmit = (data: z.infer<typeof createAnimalSchema>) => {
+  const form = useForm<z.infer<typeof createAnimalSchema>>({
+    resolver: zodResolver(createAnimalSchema),
+    defaultValues: { species: "cattle", customTag: "", name: "", breed: "", animalType: "", initialWeight: "", photoUrl: "" }
+  });
+
+  const watchedSpecies = form.watch("species");
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setPhotoPreview(dataUrl);
+      form.setValue("photoUrl", dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onSubmit = async (data: z.infer<typeof createAnimalSchema>) => {
     if (!activeFarmId) return;
+    const { initialWeight, ...animalData } = data;
     createAnimal.mutate({
       farmId: activeFarmId,
-      data: { ...data, status: "active" } as CreateAnimalRequest
+      data: { ...animalData, status: "active" } as CreateAnimalRequest
     }, {
-      onSuccess: () => {
+      onSuccess: async (created) => {
+        if (initialWeight && Number(initialWeight) > 0 && created?.id) {
+          await addWeight.mutateAsync({ animalId: created.id, weightKg: Number(initialWeight) });
+        }
         setIsDialogOpen(false);
+        setPhotoPreview(null);
         form.reset();
         queryClient.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/animals`] });
       }
@@ -89,46 +133,154 @@ export function AnimalList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-serif text-primary font-bold">{t('nav.animals')}</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) { setPhotoPreview(null); form.reset(); }
+        }}>
           <DialogTrigger asChild>
             <Button className="rounded-xl px-6 bg-secondary hover:bg-secondary/90 hover-elevate shadow-md">
               <Plus className="mr-2 h-4 w-4" /> {t('animals.add')}
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogContent className="sm:max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl text-primary">{t('animals.add')}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pt-2">
+
+                {/* ── SPECIES GRID ── */}
                 <FormField control={form.control} name="species" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('animals.species')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent className="rounded-xl">
-                        {["cattle", "chicken", "pig", "goat", "sheep", "horse", "other"].map(s => (
-                          <SelectItem key={s} value={s}>{SPECIES_EMOJI[s]} {t(`animals.sp.${s}`)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel className="text-sm font-semibold">{t('animals.species')}</FormLabel>
+                    <div className="grid grid-cols-4 gap-2 pt-1">
+                      {ALL_SPECIES.map(sp => (
+                        <button
+                          key={sp}
+                          type="button"
+                          onClick={() => { field.onChange(sp); form.setValue("animalType", ""); }}
+                          className={`flex flex-col items-center gap-1 py-3 px-1 rounded-xl border text-xs font-medium transition-all ${
+                            field.value === sp
+                              ? "bg-secondary/10 border-secondary text-secondary shadow-sm"
+                              : "bg-muted/30 border-border/40 text-muted-foreground hover:border-secondary/40 hover:text-secondary/80"
+                          }`}
+                        >
+                          <span className="text-2xl">{SPECIES_EMOJI[sp]}</span>
+                          <span>{t(`animals.sp.${sp}`)}</span>
+                        </button>
+                      ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="customTag" render={({ field }) => (
+
+                {/* ── PHOTO UPLOAD ── */}
+                <div>
+                  <label className="text-sm font-semibold mb-2 block">{t('animals.photo')} <span className="text-muted-foreground font-normal">({t('common.optional')})</span></label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                  />
+                  {photoPreview ? (
+                    <div className="relative rounded-xl overflow-hidden h-36 bg-muted/30 border border-border/40">
+                      <img src={photoPreview} alt="preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => { setPhotoPreview(null); form.setValue("photoUrl", ""); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                        className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                      >
+                        <Camera className="h-3 w-3" /> Cambiar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full h-28 rounded-xl border-2 border-dashed border-border/50 hover:border-secondary/50 bg-muted/20 hover:bg-secondary/5 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-secondary transition-all"
+                    >
+                      <Upload className="h-6 w-6" />
+                      <span className="text-sm">{t('animals.photoUpload')}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* ── ID + NAME ── */}
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField control={form.control} name="customTag" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ID / Tag</FormLabel>
+                      <FormControl><Input {...field} className="rounded-xl" placeholder="EJ: BOV-001" /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('animals.name')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                      <FormControl><Input {...field} className="rounded-xl" placeholder="EJ: Reina" /></FormControl>
+                    </FormItem>
+                  )} />
+                </div>
+
+                {/* ── TYPE + BREED ── */}
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField control={form.control} name="animalType" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('animals.type')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          list={`type-suggestions-${watchedSpecies}`}
+                          className="rounded-xl"
+                          placeholder={t('animals.typePlaceholder')}
+                        />
+                      </FormControl>
+                      <datalist id={`type-suggestions-${watchedSpecies}`}>
+                        {(ANIMAL_TYPE_SUGGESTIONS[watchedSpecies] ?? []).map(opt => (
+                          <option key={opt} value={opt} />
+                        ))}
+                      </datalist>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="breed" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('animals.breed')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                      <FormControl><Input {...field} className="rounded-xl" placeholder="EJ: Brahman" /></FormControl>
+                    </FormItem>
+                  )} />
+                </div>
+
+                {/* ── WEIGHT ── */}
+                <FormField control={form.control} name="initialWeight" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ID / Tag</FormLabel>
-                    <FormControl><Input {...field} className="rounded-xl" placeholder="EJ: 001" /></FormControl>
+                    <FormLabel>{t('animals.initialWeight')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          {...field}
+                          className="rounded-xl pr-12"
+                          placeholder="0"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">kg</span>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('animals.name')}</FormLabel>
-                    <FormControl><Input {...field} className="rounded-xl" placeholder={t('common.optional')} /></FormControl>
-                  </FormItem>
-                )} />
-                <Button type="submit" disabled={createAnimal.isPending} className="w-full rounded-xl mt-6 py-6 bg-primary hover:bg-primary/90">
-                  {createAnimal.isPending ? t('common.saving') : t('common.save')}
+
+                <Button type="submit" disabled={createAnimal.isPending || addWeight.isPending} className="w-full rounded-xl py-6 bg-primary hover:bg-primary/90">
+                  {(createAnimal.isPending || addWeight.isPending) ? t('common.saving') : t('common.save')}
                 </Button>
               </form>
             </Form>
