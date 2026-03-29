@@ -68,11 +68,13 @@ export function AnimalList() {
     });
   };
 
-  const presentSpecies = useMemo(() => {
-    if (!animals) return [];
-    const seen = new Set<string>();
-    animals.forEach((a: Animal) => seen.add(a.species));
-    return Array.from(seen).sort();
+  const ALL_SPECIES = ["cattle", "pig", "horse", "goat", "sheep", "chicken", "other"];
+
+  const speciesCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    ALL_SPECIES.forEach(sp => { counts[sp] = 0; });
+    animals?.forEach((a: Animal) => { counts[a.species] = (counts[a.species] ?? 0) + 1; });
+    return counts;
   }, [animals]);
 
   const filtered = useMemo(() => {
@@ -147,8 +149,8 @@ export function AnimalList() {
         </div>
       </div>
 
-      {/* Species filter chips — only shown when there are animals */}
-      {!isLoading && presentSpecies.length > 0 && (
+      {/* Species filter chips — always shown once data loads */}
+      {!isLoading && (
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedSpecies("all")}
@@ -166,9 +168,10 @@ export function AnimalList() {
             )}
           </button>
 
-          {presentSpecies.map(sp => {
-            const count = animals?.filter((a: Animal) => a.species === sp).length ?? 0;
+          {ALL_SPECIES.map(sp => {
+            const count = speciesCount[sp] ?? 0;
             const active = selectedSpecies === sp;
+            const isEmpty = count === 0;
             return (
               <button
                 key={sp}
@@ -176,13 +179,19 @@ export function AnimalList() {
                 className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all ${
                   active
                     ? "bg-secondary text-white border-secondary shadow-sm"
-                    : "bg-card border-border/50 text-muted-foreground hover:border-secondary/50 hover:text-secondary"
+                    : isEmpty
+                      ? "bg-card border-border/30 text-muted-foreground/50 hover:border-secondary/30 hover:text-secondary/60"
+                      : "bg-card border-border/50 text-muted-foreground hover:border-secondary/50 hover:text-secondary"
                 }`}
               >
-                <span>{SPECIES_EMOJI[sp] ?? "🐾"}</span>
+                <span className={isEmpty && !active ? "opacity-50" : ""}>{SPECIES_EMOJI[sp] ?? "🐾"}</span>
                 <span>{t(`animals.sp.${sp}`)}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                  active ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                  active
+                    ? "bg-white/20 text-white"
+                    : isEmpty
+                      ? "bg-muted/50 text-muted-foreground/40"
+                      : "bg-muted text-muted-foreground"
                 }`}>
                   {count}
                 </span>
