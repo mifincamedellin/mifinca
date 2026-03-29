@@ -276,7 +276,7 @@ export function Settings() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-xl py-6 px-4 border-border/50"
+                  className="rounded-xl py-[14px] px-4 border-border/50"
                   onClick={() => setEditingEmail(true)}
                 >
                   <Pencil className="h-4 w-4" />
