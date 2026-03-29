@@ -255,14 +255,14 @@ export function Settings() {
                 <Button
                   type="submit"
                   disabled={updateEmail.isPending}
-                  className="rounded-xl bg-primary hover:bg-primary/90 px-6 py-6"
+                  className="rounded-xl bg-primary hover:bg-primary/90 px-6 self-stretch"
                 >
                   {updateEmail.isPending ? t("settings.saving") : t("common.save")}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-xl py-6 px-4"
+                  className="rounded-xl self-stretch px-4"
                   onClick={() => { setEditingEmail(false); emailForm.reset({ email: profile?.email || "" }); }}
                 >
                   <X className="h-4 w-4" />
