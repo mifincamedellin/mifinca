@@ -231,7 +231,7 @@ export function Settings() {
                 <Button
                   type="submit"
                   disabled={updateProfile.isPending || !accountForm.formState.isDirty}
-                  className="rounded-xl bg-primary hover:bg-primary/90 px-6 py-6"
+                  className="rounded-xl bg-primary hover:bg-primary/90 px-6 self-stretch"
                 >
                   {updateProfile.isPending ? t("settings.saving") : t("common.save")}
                 </Button>
