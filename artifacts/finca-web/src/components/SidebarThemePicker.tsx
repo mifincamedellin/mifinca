@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useStore, type SidebarTheme } from "@/lib/store";
 
 const THEMES: {
@@ -13,12 +14,13 @@ const THEMES: {
 ];
 
 export function SidebarThemePicker() {
+  const { t } = useTranslation();
   const { sidebarTheme, setSidebarTheme } = useStore();
 
   return (
     <div className="flex items-center justify-between px-1 py-2">
       <span className="text-[11px] font-medium text-sidebar-foreground/40 uppercase tracking-wider">
-        Tema
+        {t("sidebar.theme")}
       </span>
       <div className="flex items-center gap-1.5">
         {THEMES.map((theme) => {
