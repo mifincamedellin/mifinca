@@ -28,14 +28,14 @@ router.post("/farms/:farmId/seed", requireAuth, requireFarmAccess, async (req, r
   try {
     // ── ANIMALS ──────────────────────────────────────────────────────────────
     const animalRows = await db.insert(animalsTable).values([
-      { farmId, customTag: "BOV-001", species: "cattle", breed: "Brahman", name: "Reina", sex: "female", dateOfBirth: "2020-03-12", status: "active", notes: "Buena productora de leche" },
-      { farmId, customTag: "BOV-002", species: "cattle", breed: "Simmental", name: "Luna", sex: "female", dateOfBirth: "2021-07-05", status: "active" },
-      { farmId, customTag: "BOV-003", species: "cattle", breed: "Brahman", name: "Toro Negro", sex: "male", dateOfBirth: "2019-11-20", status: "active", notes: "Semental principal" },
-      { farmId, customTag: "BOV-004", species: "cattle", breed: "Cebú", name: "Manchas", sex: "female", dateOfBirth: "2022-01-08", status: "active" },
-      { farmId, customTag: "CER-001", species: "pig", breed: "Landrace", name: "Gordita", sex: "female", dateOfBirth: "2023-02-14", status: "active" },
-      { farmId, customTag: "CER-002", species: "pig", breed: "Duroc", sex: "male", dateOfBirth: "2023-03-22", status: "active" },
-      { farmId, customTag: "CAB-001", species: "horse", breed: "Criollo Colombiano", name: "Rayo", sex: "male", dateOfBirth: "2018-05-30", status: "active", notes: "Caballo de trabajo" },
-      { farmId, customTag: "CAP-001", species: "goat", breed: "Nubian", name: "Bella", sex: "female", dateOfBirth: "2022-09-10", status: "active" },
+      { farmId, customTag: "BOV-001", species: "cattle", breed: "Brahman", name: "Reina", sex: "female", dateOfBirth: "2020-03-12", status: "active", notes: "Buena productora de leche", photoUrl: "/animals/reina-brahman.png" },
+      { farmId, customTag: "BOV-002", species: "cattle", breed: "Simmental", name: "Luna", sex: "female", dateOfBirth: "2021-07-05", status: "active", photoUrl: "/animals/luna-simmental.png" },
+      { farmId, customTag: "BOV-003", species: "cattle", breed: "Brahman", name: "Toro Negro", sex: "male", dateOfBirth: "2019-11-20", status: "active", notes: "Semental principal", photoUrl: "/animals/toro-negro.png" },
+      { farmId, customTag: "BOV-004", species: "cattle", breed: "Cebú", name: "Manchas", sex: "female", dateOfBirth: "2022-01-08", status: "active", photoUrl: "/animals/manchas-cebu.png" },
+      { farmId, customTag: "CER-001", species: "pig", breed: "Landrace", name: "Gordita", sex: "female", dateOfBirth: "2023-02-14", status: "active", photoUrl: "/animals/gordita-landrace.png" },
+      { farmId, customTag: "CER-002", species: "pig", breed: "Duroc", sex: "male", dateOfBirth: "2023-03-22", status: "active", photoUrl: "/animals/duroc-pig.png" },
+      { farmId, customTag: "CAB-001", species: "horse", breed: "Criollo Colombiano", name: "Rayo", sex: "male", dateOfBirth: "2018-05-30", status: "active", notes: "Caballo de trabajo", photoUrl: "/animals/rayo-horse.png" },
+      { farmId, customTag: "CAP-001", species: "goat", breed: "Nubian", name: "Bella", sex: "female", dateOfBirth: "2022-09-10", status: "active", photoUrl: "/animals/bella-nubian-goat.png" },
     ]).returning();
 
     const [reina, luna, toroNegro, manchas, gordita, cerDuroc, rayo, bella] = animalRows as typeof animalRows;
