@@ -195,7 +195,6 @@ export function AnimalList() {
                 }`}>
                   {count}
                 </span>
-                {active && <X className="h-3 w-3 ml-0.5 opacity-70" />}
               </button>
             );
           })}
