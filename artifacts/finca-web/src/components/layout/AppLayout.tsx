@@ -126,9 +126,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-          <SidebarFooter className="px-4 pt-2 pb-4 border-t border-sidebar-border">
+          <SidebarFooter className="px-4 pt-2 pb-4">
             <SidebarThemePicker />
-            <div className="flex items-center gap-3 mt-1 pt-2 border-t border-sidebar-border/50">
+            <div className="flex items-center gap-3 mt-1 pt-2 border-t border-sidebar-border">
               <Avatar className="h-10 w-10 border-2 border-accent/20">
                 <AvatarFallback className="bg-primary text-primary-foreground font-serif">
                   {user?.fullName?.substring(0, 2).toUpperCase() || 'FI'}
