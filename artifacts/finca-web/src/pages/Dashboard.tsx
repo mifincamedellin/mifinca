@@ -62,7 +62,9 @@ export function Dashboard() {
 
   if (!activeFarmId) return <div className="p-8 text-center text-muted-foreground">{t('common.loading')}</div>;
 
-  const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: isEn ? undefined : es });
+  const today = isEn
+    ? format(new Date(), "EEEE, MMMM d")
+    : format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
   const colors = ['#4A6741', '#C4956A', '#2C1810', '#6B8F61', '#8FAF85', '#D4A574', '#A0A0A0'];
 
   const SPECIES_LABELS: Record<string, { es: string; en: string }> = {

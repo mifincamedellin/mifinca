@@ -135,9 +135,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-medium text-sidebar-foreground truncate">{user?.fullName || 'Usuario'}</span>
+                <span className="text-sm font-medium text-sidebar-foreground truncate">{user?.fullName || t('common.userFallback')}</span>
                 <button onClick={handleLogout} className="text-xs text-sidebar-foreground/60 hover:text-accent text-left flex items-center gap-1 mt-0.5 transition-colors">
-                  <LogOut className="h-3 w-3" /> Salir
+                  <LogOut className="h-3 w-3" /> {t('common.logout')}
                 </button>
               </div>
             </div>
@@ -153,7 +153,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="font-serif text-lg text-primary hover:bg-black/5 hover-elevate border border-transparent hover:border-black/5 px-4 h-10 rounded-xl">
-                      {farms.find(f => f.id === activeFarmId)?.name || 'Seleccionar Finca'}
+                      {farms.find(f => f.id === activeFarmId)?.name || t('common.selectFarm')}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 rounded-xl border-border/50 shadow-lg p-1">

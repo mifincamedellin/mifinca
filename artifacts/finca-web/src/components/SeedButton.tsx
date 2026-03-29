@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sprout, Trash2, Loader2, FlaskConical } from "lucide-react";
@@ -7,6 +8,7 @@ import { Sprout, Trash2, Loader2, FlaskConical } from "lucide-react";
 type Phase = "idle" | "seeding" | "clearing" | "seeded" | "cleared";
 
 export function SeedButton() {
+  const { t } = useTranslation();
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -71,7 +73,7 @@ export function SeedButton() {
               className="fixed top-[4.5rem] right-4 z-50 bg-card border border-border/40 rounded-2xl shadow-2xl p-4 w-64"
             >
               <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-                Datos de prueba
+                {t("dev.title")}
               </p>
 
               <div className="space-y-2">
@@ -85,9 +87,9 @@ export function SeedButton() {
                   ) : (
                     <Sprout className="h-4 w-4" />
                   )}
-                  {phase === "seeding" ? "Cargando..." :
-                   phase === "seeded" ? "✓ Datos cargados" :
-                   "Cargar datos de ejemplo"}
+                  {phase === "seeding" ? t("dev.loading") :
+                   phase === "seeded" ? t("dev.loaded") :
+                   t("dev.loadData")}
                 </button>
 
                 <button
@@ -100,14 +102,14 @@ export function SeedButton() {
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
-                  {phase === "clearing" ? "Limpiando..." :
-                   phase === "cleared" ? "✓ Datos eliminados" :
-                   "Limpiar todos los datos"}
+                  {phase === "clearing" ? t("dev.clearing") :
+                   phase === "cleared" ? t("dev.cleared") :
+                   t("dev.clearData")}
                 </button>
               </div>
 
               <p className="text-xs text-muted-foreground/60 mt-3 leading-relaxed">
-                Carga animales, inventario, finanzas y contactos de ejemplo para tu finca activa.
+                {t("dev.description")}
               </p>
             </motion.div>
           </>

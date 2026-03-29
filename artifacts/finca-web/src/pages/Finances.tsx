@@ -53,7 +53,7 @@ function formatCOP(n: number) {
 const EMPTY_FORM = { type: "expense" as "income" | "expense", category: "", amount: "", description: "", date: new Date().toISOString().split("T")[0]!, notes: "" };
 
 export function Finances() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
 
@@ -124,7 +124,8 @@ export function Finances() {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const key = d.toISOString().slice(0, 7);
-      const label = d.toLocaleDateString("es-CO", { month: "short", year: "2-digit" });
+      const locale = i18n.language === "en" ? "en-US" : "es-CO";
+      const label = d.toLocaleDateString(locale, { month: "short", year: "2-digit" });
       months[key] = { month: label, income: 0, expense: 0 };
     }
     transactions.forEach(r => {
@@ -265,7 +266,7 @@ export function Finances() {
               <tbody>
                 {filtered.map((row, i) => (
                   <tr key={row.id} className={`border-t border-border/20 hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
-                    <td className="px-6 py-3 text-muted-foreground">{new Date(row.date + "T12:00:00").toLocaleDateString("es-CO")}</td>
+                    <td className="px-6 py-3 text-muted-foreground">{new Date(row.date + "T12:00:00").toLocaleDateString(i18n.language === "en" ? "en-US" : "es-CO")}</td>
                     <td className="px-6 py-3 font-medium">{row.description}</td>
                     <td className="px-6 py-3 text-muted-foreground">{catLabel(row.category, t)}</td>
                     <td className="px-6 py-3">
