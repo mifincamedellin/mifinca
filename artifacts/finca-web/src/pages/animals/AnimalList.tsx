@@ -161,8 +161,12 @@ export function AnimalList() {
             }`}
           >
             {t('animals.filter.all')}
-            {selectedSpecies === "all" && animals && (
-              <span className="ml-1 bg-primary-foreground/20 text-primary-foreground text-xs px-1.5 py-0.5 rounded-full font-semibold">
+            {animals && (
+              <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                selectedSpecies === "all"
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}>
                 {animals.length}
               </span>
             )}
