@@ -150,16 +150,49 @@ router.get("/auth/me", async (req, res) => {
       return res.status(404).json({ error: "not_found", message: "Profile not found" });
     }
 
+    const authUser = await pool.query<{ email: string }>(
+      "SELECT email FROM auth_users WHERE id = $1",
+      [payload.userId]
+    );
+
     return res.json({
       id: profile[0].id,
       fullName: profile[0].fullName,
       role: profile[0].role,
       preferredLanguage: profile[0].preferredLanguage,
       createdAt: profile[0].createdAt,
+      email: authUser.rows[0]?.email ?? null,
     });
   } catch (err: unknown) {
     req.log.error({ err }, "Auth me error");
     return res.status(401).json({ error: "unauthorized", message: "Invalid token" });
+  }
+});
+
+router.patch("/auth/email", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "unauthorized", message: "No token" });
+    }
+    const token = authHeader.slice(7);
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+
+    const { email } = req.body;
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      return res.status(400).json({ error: "bad_request", message: "Invalid email" });
+    }
+
+    const existing = await pool.query("SELECT id FROM auth_users WHERE email = $1 AND id != $2", [email, payload.userId]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: "conflict", message: "Email already in use" });
+    }
+
+    await pool.query("UPDATE auth_users SET email = $1 WHERE id = $2", [email, payload.userId]);
+    return res.json({ email });
+  } catch (err: unknown) {
+    req.log.error({ err }, "Update email error");
+    return res.status(500).json({ error: "internal", message: "Update failed" });
   }
 });
 
