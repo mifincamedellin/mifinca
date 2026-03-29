@@ -165,12 +165,13 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
       species: animalsTable.species,
     }).from(animalsTable).where(and(eq(animalsTable.farmId, farmId), eq(animalsTable.status, "active")));
 
+    const ALL_SPECIES = ["cattle", "pig", "horse", "goat", "sheep", "chicken", "other"];
     const speciesCounts = animalsForSpecies.reduce((acc: Record<string, number>, a) => {
       acc[a.species] = (acc[a.species] ?? 0) + 1;
       return acc;
-    }, {});
+    }, Object.fromEntries(ALL_SPECIES.map(s => [s, 0])));
 
-    const animalsBySpecies = Object.entries(speciesCounts).map(([species, c]) => ({ species, count: c }));
+    const animalsBySpecies = ALL_SPECIES.map(species => ({ species, count: speciesCounts[species] ?? 0 }));
 
     const inventoryItems = await db.select().from(inventoryItemsTable).where(eq(inventoryItemsTable.farmId, farmId));
 

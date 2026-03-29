@@ -63,7 +63,22 @@ export function Dashboard() {
   if (!activeFarmId) return <div className="p-8 text-center text-muted-foreground">{t('common.loading')}</div>;
 
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: isEn ? undefined : es });
-  const colors = ['#4A6741', '#C4956A', '#2C1810', '#6B8F61', '#E8D5BF'];
+  const colors = ['#4A6741', '#C4956A', '#2C1810', '#6B8F61', '#8FAF85', '#D4A574', '#A0A0A0'];
+
+  const SPECIES_LABELS: Record<string, { es: string; en: string }> = {
+    cattle:  { es: "Bovinos",  en: "Cattle"  },
+    pig:     { es: "Porcinos", en: "Pigs"    },
+    horse:   { es: "Equinos",  en: "Horses"  },
+    goat:    { es: "Caprinos", en: "Goats"   },
+    sheep:   { es: "Ovinos",   en: "Sheep"   },
+    chicken: { es: "Aves",     en: "Poultry" },
+    other:   { es: "Otros",    en: "Other"   },
+  };
+
+  const chartData = stats?.animalsBySpecies?.map(entry => ({
+    ...entry,
+    label: SPECIES_LABELS[entry.species]?.[isEn ? "en" : "es"] ?? entry.species,
+  })) ?? [];
 
   const statCards = [
     {
@@ -162,27 +177,28 @@ export function Dashboard() {
             } />
           </h3>
           <div className="h-72 w-full">
-            {stats?.animalsBySpecies && stats.animalsBySpecies.length > 0 ? (
+            {!statsLoading && (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.animalsBySpecies} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="species" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} />
-                  <Tooltip 
-                    cursor={{fill: 'transparent'}}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} 
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} allowDecimals={false} />
+                  <Tooltip
+                    cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    formatter={(value: number) => [value, isEn ? "Animals" : "Animales"]}
+                    labelFormatter={(label: string) => label}
                   />
-                  <Bar dataKey="count" radius={[6, 6, 6, 6]} barSize={40}>
-                    {stats.animalsBySpecies.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                  <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={36}>
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.count === 0 ? 'hsl(var(--muted))' : colors[index % colors.length]}
+                        opacity={entry.count === 0 ? 0.5 : 1}
+                      />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-                <img src={`${import.meta.env.BASE_URL}images/empty-farm.png`} className="h-32 object-contain opacity-50 mb-4" alt="Empty" />
-                <p>{isEn ? "No data available" : "No hay datos disponibles"}</p>
-              </div>
             )}
           </div>
         </Card>
