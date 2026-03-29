@@ -6,15 +6,16 @@ import type { InventoryItem, CreateInventoryItemRequest } from "@workspace/api-c
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, PackageOpen, AlertCircle } from "lucide-react";
+import { Search, Plus, PackageOpen, AlertCircle, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion, AnimatePresence } from "framer-motion";
 
 const createItemSchema = z.object({
   name: z.string().min(2),
@@ -24,13 +25,54 @@ const createItemSchema = z.object({
   lowStockThreshold: z.coerce.number().optional(),
 });
 
+type AdjustItem = { id: string; name: string; quantity: string; unit: string };
+
 export function InventoryList() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [adjustItem, setAdjustItem] = useState<AdjustItem | null>(null);
+  const [adjustOp, setAdjustOp] = useState<"add" | "use">("add");
+  const [adjustAmt, setAdjustAmt] = useState("");
+  const [adjustNotes, setAdjustNotes] = useState("");
   const queryClient = useQueryClient();
+
+  const adjustMut = useMutation({
+    mutationFn: async ({ itemId, change, notes }: { itemId: string; change: number; notes: string }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/inventory/${itemId}/log`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: change > 0 ? "add" : "use", quantityChange: change, notes }),
+      });
+      if (!res.ok) throw new Error("adjust failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/inventory`] });
+      setAdjustItem(null);
+      setAdjustAmt("");
+      setAdjustNotes("");
+    },
+  });
+
+  const handleAdjust = () => {
+    if (!adjustItem || !adjustAmt || parseFloat(adjustAmt) <= 0) return;
+    const change = adjustOp === "add" ? parseFloat(adjustAmt) : -parseFloat(adjustAmt);
+    adjustMut.mutate({ itemId: adjustItem.id, change, notes: adjustNotes });
+  };
+
+  const openAdjust = (item: InventoryItem) => {
+    setAdjustItem({ id: item.id, name: item.name, quantity: String(item.quantity), unit: item.unit });
+    setAdjustOp("add");
+    setAdjustAmt("");
+    setAdjustNotes("");
+  };
+
+  const newQty = adjustItem && adjustAmt && parseFloat(adjustAmt) > 0
+    ? Math.max(0, parseFloat(adjustItem.quantity) + (adjustOp === "add" ? parseFloat(adjustAmt) : -parseFloat(adjustAmt)))
+    : null;
 
   const { data: items, isLoading } = useListInventoryItems(
     activeFarmId || '', 
@@ -210,7 +252,12 @@ export function InventoryList() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-accent hover:bg-accent/10 rounded-lg">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-accent hover:bg-accent/10 rounded-lg"
+                        onClick={() => openAdjust(item)}
+                      >
                         {t('inventory.adjust')}
                       </Button>
                     </td>
@@ -230,6 +277,131 @@ export function InventoryList() {
           </table>
         </div>
       </Card>
+
+      {/* Adjust Quantity Modal */}
+      <AnimatePresence>
+        {adjustItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+            onClick={e => e.target === e.currentTarget && setAdjustItem(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 8 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 8 }}
+              transition={{ duration: 0.18 }}
+              className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-border/30"
+            >
+              {/* Header */}
+              <div className="mb-5">
+                <h2 className="text-xl font-serif font-bold text-primary">{t('inventory.adjust')}</h2>
+                <p className="text-muted-foreground text-sm mt-0.5 truncate">{adjustItem.name}</p>
+              </div>
+
+              {/* Current qty display */}
+              <div className="bg-muted/30 rounded-xl px-4 py-3 mb-5 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{t('inventory.quantity')} actual</span>
+                <span className="font-mono font-bold text-lg text-foreground">
+                  {parseFloat(adjustItem.quantity)} <span className="text-sm font-normal text-muted-foreground">{adjustItem.unit}</span>
+                </span>
+              </div>
+
+              {/* Operation toggle */}
+              <div className="grid grid-cols-2 gap-2 mb-5">
+                <button
+                  onClick={() => setAdjustOp("add")}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition-all ${
+                    adjustOp === "add"
+                      ? "bg-secondary/10 border-secondary text-secondary shadow-sm"
+                      : "border-border/40 text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <ArrowUpCircle className="h-4 w-4" />
+                  {t('inventory.adjust.add')}
+                </button>
+                <button
+                  onClick={() => setAdjustOp("use")}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition-all ${
+                    adjustOp === "use"
+                      ? "bg-destructive/10 border-destructive/60 text-destructive shadow-sm"
+                      : "border-border/40 text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <ArrowDownCircle className="h-4 w-4" />
+                  {t('inventory.adjust.use')}
+                </button>
+              </div>
+
+              {/* Amount input */}
+              <div className="mb-4">
+                <label className="text-sm font-medium mb-1.5 block">
+                  {adjustOp === "add" ? t('inventory.adjust.amtAdd') : t('inventory.adjust.amtUse')} ({adjustItem.unit})
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={adjustAmt}
+                  onChange={e => setAdjustAmt(e.target.value)}
+                  placeholder="0"
+                  className="rounded-xl text-lg h-12 font-mono"
+                  autoFocus
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="mb-5">
+                <label className="text-sm font-medium mb-1.5 block text-muted-foreground">{t('inventory.adjust.notes')}</label>
+                <Input
+                  value={adjustNotes}
+                  onChange={e => setAdjustNotes(e.target.value)}
+                  placeholder={t('inventory.adjust.notesPlaceholder')}
+                  className="rounded-xl"
+                />
+              </div>
+
+              {/* New qty preview */}
+              {newQty !== null && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="mb-5 rounded-xl px-4 py-3 flex items-center justify-between border"
+                  style={{
+                    background: adjustOp === "add" ? "rgb(74 103 65 / 0.06)" : "rgb(239 68 68 / 0.05)",
+                    borderColor: adjustOp === "add" ? "rgb(74 103 65 / 0.2)" : "rgb(239 68 68 / 0.2)",
+                  }}
+                >
+                  <span className="text-sm text-muted-foreground">{t('inventory.adjust.newQty')}</span>
+                  <span className={`font-mono font-bold text-lg ${adjustOp === "add" ? "text-secondary" : "text-destructive"}`}>
+                    {newQty} <span className="text-sm font-normal text-muted-foreground">{adjustItem.unit}</span>
+                  </span>
+                </motion.div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setAdjustItem(null)}
+                  className="flex-1 rounded-xl"
+                >
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  onClick={handleAdjust}
+                  disabled={adjustMut.isPending || !adjustAmt || parseFloat(adjustAmt) <= 0}
+                  className={`flex-1 rounded-xl text-white ${adjustOp === "add" ? "bg-secondary hover:bg-secondary/90" : "bg-destructive hover:bg-destructive/90"}`}
+                >
+                  {adjustMut.isPending ? t('common.saving') : t('inventory.adjust.confirm')}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
