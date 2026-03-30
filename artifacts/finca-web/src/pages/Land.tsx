@@ -13,7 +13,133 @@ import { Textarea } from "@/components/ui/textarea";
 import { X, MapPin, Trash2, Loader2, Pencil, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-delete (L.Icon.Default.prototype as Record<string, unknown>)["_getIconUrl"];
+const DRAW_LOCAL: Record<string, typeof L.drawLocal> = {
+  es: {
+    draw: {
+      toolbar: {
+        actions: { title: "Cancelar dibujo", text: "Cancelar" },
+        finish: { title: "Terminar dibujo", text: "Terminar" },
+        undo: { title: "Eliminar el último punto", text: "Eliminar último punto" },
+        buttons: {
+          polyline: "Trazar una polilínea",
+          polygon: "Trazar un polígono",
+          rectangle: "Trazar un rectángulo",
+          circle: "Trazar un círculo",
+          marker: "Colocar un marcador",
+          circlemarker: "Colocar un marcador circular",
+        },
+      },
+      handlers: {
+        circle: { tooltip: { start: "Haz clic y arrastra para dibujar un círculo." }, radius: "Radio" },
+        circlemarker: { tooltip: { start: "Haz clic para colocar un marcador circular." } },
+        marker: { tooltip: { start: "Haz clic para colocar un marcador." } },
+        polygon: {
+          tooltip: {
+            start: "Haz clic para empezar a dibujar.",
+            cont: "Haz clic para continuar dibujando.",
+            end: "Haz clic en el primer punto para cerrar la zona.",
+          },
+        },
+        polyline: {
+          error: "<strong>Error:</strong> ¡Los bordes no pueden cruzarse!",
+          tooltip: {
+            start: "Haz clic para empezar a dibujar.",
+            cont: "Haz clic para continuar.",
+            end: "Haz doble clic para terminar.",
+          },
+        },
+        rectangle: { tooltip: { start: "Haz clic y arrastra para dibujar." } },
+        simpleshape: { tooltip: { end: "Suelta el ratón para terminar." } },
+      },
+    },
+    edit: {
+      toolbar: {
+        actions: {
+          save: { title: "Guardar cambios", text: "Guardar" },
+          cancel: { title: "Cancelar edición", text: "Cancelar" },
+          clearAll: { title: "Borrar todo", text: "Borrar todo" },
+        },
+        buttons: {
+          edit: "Editar zonas",
+          editDisabled: "No hay zonas para editar",
+          remove: "Eliminar zonas",
+          removeDisabled: "No hay zonas para eliminar",
+        },
+      },
+      handlers: {
+        edit: { tooltip: { text: "Arrastra los puntos para editar.", subtext: "Haz clic en Cancelar para deshacer." } },
+        remove: { tooltip: { text: "Haz clic en una zona para eliminarla." } },
+      },
+    },
+  },
+  en: {
+    draw: {
+      toolbar: {
+        actions: { title: "Cancel drawing", text: "Cancel" },
+        finish: { title: "Finish drawing", text: "Finish" },
+        undo: { title: "Delete last point drawn", text: "Delete last point" },
+        buttons: {
+          polyline: "Draw a polyline",
+          polygon: "Draw a polygon",
+          rectangle: "Draw a rectangle",
+          circle: "Draw a circle",
+          marker: "Draw a marker",
+          circlemarker: "Draw a circlemarker",
+        },
+      },
+      handlers: {
+        circle: { tooltip: { start: "Click and drag to draw circle." }, radius: "Radius" },
+        circlemarker: { tooltip: { start: "Click map to place circle marker." } },
+        marker: { tooltip: { start: "Click map to place marker." } },
+        polygon: {
+          tooltip: {
+            start: "Click to start drawing shape.",
+            cont: "Click to continue drawing shape.",
+            end: "Click first point to close this shape.",
+          },
+        },
+        polyline: {
+          error: "<strong>Error:</strong> shape edges cannot cross!",
+          tooltip: {
+            start: "Click to start drawing line.",
+            cont: "Click to continue drawing line.",
+            end: "Double click to finish line.",
+          },
+        },
+        rectangle: { tooltip: { start: "Click and drag to draw rectangle." } },
+        simpleshape: { tooltip: { end: "Release mouse to finish drawing." } },
+      },
+    },
+    edit: {
+      toolbar: {
+        actions: {
+          save: { title: "Save changes", text: "Save" },
+          cancel: { title: "Cancel editing, discards all changes", text: "Cancel" },
+          clearAll: { title: "Clear all layers", text: "Clear All" },
+        },
+        buttons: {
+          edit: "Edit layers",
+          editDisabled: "No layers to edit",
+          remove: "Delete layers",
+          removeDisabled: "No layers to delete",
+        },
+      },
+      handlers: {
+        edit: { tooltip: { text: "Drag handles or markers to edit features.", subtext: "Click cancel to undo changes." } },
+        remove: { tooltip: { text: "Click on a feature to remove." } },
+      },
+    },
+  },
+};
+
+function applyDrawLocale(lang: string) {
+  const locale = DRAW_LOCAL[lang] ?? DRAW_LOCAL["es"]!;
+  Object.assign(L.drawLocal.draw, locale.draw);
+  Object.assign(L.drawLocal.edit, locale.edit);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+delete (L.Icon.Default.prototype as any)["_getIconUrl"];
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -213,9 +339,11 @@ interface FarmMapProps {
   onZoneCreated: (geometry: GeoJsonPolygon) => void;
   onZoneSelected: (zone: Zone) => void;
   activeColor: string;
+  lang: string;
 }
 
 const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
+  lang,
   center,
   zoom,
   zones,
@@ -246,6 +374,7 @@ const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
     drawnItems.addTo(map);
     drawnItemsRef.current = drawnItems;
 
+    applyDrawLocale(lang);
     const drawControl = new L.Control.Draw({
       draw: {
         polygon: {
@@ -306,6 +435,7 @@ const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
     const oldControl = drawControlRef.current;
     if (!map || !oldControl) return;
 
+    applyDrawLocale(lang);
     map.removeControl(oldControl);
     const newControl = new L.Control.Draw({
       draw: {
@@ -328,7 +458,7 @@ const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
     });
     newControl.addTo(map);
     drawControlRef.current = newControl;
-  }, [activeColor]);
+  }, [activeColor, lang]);
 
   useImperativeHandle(ref, () => ({
     removeZoneLayer(id: string) {
@@ -485,7 +615,7 @@ function SetupMap({
 }
 
 export function Land() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
   const farmMapRef = useRef<FarmMapHandle>(null);
@@ -620,6 +750,7 @@ export function Land() {
             onZoneCreated={handlePolygonCreated}
             onZoneSelected={handleZoneSelected}
             activeColor={activeColor}
+            lang={i18n.language}
           />
 
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-card/95 backdrop-blur-md rounded-2xl shadow-lg border border-border/50 px-3 py-2">
