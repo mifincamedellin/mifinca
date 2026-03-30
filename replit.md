@@ -93,7 +93,7 @@ All under `/api`:
 - `POST /api/farms/:id/inventory/:itemId/log`
 - `GET /api/farms/:id/activity`
 - `GET/POST /api/farms/:id/zones`, `PATCH/DELETE /api/farms/:id/zones/:zoneId`
-- `PATCH /api/farms/:id/map-location` — save farm map center (lat/lng/zoom)
+- `PATCH /api/farms/:id/location` — save farm map center (lat/lng/zoom)
 - `GET/POST /api/farms/:id/employees`, `PUT/DELETE /api/farms/:id/employees/:empId`
 - `PATCH /api/farms/:id/pay-day`
 - `GET /api/search?farmId=&q=`

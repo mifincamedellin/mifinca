@@ -1,4 +1,5 @@
 import { Router, Request } from "express";
+import { z } from "zod";
 import { db } from "@workspace/db";
 import {
   farmsTable, farmMembersTable, profilesTable,
@@ -153,9 +154,17 @@ router.delete("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, 
   }
 });
 
+const locationSchema = z.object({
+  mapLat: z.number().min(-90).max(90),
+  mapLng: z.number().min(-180).max(180),
+  mapZoom: z.number().int().min(1).max(22).optional(),
+});
+
 router.patch("/farms/:farmId/location", requireAuth, requireFarmAccess, async (req, res) => {
   try {
-    const { mapLat, mapLng, mapZoom } = req.body;
+    const parsed = locationSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "invalid_input", details: parsed.error.flatten() });
+    const { mapLat, mapLng, mapZoom } = parsed.data;
     const updated = await db.update(farmsTable)
       .set({
         ...(mapLat !== undefined && { mapLat: String(mapLat) }),
