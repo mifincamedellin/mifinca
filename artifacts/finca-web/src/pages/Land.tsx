@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
@@ -10,22 +10,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { X, MapPin, Trash2, Loader2, Pencil } from "lucide-react";
+import { X, MapPin, Trash2, Loader2, Pencil, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as Record<string, unknown>)["_getIconUrl"];
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+interface GeoJsonPolygon {
+  type: "Polygon";
+  coordinates: [number, number][][];
+}
+
+interface LegacyGeometry {
+  coordinates: [number, number][];
+}
+
+type ZoneGeometry = GeoJsonPolygon | LegacyGeometry;
+
 interface Zone {
   id: string;
   name: string;
   color: string | null;
   notes: string | null;
-  geometry: { coordinates: [number, number][] } | null;
+  geometry: ZoneGeometry | null;
 }
 
 interface FarmData {
@@ -35,15 +46,36 @@ interface FarmData {
   mapZoom: number | null;
 }
 
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
 const ZONE_COLORS = [
   "#4A6741", "#7CB87A", "#3B82F6", "#F59E0B",
   "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4",
   "#F97316", "#84CC16", "#6B7280", "#92400E",
 ];
 
-const COLOMBIA_CENTER: [number, number] = [4.5709, -74.2973];
+const COLOMBIA_CENTER: L.LatLngExpression = [4.5709, -74.2973];
 const ESRI_SATELLITE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const ESRI_ATTRIBUTION = "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye";
+
+function leafletToGeoJson(latlngs: L.LatLng[]): GeoJsonPolygon {
+  const ring = latlngs.map((ll): [number, number] => [ll.lng, ll.lat]);
+  if (ring.length > 0) ring.push(ring[0]!);
+  return { type: "Polygon", coordinates: [ring] };
+}
+
+function geoJsonToLeaflet(geometry: ZoneGeometry): L.LatLngExpression[] {
+  if ("type" in geometry && geometry.type === "Polygon") {
+    return (geometry.coordinates[0] ?? []).map(([lng, lat]): L.LatLngExpression => [lat, lng]);
+  }
+  const legacy = geometry as LegacyGeometry;
+  return legacy.coordinates.map(([lat, lng]): L.LatLngExpression => [lat, lng]);
+}
 
 interface ZonePanelProps {
   zone: Partial<Zone> | null;
@@ -170,26 +202,32 @@ function ZonePanel({ zone, isNew, onSave, onDelete, onClose, isSaving, isDeletin
   );
 }
 
-function FarmMap({
+interface FarmMapHandle {
+  removeZoneLayer: (id: string) => void;
+}
+
+interface FarmMapProps {
+  center: L.LatLngExpression;
+  zoom: number;
+  zones: Zone[];
+  onZoneCreated: (geometry: GeoJsonPolygon) => void;
+  onZoneSelected: (zone: Zone) => void;
+  activeColor: string;
+}
+
+const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
   center,
   zoom,
   zones,
   onZoneCreated,
   onZoneSelected,
   activeColor,
-}: {
-  center: [number, number];
-  zoom: number;
-  zones: Zone[];
-  onZoneCreated: (latlngs: [number, number][]) => void;
-  onZoneSelected: (zone: Zone) => void;
-  activeColor: string;
-}) {
+}, ref) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
   const zoneLayersRef = useRef<Map<string, L.Polygon>>(new Map());
-  const drawControlRef = useRef<any>(null);
+  const drawControlRef = useRef<L.Control.Draw | null>(null);
   const onZoneCreatedRef = useRef(onZoneCreated);
   const onZoneSelectedRef = useRef(onZoneSelected);
   const activeColorRef = useRef(activeColor);
@@ -201,22 +239,14 @@ function FarmMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current, {
-      center,
-      zoom,
-      zoomControl: true,
-    });
-
-    L.tileLayer(ESRI_SATELLITE, {
-      attribution: ESRI_ATTRIBUTION,
-      maxZoom: 20,
-    }).addTo(map);
+    const map = L.map(containerRef.current, { center, zoom });
+    L.tileLayer(ESRI_SATELLITE, { attribution: ESRI_ATTRIBUTION, maxZoom: 20 }).addTo(map);
 
     const drawnItems = new L.FeatureGroup();
     drawnItems.addTo(map);
     drawnItemsRef.current = drawnItems;
 
-    const drawControl = new (L.Control as any).Draw({
+    const drawControl = new L.Control.Draw({
       draw: {
         polygon: {
           allowIntersection: false,
@@ -238,11 +268,10 @@ function FarmMap({
     drawControl.addTo(map);
     drawControlRef.current = drawControl;
 
-    map.on((L as any).Draw.Event.CREATED, (e: any) => {
-      const layer = e.layer;
-      const rawLatLngs = (layer.getLatLngs() as L.LatLng[][])[0]!;
-      const latlngs: [number, number][] = rawLatLngs.map((ll) => [ll.lat, ll.lng]);
-      onZoneCreatedRef.current(latlngs);
+    map.on(L.Draw.Event.CREATED, (e: L.DrawEvents.Created) => {
+      const polygon = e.layer as L.Polygon;
+      const rawLatLngs = (polygon.getLatLngs() as L.LatLng[][])[0] ?? [];
+      onZoneCreatedRef.current(leafletToGeoJson(rawLatLngs));
     });
 
     mapRef.current = map;
@@ -254,42 +283,17 @@ function FarmMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    const drawnItems = drawnItemsRef.current;
-    if (!map || !drawnItems) return;
+    if (!map) return;
 
-    const existingIds = new Set(zoneLayersRef.current.keys());
-    const incomingIds = new Set(zones.map((z) => z.id));
-
-    existingIds.forEach((id) => {
-      if (!incomingIds.has(id)) {
-        const layer = zoneLayersRef.current.get(id);
-        if (layer) {
-          map.removeLayer(layer);
-          zoneLayersRef.current.delete(id);
-        }
-      }
-    });
+    zoneLayersRef.current.forEach((layer) => map.removeLayer(layer));
+    zoneLayersRef.current.clear();
 
     zones.forEach((zone) => {
-      const coords = zone.geometry?.coordinates;
-      if (!coords || coords.length < 3) return;
+      if (!zone.geometry) return;
+      const positions = geoJsonToLeaflet(zone.geometry);
+      if (positions.length < 3) return;
       const color = zone.color ?? "#4A6741";
-
-      const existing = zoneLayersRef.current.get(zone.id);
-      if (existing) {
-        existing.setStyle({ color, fillColor: color });
-        existing.setLatLngs(coords);
-        (existing as any)._tooltip && existing.setTooltipContent(zone.name);
-        return;
-      }
-
-      const polygon = L.polygon(coords, {
-        color,
-        fillColor: color,
-        fillOpacity: 0.35,
-        weight: 2,
-      });
-
+      const polygon = L.polygon(positions, { color, fillColor: color, fillOpacity: 0.35, weight: 2 });
       polygon.bindTooltip(zone.name, { permanent: false, sticky: true });
       polygon.on("click", () => onZoneSelectedRef.current(zone));
       polygon.addTo(map);
@@ -299,11 +303,11 @@ function FarmMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    const drawControl = drawControlRef.current;
-    if (!map || !drawControl) return;
+    const oldControl = drawControlRef.current;
+    if (!map || !oldControl) return;
 
-    map.removeControl(drawControl);
-    const newDrawControl = new (L.Control as any).Draw({
+    map.removeControl(oldControl);
+    const newControl = new L.Control.Draw({
       draw: {
         polygon: {
           allowIntersection: false,
@@ -322,12 +326,23 @@ function FarmMap({
       },
       edit: { featureGroup: drawnItemsRef.current!, remove: false },
     });
-    newDrawControl.addTo(map);
-    drawControlRef.current = newDrawControl;
+    newControl.addTo(map);
+    drawControlRef.current = newControl;
   }, [activeColor]);
 
+  useImperativeHandle(ref, () => ({
+    removeZoneLayer(id: string) {
+      const map = mapRef.current;
+      const layer = zoneLayersRef.current.get(id);
+      if (map && layer) {
+        map.removeLayer(layer);
+        zoneLayersRef.current.delete(id);
+      }
+    },
+  }));
+
   return <div ref={containerRef} style={{ height: "100%", width: "100%" }} />;
-}
+});
 
 function SetupMap({
   onSetLocation,
@@ -339,36 +354,59 @@ function SetupMap({
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const [clicked, setClicked] = useState<{ lat: number; lng: number } | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const [clicked, setClicked] = useState<{ lat: number; lng: number } | null>(null);
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current, {
-      center: COLOMBIA_CENTER,
-      zoom: 6,
-    });
-
-    L.tileLayer(ESRI_SATELLITE, {
-      attribution: ESRI_ATTRIBUTION,
-      maxZoom: 20,
-    }).addTo(map);
+    const map = L.map(containerRef.current, { center: COLOMBIA_CENTER, zoom: 6 });
+    L.tileLayer(ESRI_SATELLITE, { attribution: ESRI_ATTRIBUTION, maxZoom: 20 }).addTo(map);
 
     map.on("click", (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
       setClicked({ lat, lng });
+      setResults([]);
       if (markerRef.current) markerRef.current.remove();
-      const marker = L.marker([lat, lng]).addTo(map);
-      markerRef.current = marker;
+      markerRef.current = L.marker([lat, lng]).addTo(map);
     });
 
     mapRef.current = map;
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    return () => { map.remove(); mapRef.current = null; };
   }, []);
+
+  const handleSearch = async () => {
+    if (!search.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(search)}&limit=5&countrycodes=co`,
+        { headers: { "Accept-Language": "es,en" } }
+      );
+      const data: NominatimResult[] = await res.json();
+      setResults(data);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const selectResult = (result: NominatimResult) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    setClicked({ lat, lng });
+    setResults([]);
+    setSearch(result.display_name.split(",")[0] ?? result.display_name);
+    const map = mapRef.current;
+    if (!map) return;
+    map.setView([lat, lng], 15);
+    if (markerRef.current) markerRef.current.remove();
+    markerRef.current = L.marker([lat, lng]).addTo(map);
+  };
 
   return (
     <div className="relative h-full w-full">
@@ -388,7 +426,44 @@ function SetupMap({
               <p className="text-xs text-muted-foreground">{t("land.setup.subtitle")}</p>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">{t("land.setup.instruction")}</p>
+
+          <div className="relative mb-3">
+            <div className="flex gap-2">
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                placeholder={t("land.setup.searchPlaceholder")}
+                className="rounded-xl text-sm"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="rounded-xl flex-shrink-0"
+                onClick={handleSearch}
+                disabled={searching}
+              >
+                {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+            {results.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-10">
+                {results.map((r) => (
+                  <button
+                    key={r.place_id}
+                    onClick={() => selectResult(r)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted/60 transition-colors border-b border-border/30 last:border-0 truncate"
+                  >
+                    {r.display_name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground mb-4">{t("land.setup.instruction")}</p>
+
           {clicked && (
             <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-xl text-xs font-mono text-primary">
               {clicked.lat.toFixed(6)}, {clicked.lng.toFixed(6)}
@@ -413,11 +488,13 @@ export function Land() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
+  const farmMapRef = useRef<FarmMapHandle>(null);
   const [panel, setPanel] = useState<{
     mode: "new" | "edit";
     zone: Partial<Zone>;
-    pendingCoords?: [number, number][];
+    pendingGeometry?: GeoJsonPolygon;
   } | null>(null);
+  const editingZoneIdRef = useRef<string | null>(null);
   const [activeColor, setActiveColor] = useState(ZONE_COLORS[0]!);
 
   const { data: zones = [] } = useQuery<Zone[]>({
@@ -451,17 +528,18 @@ export function Land() {
   });
 
   const createZone = useMutation({
-    mutationFn: async (data: { name: string; color: string; notes: string; geometry: { coordinates: [number, number][] } }) => {
+    mutationFn: async (data: { name: string; color: string; notes: string; geometry: GeoJsonPolygon }) => {
       const res = await fetch(`/api/farms/${activeFarmId}/zones`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      return res.json();
+      return res.json() as Promise<Zone>;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["zones", activeFarmId] });
+    onSuccess: (newZone) => {
+      qc.setQueryData(["zones", activeFarmId], (old: Zone[] | undefined) => [...(old ?? []), newZone]);
       setPanel(null);
+      qc.invalidateQueries({ queryKey: ["zones", activeFarmId] });
     },
   });
 
@@ -472,42 +550,47 @@ export function Land() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      return res.json();
+      return res.json() as Promise<Zone>;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["zones", activeFarmId] });
+    onSuccess: (updated) => {
+      qc.setQueryData(["zones", activeFarmId], (old: Zone[] | undefined) =>
+        (old ?? []).map((z) => (z.id === updated.id ? updated : z)),
+      );
       setPanel(null);
+      qc.invalidateQueries({ queryKey: ["zones", activeFarmId] });
     },
   });
 
   const deleteZone = useMutation({
     mutationFn: async (id: string) => {
       await fetch(`/api/farms/${activeFarmId}/zones/${id}`, { method: "DELETE" });
+      return id;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["zones", activeFarmId] });
+    onSuccess: (id) => {
+      farmMapRef.current?.removeZoneLayer(id);
+      qc.setQueryData(["zones", activeFarmId], (old: Zone[] | undefined) =>
+        (old ?? []).filter((z) => z.id !== id),
+      );
       setPanel(null);
+      qc.invalidateQueries({ queryKey: ["zones", activeFarmId] });
     },
   });
 
-  const handlePolygonCreated = useCallback((latlngs: [number, number][]) => {
-    setPanel({ mode: "new", zone: { color: activeColor }, pendingCoords: latlngs });
+  const handlePolygonCreated = useCallback((geometry: GeoJsonPolygon) => {
+    setPanel({ mode: "new", zone: { color: activeColor }, pendingGeometry: geometry });
   }, [activeColor]);
 
   const handleZoneSelected = useCallback((zone: Zone) => {
+    editingZoneIdRef.current = zone.id;
     setPanel({ mode: "edit", zone });
   }, []);
 
   const handleSave = (data: { name: string; color: string; notes: string }) => {
-    if (panel?.mode === "new" && panel.pendingCoords) {
-      createZone.mutate({ ...data, geometry: { coordinates: panel.pendingCoords } });
+    if (panel?.mode === "new" && panel.pendingGeometry) {
+      createZone.mutate({ ...data, geometry: panel.pendingGeometry });
     } else if (panel?.mode === "edit" && panel.zone.id) {
       updateZone.mutate({ id: panel.zone.id, ...data });
     }
-  };
-
-  const handleDelete = () => {
-    if (panel?.zone.id) deleteZone.mutate(panel.zone.id);
   };
 
   if (farmLoading || !activeFarmId) {
@@ -518,18 +601,19 @@ export function Land() {
     );
   }
 
-  const hasLocation = farmData?.mapLat && farmData?.mapLng;
-  const mapCenter: [number, number] = hasLocation
+  const hasLocation = !!farmData?.mapLat && !!farmData?.mapLng;
+  const mapCenter: L.LatLngExpression = hasLocation
     ? [parseFloat(farmData!.mapLat!), parseFloat(farmData!.mapLng!)]
     : COLOMBIA_CENTER;
-  const mapZoom = hasLocation ? (farmData?.mapZoom ?? 15) : 6;
+  const mapZoom = farmData?.mapZoom ?? 15;
 
   return (
     <div className="-mx-6 -mt-6 md:-mx-8 md:-mt-8 h-[calc(100vh-4rem)] overflow-hidden relative">
       {hasLocation ? (
         <>
           <FarmMap
-            key={`${mapCenter[0]}-${mapCenter[1]}`}
+            ref={farmMapRef}
+            key={`${farmData?.mapLat}-${farmData?.mapLng}`}
             center={mapCenter}
             zoom={mapZoom}
             zones={zones}
@@ -573,7 +657,7 @@ export function Land() {
                 zone={panel.zone}
                 isNew={panel.mode === "new"}
                 onSave={handleSave}
-                onDelete={panel.mode === "edit" ? handleDelete : undefined}
+                onDelete={panel.mode === "edit" ? () => { const id = editingZoneIdRef.current; if (id) deleteZone.mutate(id); } : undefined}
                 onClose={() => setPanel(null)}
                 isSaving={createZone.isPending || updateZone.isPending}
                 isDeleting={deleteZone.isPending}

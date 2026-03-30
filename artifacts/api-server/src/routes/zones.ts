@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { zonesTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
 const router = Router();
@@ -52,7 +52,10 @@ router.patch("/farms/:farmId/zones/:zoneId", requireAuth, requireFarmAccess, asy
         ...(notes !== undefined && { notes }),
         updatedAt: new Date(),
       })
-      .where(eq(zonesTable.id, req.params["zoneId"]!))
+      .where(and(
+        eq(zonesTable.id, req.params["zoneId"]!),
+        eq(zonesTable.farmId, req.params["farmId"]!),
+      ))
       .returning();
     if (!updated[0]) return res.status(404).json({ error: "not_found" });
     return res.json(updated[0]);
@@ -64,7 +67,13 @@ router.patch("/farms/:farmId/zones/:zoneId", requireAuth, requireFarmAccess, asy
 
 router.delete("/farms/:farmId/zones/:zoneId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
-    await db.delete(zonesTable).where(eq(zonesTable.id, req.params["zoneId"]!));
+    const deleted = await db.delete(zonesTable)
+      .where(and(
+        eq(zonesTable.id, req.params["zoneId"]!),
+        eq(zonesTable.farmId, req.params["farmId"]!),
+      ))
+      .returning();
+    if (!deleted[0]) return res.status(404).json({ error: "not_found" });
     return res.status(204).end();
   } catch (err) {
     req.log.error({ err }, "Delete zone error");
