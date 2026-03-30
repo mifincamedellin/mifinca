@@ -153,7 +153,7 @@ router.delete("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, 
   }
 });
 
-router.patch("/farms/:farmId/map-location", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/location", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { mapLat, mapLng, mapZoom } = req.body;
     const updated = await db.update(farmsTable)

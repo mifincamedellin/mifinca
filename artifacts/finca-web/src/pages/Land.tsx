@@ -294,7 +294,7 @@ const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
       if (positions.length < 3) return;
       const color = zone.color ?? "#4A6741";
       const polygon = L.polygon(positions, { color, fillColor: color, fillOpacity: 0.35, weight: 2 });
-      polygon.bindTooltip(zone.name, { permanent: false, sticky: true });
+      polygon.bindTooltip(zone.name, { permanent: true, direction: "center", className: "zone-label" });
       polygon.on("click", () => onZoneSelectedRef.current(zone));
       polygon.addTo(map);
       zoneLayersRef.current.set(zone.id, polygon);
@@ -348,7 +348,7 @@ function SetupMap({
   onSetLocation,
   isSaving,
 }: {
-  onSetLocation: (lat: number, lng: number) => void;
+  onSetLocation: (lat: number, lng: number, zoom: number) => void;
   isSaving: boolean;
 }) {
   const { t } = useTranslation();
@@ -470,7 +470,7 @@ function SetupMap({
             </div>
           )}
           <Button
-            onClick={() => clicked && onSetLocation(clicked.lat, clicked.lng)}
+            onClick={() => clicked && mapRef.current && onSetLocation(clicked.lat, clicked.lng, mapRef.current.getZoom())}
             disabled={!clicked || isSaving}
             className="w-full rounded-xl bg-primary hover:bg-primary/90"
           >
@@ -516,11 +516,11 @@ export function Land() {
   });
 
   const saveLocation = useMutation({
-    mutationFn: async ({ lat, lng }: { lat: number; lng: number }) => {
-      const res = await fetch(`/api/farms/${activeFarmId}/map-location`, {
+    mutationFn: async ({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/location`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mapLat: lat, mapLng: lng, mapZoom: 15 }),
+        body: JSON.stringify({ mapLat: lat, mapLng: lng, mapZoom: zoom }),
       });
       return res.json();
     },
@@ -667,7 +667,7 @@ export function Land() {
         </>
       ) : (
         <SetupMap
-          onSetLocation={(lat, lng) => saveLocation.mutate({ lat, lng })}
+          onSetLocation={(lat, lng, zoom) => saveLocation.mutate({ lat, lng, zoom })}
           isSaving={saveLocation.isPending}
         />
       )}
