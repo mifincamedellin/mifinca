@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Users, Plus, Pencil, Trash2, Phone, Mail, CalendarDays,
-  Banknote, Building2, CalendarClock, TrendingUp, Loader2, X,
+  Banknote, Building2, TrendingUp, Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -53,8 +53,6 @@ export function Employees() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [payDayEdit, setPayDayEdit] = useState(false);
-  const [payDayInput, setPayDayInput] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: employees = [], isLoading } = useQuery<Employee[]>({
@@ -98,21 +96,6 @@ export function Employees() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["employees", activeFarmId] }); setDeleteConfirm(null); },
   });
 
-  const updatePayDay = useMutation({
-    mutationFn: async (day: number) => {
-      const res = await fetch(`/api/farms/${activeFarmId}/pay-day`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payDay: day }),
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries();
-      setPayDayEdit(false);
-    },
-  });
-
   const openAdd = () => {
     setEditEmployee(null);
     setForm(EMPTY_FORM);
@@ -153,47 +136,19 @@ export function Employees() {
 
   const summaryCards = [
     {
-      icon: CalendarClock, color: "text-primary", bg: "bg-primary/8",
-      label: t("emp.payDay"),
-      value: t("emp.dayOfMonth", { day: payDay }),
-      action: (
-        payDayEdit ? (
-          <form className="flex items-center gap-2 mt-2" onSubmit={(e) => { e.preventDefault(); updatePayDay.mutate(parseInt(payDayInput)); }}>
-            <Input
-              type="number" min={1} max={31} value={payDayInput}
-              onChange={e => setPayDayInput(e.target.value)}
-              className="h-8 w-20 rounded-lg text-sm"
-              autoFocus
-            />
-            <Button type="submit" size="sm" className="h-8 rounded-lg px-3 bg-primary" disabled={updatePayDay.isPending}>
-              {updatePayDay.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : t("lineage.confirm")}
-            </Button>
-            <button type="button" onClick={() => setPayDayEdit(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-          </form>
-        ) : (
-          <button onClick={() => { setPayDayEdit(true); setPayDayInput(String(payDay)); }} className="mt-2 text-xs text-primary/60 hover:text-primary flex items-center gap-1 transition-colors">
-            <Pencil className="h-3 w-3" /> {t("emp.editDay")}
-          </button>
-        )
-      ),
-    },
-    {
       icon: CalendarDays, color: "text-accent", bg: "bg-accent/10",
       label: t("emp.daysUntil"),
       value: t("emp.daysCount", { count: daysUntil }),
-      action: null,
     },
     {
       icon: Banknote, color: "text-secondary", bg: "bg-secondary/10",
       label: t("emp.monthlyPayroll"),
       value: formatCOP(totalMonthly),
-      action: null,
     },
     {
       icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50",
       label: t("emp.annualPayroll"),
       value: formatCOP(totalMonthly * 12),
-      action: null,
     },
   ];
 
@@ -212,7 +167,7 @@ export function Employees() {
       </header>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {summaryCards.map((card, i) => (
           <motion.div key={card.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
             <Card className="p-5 rounded-2xl border-border/50 shadow-sm bg-card/60 h-full">
@@ -223,7 +178,6 @@ export function Employees() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">{card.label}</p>
                   <p className="text-2xl font-serif font-bold text-foreground leading-tight">{card.value}</p>
-                  {card.action}
                 </div>
               </div>
             </Card>
