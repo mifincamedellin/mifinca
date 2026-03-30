@@ -89,7 +89,7 @@ function EmptySlot({ label, onClick }: { label: string; onClick: () => void }) {
 }
 
 function AnimalPicker({
-  open, onClose, onSelect, exclude, title, showRolePicker, farmId,
+  open, onClose, onSelect, exclude, title, showRolePicker, farmId, species,
 }: {
   open: boolean;
   onClose: () => void;
@@ -98,6 +98,7 @@ function AnimalPicker({
   title: string;
   showRolePicker?: boolean;
   farmId: string;
+  species: string;
 }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
@@ -107,7 +108,7 @@ function AnimalPicker({
   const { data: allAnimals } = useListAnimals(farmId, {}, { query: { enabled: open && !!farmId } });
 
   const filtered = useMemo(() => {
-    const animals = (allAnimals ?? []).filter((a: AnimalStub) => !exclude.includes(a.id));
+    const animals = (allAnimals ?? []).filter((a: AnimalStub) => !exclude.includes(a.id) && a.species === species);
     if (!search.trim()) return animals;
     const q = search.toLowerCase();
     return animals.filter((a: AnimalStub) =>
@@ -347,6 +348,7 @@ export function AnimalLineage({ animal, farmId, onRefresh }: Props) {
         title={pickerTitle}
         showRolePicker={picker?.type === "child"}
         farmId={farmId}
+        species={animal.species}
       />
     </div>
   );
