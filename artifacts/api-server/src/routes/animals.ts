@@ -160,6 +160,48 @@ router.put("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
   }
 });
 
+router.patch("/farms/:farmId/animals/:animalId/lineage", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const { action, parentId, childId, role } = req.body as {
+      action: "setMother" | "setFather" | "addChild" | "removeChild";
+      parentId?: string | null;
+      childId?: string;
+      role?: "mother" | "father";
+    };
+
+    if (action === "setMother") {
+      await db.update(animalsTable)
+        .set({ motherId: parentId ?? null, updatedAt: new Date() })
+        .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId)));
+    } else if (action === "setFather") {
+      await db.update(animalsTable)
+        .set({ fatherId: parentId ?? null, updatedAt: new Date() })
+        .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId)));
+    } else if (action === "addChild" && childId) {
+      const field = role === "father" ? { fatherId: animalId, updatedAt: new Date() } : { motherId: animalId, updatedAt: new Date() };
+      await db.update(animalsTable)
+        .set(field)
+        .where(and(eq(animalsTable.id, childId), eq(animalsTable.farmId, farmId)));
+    } else if (action === "removeChild" && childId) {
+      const child = await db.select().from(animalsTable).where(eq(animalsTable.id, childId)).limit(1);
+      if (child[0]) {
+        const update: Record<string, unknown> = { updatedAt: new Date() };
+        if (child[0].motherId === animalId) update["motherId"] = null;
+        if (child[0].fatherId === animalId) update["fatherId"] = null;
+        await db.update(animalsTable).set(update).where(eq(animalsTable.id, childId));
+      }
+    } else {
+      return res.status(400).json({ error: "invalid_action" });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Lineage update error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 router.get("/farms/:farmId/animals/:animalId/weights", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { animalId } = req.params as { animalId: string };

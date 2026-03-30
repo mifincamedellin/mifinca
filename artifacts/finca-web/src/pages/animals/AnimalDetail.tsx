@@ -5,10 +5,11 @@ import { useGetAnimal, useListWeightRecords } from "@workspace/api-client-react"
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar } from "lucide-react";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { AnimalLineage } from "./AnimalLineage";
 
 export function AnimalDetail() {
   const { t, i18n } = useTranslation();
@@ -16,7 +17,7 @@ export function AnimalDetail() {
   const { activeFarmId } = useStore();
   const isEn = i18n.language === "en";
 
-  const { data: animal, isLoading } = useGetAnimal(activeFarmId || '', id || '', {
+  const { data: animal, isLoading, refetch } = useGetAnimal(activeFarmId || '', id || '', {
     query: { enabled: !!(activeFarmId && id) }
   });
 
@@ -97,6 +98,10 @@ export function AnimalDetail() {
               </TabsTrigger>
               <TabsTrigger value="medical" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-1">
                 {t('animals.tab.medical')}
+              </TabsTrigger>
+              <TabsTrigger value="lineage" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-1 flex items-center gap-1.5">
+                <GitBranch className="h-3.5 w-3.5" />
+                {t('animals.tab.lineage')}
               </TabsTrigger>
             </TabsList>
 
@@ -202,6 +207,13 @@ export function AnimalDetail() {
                   </div>
                 )}
               </Card>
+            </TabsContent>
+            <TabsContent value="lineage" className="mt-0">
+              <AnimalLineage
+                animal={animal as any}
+                farmId={activeFarmId!}
+                onRefresh={() => refetch()}
+              />
             </TabsContent>
           </Tabs>
         </div>
