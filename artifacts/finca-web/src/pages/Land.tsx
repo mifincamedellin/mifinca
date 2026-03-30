@@ -138,8 +138,10 @@ function applyDrawLocale(lang: string) {
   Object.assign(L.drawLocal.edit, locale.edit);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (L.Icon.Default.prototype as any)["_getIconUrl"];
+interface LeafletIconDefaultExtended extends L.Icon.Default {
+  _getIconUrl?: string;
+}
+delete (L.Icon.Default.prototype as LeafletIconDefaultExtended)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -652,6 +654,7 @@ export function Land() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mapLat: lat, mapLng: lng, mapZoom: zoom }),
       });
+      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["farm", activeFarmId] }),
@@ -664,6 +667,7 @@ export function Land() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
       return res.json() as Promise<Zone>;
     },
     onSuccess: (newZone) => {
@@ -680,6 +684,7 @@ export function Land() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
       return res.json() as Promise<Zone>;
     },
     onSuccess: (updated) => {
@@ -693,7 +698,8 @@ export function Land() {
 
   const deleteZone = useMutation({
     mutationFn: async (id: string) => {
-      await fetch(`/api/farms/${activeFarmId}/zones/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/farms/${activeFarmId}/zones/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
       return id;
     },
     onSuccess: (id) => {
