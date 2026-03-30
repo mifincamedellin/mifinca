@@ -153,6 +153,25 @@ router.delete("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, 
   }
 });
 
+router.patch("/farms/:farmId/map-location", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { mapLat, mapLng, mapZoom } = req.body;
+    const updated = await db.update(farmsTable)
+      .set({
+        ...(mapLat !== undefined && { mapLat: String(mapLat) }),
+        ...(mapLng !== undefined && { mapLng: String(mapLng) }),
+        ...(mapZoom !== undefined && { mapZoom }),
+        updatedAt: new Date(),
+      })
+      .where(eq(farmsTable.id, req.params["farmId"]!))
+      .returning();
+    return res.json(updated[0]);
+  } catch (err) {
+    req.log.error({ err }, "Update map location error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;

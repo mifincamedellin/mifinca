@@ -10,6 +10,9 @@ export const farmsTable = pgTable("farms", {
   location: text("location"),
   totalHectares: decimal("total_hectares"),
   payDay: integer("pay_day").default(30),
+  mapLat: decimal("map_lat"),
+  mapLng: decimal("map_lng"),
+  mapZoom: integer("map_zoom").default(15),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

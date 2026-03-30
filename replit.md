@@ -75,7 +75,8 @@ Auth: Custom `auth_users` table created on first registration (id, email, passwo
 - `/inventory` — Inventory by category
 - `/finances` — Income/expense tracking with monthly charts and transaction table
 - `/contacts` — Contact directory (suppliers, buyers, vets, transport, other)
-- `/land` — Coming soon stub
+- `/employees` — Employee management with CRUD, salary in COP, bank account, payroll summary cards
+- `/land` — Interactive satellite map (Esri World Imagery) with polygon zone drawing, color-coded zones, labels, notes
 - `/settings` — Farm, team, account settings
 
 ## API Routes
@@ -91,7 +92,10 @@ All under `/api`:
 - `GET/POST /api/farms/:id/inventory`, `GET/PUT /api/farms/:id/inventory/:itemId`
 - `POST /api/farms/:id/inventory/:itemId/log`
 - `GET /api/farms/:id/activity`
-- `GET/POST /api/farms/:id/zones`
+- `GET/POST /api/farms/:id/zones`, `PATCH/DELETE /api/farms/:id/zones/:zoneId`
+- `PATCH /api/farms/:id/map-location` — save farm map center (lat/lng/zoom)
+- `GET/POST /api/farms/:id/employees`, `PUT/DELETE /api/farms/:id/employees/:empId`
+- `PATCH /api/farms/:id/pay-day`
 - `GET /api/search?farmId=&q=`
 - `GET/POST /api/farms/:id/finances` — list / create finance transactions
 - `PUT/DELETE /api/farms/:id/finances/:txId` — update / delete a transaction
