@@ -19,6 +19,7 @@ import { Land } from "@/pages/Land";
 import { Settings } from "@/pages/Settings";
 import { Finances } from "@/pages/Finances";
 import { Contacts } from "@/pages/Contacts";
+import { Employees } from "@/pages/Employees";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/land" component={() => <ProtectedRoute component={Land} />} />
       <Route path="/finances" component={() => <ProtectedRoute component={Finances} />} />
       <Route path="/contacts" component={() => <ProtectedRoute component={Contacts} />} />
+      <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
 
       <Route component={NotFound} />

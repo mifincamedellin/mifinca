@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, decimal, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, decimal, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { profilesTable } from "./profiles";
@@ -9,6 +9,7 @@ export const farmsTable = pgTable("farms", {
   name: text("name").notNull(),
   location: text("location"),
   totalHectares: decimal("total_hectares"),
+  payDay: integer("pay_day").default(30),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
