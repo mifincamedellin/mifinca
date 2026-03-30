@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Plus, X, Pencil, Trash2, Phone, Mail, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -146,14 +147,18 @@ export function Contacts() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-20 text-center">
-          <Users className="h-14 w-14 text-muted-foreground/25 mx-auto mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">{t("contacts.empty.title")}</p>
-          <p className="text-sm text-muted-foreground/70 mt-1 mb-6">{t("contacts.empty.desc")}</p>
-          <Button onClick={openNew} className="bg-secondary hover:bg-secondary/90 text-white rounded-xl gap-2">
-            <Plus className="h-4 w-4" /> {t("contacts.add")}
+        <Card className="rounded-2xl border-border/50 p-16 flex flex-col items-center text-center text-muted-foreground gap-4">
+          <div className="p-5 bg-muted/30 rounded-2xl">
+            <Users className="h-10 w-10 text-border" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground/70 mb-1">{t("contacts.empty.title")}</p>
+            <p className="text-sm">{t("contacts.empty.desc")}</p>
+          </div>
+          <Button onClick={openNew} variant="outline" className="mt-2 rounded-xl border-primary/20 text-primary hover:bg-primary/5">
+            <Plus className="h-4 w-4 mr-2" /> {t("contacts.add")}
           </Button>
-        </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((c, i) => (
