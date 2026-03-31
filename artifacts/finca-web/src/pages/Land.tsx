@@ -342,6 +342,7 @@ interface FarmMapProps {
   onZoneSelected: (zone: Zone) => void;
   activeColor: string;
   lang: string;
+  onDrawingChange: (isDrawing: boolean) => void;
 }
 
 const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
@@ -352,6 +353,7 @@ const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
   onZoneCreated,
   onZoneSelected,
   activeColor,
+  onDrawingChange,
 }, ref) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -361,10 +363,12 @@ const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
   const onZoneCreatedRef = useRef(onZoneCreated);
   const onZoneSelectedRef = useRef(onZoneSelected);
   const activeColorRef = useRef(activeColor);
+  const onDrawingChangeRef = useRef(onDrawingChange);
 
   onZoneCreatedRef.current = onZoneCreated;
   onZoneSelectedRef.current = onZoneSelected;
   activeColorRef.current = activeColor;
+  onDrawingChangeRef.current = onDrawingChange;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -399,7 +403,11 @@ const FarmMap = forwardRef<FarmMapHandle, FarmMapProps>(function FarmMap({
     drawControl.addTo(map);
     drawControlRef.current = drawControl;
 
+    map.on(L.Draw.Event.DRAWSTART, () => onDrawingChangeRef.current(true));
+    map.on(L.Draw.Event.DRAWSTOP, () => onDrawingChangeRef.current(false));
+
     map.on(L.Draw.Event.CREATED, (e: L.DrawEvents.Created) => {
+      onDrawingChangeRef.current(false);
       const polygon = e.layer as L.Polygon;
       const rawLatLngs = (polygon.getLatLngs() as L.LatLng[][])[0] ?? [];
       onZoneCreatedRef.current(leafletToGeoJson(rawLatLngs));
@@ -628,6 +636,7 @@ export function Land() {
   } | null>(null);
   const editingZoneIdRef = useRef<string | null>(null);
   const [activeColor, setActiveColor] = useState(ZONE_COLORS[0]!);
+  const [isDrawing, setIsDrawing] = useState(false);
 
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["zones", activeFarmId],
@@ -757,6 +766,7 @@ export function Land() {
             onZoneSelected={handleZoneSelected}
             activeColor={activeColor}
             lang={i18n.language}
+            onDrawingChange={setIsDrawing}
           />
 
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-card/95 backdrop-blur-md rounded-2xl shadow-lg border border-border/50 px-3 py-2">
@@ -775,18 +785,40 @@ export function Land() {
             ))}
           </div>
 
-          {zones.length === 0 && !panel && (
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
+          <AnimatePresence>
+            {isDrawing && !panel && (
               <motion.div
+                key="drawing-guide"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none"
+              >
+                <div className="bg-card/95 backdrop-blur-lg rounded-2xl shadow-xl border border-primary/30 px-6 py-4 text-center max-w-sm">
+                  <p className="text-sm font-semibold text-foreground mb-2">{t("land.drawingGuide.title")}</p>
+                  <ol className="text-xs text-muted-foreground space-y-1 text-left list-none">
+                    <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5">1.</span><span>{t("land.drawingGuide.step1")}</span></li>
+                    <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5">2.</span><span>{t("land.drawingGuide.step2")}</span></li>
+                    <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5 shrink-0">3.</span><span className="font-medium text-foreground">{t("land.drawingGuide.step3")}</span></li>
+                  </ol>
+                </div>
+              </motion.div>
+            )}
+            {!isDrawing && zones.length === 0 && !panel && (
+              <motion.div
+                key="empty-hint"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-card/90 backdrop-blur-md rounded-2xl shadow-lg border border-border/50 px-5 py-3 flex items-center gap-3"
+                exit={{ opacity: 0, y: 8 }}
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none"
               >
-                <Pencil className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">{t("land.drawHint")}</span>
+                <div className="bg-card/90 backdrop-blur-md rounded-2xl shadow-lg border border-border/50 px-5 py-3 flex items-center gap-3">
+                  <Pencil className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">{t("land.drawHint")}</span>
+                </div>
               </motion.div>
-            </div>
-          )}
+            )}
+          </AnimatePresence>
 
           <AnimatePresence>
             {panel && (
