@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
-import { useGetFarmStats, useListActivity, useListFarms } from "@workspace/api-client-react";
+import { useGetFarmStats, useListActivity, useListFarms, useGetMe } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Activity, AlertTriangle, Syringe, PawPrint, HelpCircle } from "lucide-react";
@@ -49,6 +49,9 @@ export function Dashboard() {
   const { activeFarmId } = useStore();
   const isEn = i18n.language === "en";
   
+  const { data: user } = useGetMe({ query: { enabled: true } });
+  const firstName = user?.fullName?.split(" ")[0] ?? "";
+
   const { data: farms } = useListFarms({ query: { enabled: true } });
   const activeFarm = farms?.find(f => f.id === activeFarmId);
 
@@ -130,7 +133,7 @@ export function Dashboard() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-serif text-primary mb-2">
-            {t('dashboard.welcome')} <span className="text-accent">{activeFarm?.name}</span>
+            {t('dashboard.welcome')}<span className="text-accent">{firstName}</span>
           </h1>
           <p className="text-muted-foreground capitalize">{today}</p>
         </div>
