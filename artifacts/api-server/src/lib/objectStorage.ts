@@ -216,7 +216,12 @@ export class ObjectStorageService {
     const { bucketName, objectName } = parseObjectPath(fullPath);
     const bucket = objectStorageClient.bucket(bucketName);
     const file = bucket.file(objectName);
-    try { await file.delete(); } catch { }
+    try {
+      await file.delete();
+    } catch (err) {
+      if ((err as { code?: number }).code === 404) return;
+      throw err;
+    }
   }
 }
 
