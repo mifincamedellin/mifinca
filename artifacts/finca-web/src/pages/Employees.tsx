@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
@@ -13,7 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import {
   Users, Plus, Pencil, Trash2, Phone, Mail, CalendarDays,
   Banknote, Building2, TrendingUp, Loader2, ChevronDown, ChevronUp,
-  HeartPulse, ShieldCheck, Receipt, Coins, Calculator,
+  HeartPulse, ShieldCheck, Receipt, Coins, Calculator, FileText,
+  Image, File, Download, X, ZoomIn, Paperclip, Upload,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -27,19 +28,19 @@ type Employee = {
   primas?: string | null; cesantias?: string | null;
 };
 
+type Attachment = {
+  id: string; employeeId: string; farmId: string; objectPath: string;
+  originalName: string; mimeType: string; sizeBytes: number; createdAt?: string | null;
+};
+
 const EMPTY_FORM = {
   name: "", phone: "", email: "", startDate: "",
   monthlySalary: "", bankName: "Bancolombia", bankAccount: "", notes: "",
   pension: "", salud: "", arl: "", primas: "", cesantias: "",
 };
 
-// Colombian legal percentages (employer portion)
 const COL_RATES = {
-  pension: 0.12,    // 12% employer
-  salud: 0.085,     // 8.5% employer
-  arl: 0.0052,      // 0.52% basic risk (Class I)
-  primas: 0.5,      // 1 month/year → 0.5 months per semester payment
-  cesantias: 1.0,   // 1 month/year
+  pension: 0.12, salud: 0.085, arl: 0.0052, primas: 0.5, cesantias: 1.0,
 };
 
 function autoCalcBenefits(salary: string) {
@@ -65,7 +66,373 @@ function formatCOP(value: number): string {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value);
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function num(v?: string | null) { return parseFloat(v ?? "0") || 0; }
+
+function getServeUrl(objectPath: string): string {
+  return `/api/storage${objectPath}`;
+}
+
+function isImageMime(mime: string): boolean {
+  return mime.startsWith("image/");
+}
+
+function AttachmentThumb({ att, onDelete, onView }: {
+  att: Attachment;
+  onDelete: () => void;
+  onView: () => void;
+}) {
+  const { t } = useTranslation();
+  const isImage = isImageMime(att.mimeType);
+  const serveUrl = getServeUrl(att.objectPath);
+
+  return (
+    <div className="relative group rounded-xl border border-border/40 bg-card/70 overflow-hidden hover:border-primary/30 transition-colors">
+      {isImage ? (
+        <button onClick={onView} className="w-full aspect-square block overflow-hidden bg-muted/30">
+          <img
+            src={serveUrl}
+            alt={att.originalName}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        </button>
+      ) : (
+        <a
+          href={serveUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          download={att.originalName}
+          className="w-full aspect-square flex flex-col items-center justify-center gap-2 bg-muted/20 hover:bg-muted/40 transition-colors"
+        >
+          {att.mimeType === "application/pdf" ? (
+            <FileText className="h-8 w-8 text-red-500" />
+          ) : (
+            <File className="h-8 w-8 text-muted-foreground" />
+          )}
+          <span className="text-xs text-muted-foreground text-center px-2 leading-tight line-clamp-2">{att.originalName}</span>
+        </a>
+      )}
+      <div className="px-2 py-1.5 border-t border-border/30">
+        <p className="text-xs text-muted-foreground truncate leading-tight" title={att.originalName}>{att.originalName}</p>
+        <p className="text-xs text-muted-foreground/60">{formatBytes(att.sizeBytes)}</p>
+      </div>
+
+      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+        {isImage && (
+          <button
+            onClick={onView}
+            className="p-1 rounded-lg bg-background/80 backdrop-blur-sm text-foreground hover:bg-background shadow-sm"
+            title={t("emp.download")}
+          >
+            <ZoomIn className="h-3 w-3" />
+          </button>
+        )}
+        <a
+          href={serveUrl}
+          download={att.originalName}
+          className="p-1 rounded-lg bg-background/80 backdrop-blur-sm text-foreground hover:bg-background shadow-sm"
+          title={t("emp.download")}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Download className="h-3 w-3" />
+        </a>
+        <button
+          onClick={onDelete}
+          className="p-1 rounded-lg bg-background/80 backdrop-blur-sm text-destructive hover:bg-background shadow-sm"
+          title={t("emp.deleteAttachment")}
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+
+  const [notesDraft, setNotesDraft] = useState(emp.notes ?? "");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxName, setLightboxName] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const hasBenefits = num(emp.pension) + num(emp.salud) + num(emp.arl) + num(emp.primas) + num(emp.cesantias) > 0;
+
+  const { data: attachments = [], isLoading: attachmentsLoading } = useQuery<Attachment[]>({
+    queryKey: ["employee-attachments", farmId, emp.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/farms/${farmId}/employees/${emp.id}/attachments`);
+      if (!res.ok) throw new Error("failed");
+      return res.json();
+    },
+  });
+
+  const saveNotes = useCallback(async () => {
+    setNotesSaving(true);
+    try {
+      const body = {
+        name: emp.name, phone: emp.phone, email: emp.email,
+        startDate: emp.startDate, monthlySalary: emp.monthlySalary,
+        bankName: emp.bankName, bankAccount: emp.bankAccount,
+        notes: notesDraft,
+        pension: emp.pension, salud: emp.salud, arl: emp.arl,
+        primas: emp.primas, cesantias: emp.cesantias,
+      };
+      const res = await fetch(`/api/farms/${farmId}/employees/${emp.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("failed");
+      qc.invalidateQueries({ queryKey: ["employees", farmId] });
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
+    } finally {
+      setNotesSaving(false);
+    }
+  }, [notesDraft, emp, farmId, qc]);
+
+  const uploadFile = useCallback(async (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      setUploadError("Archivo demasiado grande (máx. 20 MB)");
+      return;
+    }
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const urlRes = await fetch("/api/storage/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "application/octet-stream" }),
+      });
+      if (!urlRes.ok) throw new Error("Failed to get upload URL");
+      const { uploadURL, objectPath } = await urlRes.json();
+
+      const putRes = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+      });
+      if (!putRes.ok) throw new Error("Failed to upload file");
+
+      const attRes = await fetch(`/api/farms/${farmId}/employees/${emp.id}/attachments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          objectPath,
+          originalName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+        }),
+      });
+      if (!attRes.ok) throw new Error("Failed to record attachment");
+
+      qc.invalidateQueries({ queryKey: ["employee-attachments", farmId, emp.id] });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  }, [emp.id, farmId, qc]);
+
+  const deleteAttachment = useCallback(async (att: Attachment) => {
+    try {
+      const res = await fetch(`/api/farms/${farmId}/employees/${emp.id}/attachments/${att.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("failed");
+      qc.invalidateQueries({ queryKey: ["employee-attachments", farmId, emp.id] });
+    } catch {
+      setUploadError(t("emp.attachmentDeleteFail"));
+    }
+  }, [emp.id, farmId, qc, t]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    files.forEach(uploadFile);
+  }, [uploadFile]);
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    files.forEach(uploadFile);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [uploadFile]);
+
+  const benefitRows = hasBenefits ? [
+    { label: t("emp.pension"), value: num(emp.pension), sub: t("emp.perMonth"), icon: ShieldCheck, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100/60 dark:bg-blue-950/40" },
+    { label: t("emp.salud"), value: num(emp.salud), sub: t("emp.perMonth"), icon: HeartPulse, color: "text-rose-500 dark:text-rose-400", bg: "bg-rose-100/60 dark:bg-rose-950/40" },
+    { label: t("emp.arl"), value: num(emp.arl), sub: t("emp.perMonth"), icon: ShieldCheck, color: "text-orange-500 dark:text-orange-400", bg: "bg-orange-100/60 dark:bg-orange-950/40" },
+    { label: t("emp.primas"), value: num(emp.primas), sub: t("emp.perSemester"), icon: Receipt, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100/60 dark:bg-violet-950/40" },
+    { label: t("emp.cesantias"), value: num(emp.cesantias), sub: t("emp.perYear"), icon: Coins, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100/60 dark:bg-amber-950/40" },
+  ] : [];
+
+  return (
+    <>
+      <Separator />
+      <div className="px-5 py-5 bg-muted/15 space-y-6">
+
+        {/* Notes section */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5" />{t("emp.notesSection")}
+          </p>
+          <div className="flex gap-2 items-start">
+            <textarea
+              value={notesDraft}
+              onChange={e => setNotesDraft(e.target.value)}
+              placeholder={t("emp.notesPlaceholder")}
+              rows={3}
+              className="flex-1 resize-none rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-colors"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 flex-shrink-0 gap-1.5"
+              disabled={notesSaving || notesDraft === (emp.notes ?? "")}
+              onClick={saveNotes}
+            >
+              {notesSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {notesSaved ? "✓" : t("emp.saveNotes")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Attachments section */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Paperclip className="h-3.5 w-3.5" />{t("emp.attachmentsSection")}
+          </p>
+
+          {/* Drag-and-drop zone */}
+          <div
+            onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            className={`
+              relative rounded-xl border-2 border-dashed px-4 py-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all mb-4
+              ${isDragging
+                ? "border-primary/60 bg-primary/5 scale-[1.01]"
+                : "border-border/40 hover:border-primary/30 hover:bg-muted/20 bg-muted/10"
+              }
+              ${isUploading ? "pointer-events-none opacity-70" : ""}
+            `}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">{t("emp.uploading")}</p>
+              </>
+            ) : (
+              <>
+                <Upload className="h-6 w-6 text-muted-foreground/60" />
+                <p className="text-sm text-muted-foreground text-center">{t("emp.dropzone")}</p>
+                <p className="text-xs text-muted-foreground/50">{t("emp.dropzoneFormats")}</p>
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="sr-only"
+              onChange={handleFileInput}
+              accept="image/*,application/pdf,.xlsx,.xls,.csv,.doc,.docx"
+            />
+          </div>
+
+          {uploadError && (
+            <p className="text-xs text-destructive mb-3">{uploadError}</p>
+          )}
+
+          {/* Attachment gallery */}
+          {attachmentsLoading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Cargando...</span>
+            </div>
+          ) : attachments.length === 0 ? (
+            <p className="text-xs text-muted-foreground/60 italic">{t("emp.noAttachments")}</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {attachments.map(att => (
+                <AttachmentThumb
+                  key={att.id}
+                  att={att}
+                  onDelete={() => deleteAttachment(att)}
+                  onView={() => {
+                    setLightboxUrl(getServeUrl(att.objectPath));
+                    setLightboxName(att.originalName);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Benefits section */}
+        {hasBenefits && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("emp.benefitsSection")}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {benefitRows.map(b => (
+                <div key={b.label} className="bg-card/70 rounded-xl px-3 py-2.5 border border-border/30 flex items-start gap-2">
+                  <div className={`p-1.5 rounded-lg ${b.bg} mt-0.5 flex-shrink-0`}>
+                    <b.icon className={`h-3.5 w-3.5 ${b.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{b.label}</p>
+                    <p className="text-sm font-semibold text-foreground">{formatCOP(b.value)}</p>
+                    <p className="text-xs text-muted-foreground/60">{b.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={(v) => { if (!v) setLightboxUrl(null); }}>
+        <DialogContent className="max-w-4xl rounded-2xl p-2 bg-background/95 border-border/50">
+          <DialogHeader className="px-3 pt-2 pb-1">
+            <DialogTitle className="text-sm font-medium text-muted-foreground truncate">{lightboxName}</DialogTitle>
+          </DialogHeader>
+          {lightboxUrl && (
+            <div className="flex items-center justify-center min-h-[300px] max-h-[80vh] overflow-auto">
+              <img
+                src={lightboxUrl}
+                alt={lightboxName}
+                className="max-w-full max-h-[75vh] object-contain rounded-xl"
+              />
+            </div>
+          )}
+          <div className="flex justify-end gap-2 px-3 pb-3">
+            <a
+              href={lightboxUrl ?? ""}
+              download={lightboxName}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border/40 hover:bg-muted/30 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("emp.download")}
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export function Employees() {
   const { t, i18n } = useTranslation();
@@ -127,49 +494,28 @@ export function Employees() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["employees", activeFarmId] }); setDeleteConfirm(null); },
   });
 
-  const openAdd = () => {
-    setEditEmployee(null);
-    setForm(EMPTY_FORM);
-    setDialogOpen(true);
-  };
-
+  const openAdd = () => { setEditEmployee(null); setForm(EMPTY_FORM); setDialogOpen(true); };
   const openEdit = (emp: Employee) => {
     setEditEmployee(emp);
     setForm({
-      name: emp.name,
-      phone: emp.phone ?? "",
-      email: emp.email ?? "",
-      startDate: emp.startDate ?? "",
-      monthlySalary: emp.monthlySalary ?? "",
-      bankName: emp.bankName ?? "Bancolombia",
-      bankAccount: emp.bankAccount ?? "",
-      notes: emp.notes ?? "",
-      pension: emp.pension ?? "",
-      salud: emp.salud ?? "",
-      arl: emp.arl ?? "",
-      primas: emp.primas ?? "",
-      cesantias: emp.cesantias ?? "",
+      name: emp.name, phone: emp.phone ?? "", email: emp.email ?? "",
+      startDate: emp.startDate ?? "", monthlySalary: emp.monthlySalary ?? "",
+      bankName: emp.bankName ?? "Bancolombia", bankAccount: emp.bankAccount ?? "",
+      notes: emp.notes ?? "", pension: emp.pension ?? "", salud: emp.salud ?? "",
+      arl: emp.arl ?? "", primas: emp.primas ?? "", cesantias: emp.cesantias ?? "",
     });
     setDialogOpen(true);
   };
-
   const closeDialog = () => { setDialogOpen(false); setEditEmployee(null); setForm(EMPTY_FORM); };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editEmployee) {
-      updateEmployee.mutate({ ...form, id: editEmployee.id });
-    } else {
-      createEmployee.mutate(form);
-    }
+    if (editEmployee) updateEmployee.mutate({ ...form, id: editEmployee.id });
+    else createEmployee.mutate(form);
   };
 
-  const handleAutoCalc = () => {
-    const benefits = autoCalcBenefits(form.monthlySalary);
-    setForm(f => ({ ...f, ...benefits }));
-  };
+  const handleAutoCalc = () => { setForm(f => ({ ...f, ...autoCalcBenefits(f.monthlySalary) })); };
 
-  // ── Totals ──
   const totals = useMemo(() => ({
     monthly: employees.reduce((s, e) => s + num(e.monthlySalary), 0),
     pension: employees.reduce((s, e) => s + num(e.pension), 0),
@@ -182,7 +528,6 @@ export function Employees() {
   const daysUntil = daysUntilPayday(payDay);
   const isPending = createEmployee.isPending || updateEmployee.isPending;
 
-  // ── Summary rows ──
   const topCards = [
     { icon: CalendarDays, color: "text-accent", bg: "bg-accent/10", label: t("emp.daysUntil"), value: t("emp.daysCount", { count: daysUntil }) },
     { icon: Banknote, color: "text-secondary", bg: "bg-secondary/10", label: t("emp.monthlyPayroll"), value: formatCOP(totals.monthly) },
@@ -209,7 +554,7 @@ export function Employees() {
         </Button>
       </header>
 
-      {/* ── Top summary cards ── */}
+      {/* Top summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {topCards.map((card, i) => (
           <motion.div key={card.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
@@ -228,7 +573,7 @@ export function Employees() {
         ))}
       </div>
 
-      {/* ── Prestaciones sociales totals ── */}
+      {/* Prestaciones sociales totals */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("emp.obligationsTitle")}</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -247,7 +592,7 @@ export function Employees() {
         </div>
       </div>
 
-      {/* ── Employee list ── */}
+      {/* Employee list */}
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -277,10 +622,8 @@ export function Employees() {
             <span />
           </div>
 
-          {/* Rows */}
           {employees.map((emp, i) => {
             const isExpanded = expandedId === emp.id;
-            const hasBenefits = num(emp.pension) + num(emp.salud) + num(emp.arl) + num(emp.primas) + num(emp.cesantias) > 0;
             return (
               <motion.div key={emp.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
                 {i > 0 && <Separator className="opacity-40" />}
@@ -331,15 +674,13 @@ export function Employees() {
 
                   {/* Actions */}
                   <div className="flex items-center justify-end gap-0.5">
-                    {hasBenefits && (
-                      <button
-                        onClick={() => setExpandedId(isExpanded ? null : emp.id)}
-                        className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors"
-                        title={isExpanded ? t("emp.hideBenefits") : t("emp.viewBenefits")}
-                      >
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : emp.id)}
+                      className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors"
+                      title={isExpanded ? t("emp.collapseRow") : t("emp.expandRow")}
+                    >
+                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
                     <button onClick={() => openEdit(emp)} className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors">
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -349,9 +690,9 @@ export function Employees() {
                   </div>
                 </div>
 
-                {/* Expandable benefits panel */}
+                {/* Expandable panel */}
                 <AnimatePresence>
-                  {isExpanded && hasBenefits && (
+                  {isExpanded && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
@@ -359,30 +700,7 @@ export function Employees() {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <Separator />
-                      <div className="px-5 py-4 bg-muted/20">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("emp.benefitsSection")}</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                          {[
-                            { label: t("emp.pension"), value: num(emp.pension), sub: t("emp.perMonth"), icon: ShieldCheck, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100/60 dark:bg-blue-950/40" },
-                            { label: t("emp.salud"), value: num(emp.salud), sub: t("emp.perMonth"), icon: HeartPulse, color: "text-rose-500 dark:text-rose-400", bg: "bg-rose-100/60 dark:bg-rose-950/40" },
-                            { label: t("emp.arl"), value: num(emp.arl), sub: t("emp.perMonth"), icon: ShieldCheck, color: "text-orange-500 dark:text-orange-400", bg: "bg-orange-100/60 dark:bg-orange-950/40" },
-                            { label: t("emp.primas"), value: num(emp.primas), sub: t("emp.perSemester"), icon: Receipt, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100/60 dark:bg-violet-950/40" },
-                            { label: t("emp.cesantias"), value: num(emp.cesantias), sub: t("emp.perYear"), icon: Coins, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100/60 dark:bg-amber-950/40" },
-                          ].map(b => (
-                            <div key={b.label} className="bg-card/70 rounded-xl px-3 py-2.5 border border-border/30 flex items-start gap-2">
-                              <div className={`p-1.5 rounded-lg ${b.bg} mt-0.5 flex-shrink-0`}>
-                                <b.icon className={`h-3.5 w-3.5 ${b.color}`} />
-                              </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground">{b.label}</p>
-                                <p className="text-sm font-semibold text-foreground">{formatCOP(b.value)}</p>
-                                <p className="text-xs text-muted-foreground/60">{b.sub}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      <EmployeeExpandedPanel emp={emp} farmId={activeFarmId!} />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -392,7 +710,7 @@ export function Employees() {
         </Card>
       )}
 
-      {/* ── Add / Edit dialog ── */}
+      {/* Add / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) closeDialog(); }}>
         <DialogContent className="rounded-2xl max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -401,7 +719,6 @@ export function Employees() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            {/* Basic info */}
             <div>
               <Label>{t("emp.name")} *</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required className="rounded-xl mt-1" />
@@ -441,7 +758,6 @@ export function Employees() {
               <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="rounded-xl mt-1" />
             </div>
 
-            {/* ── Prestaciones Sociales ── */}
             <Separator />
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -511,7 +827,7 @@ export function Employees() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete confirmation ── */}
+      {/* Delete confirmation */}
       <Dialog open={!!deleteConfirm} onOpenChange={(v) => { if (!v) setDeleteConfirm(null); }}>
         <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>

@@ -13,3 +13,4 @@ export * from "./messages";
 export * from "./financeTransactions";
 export * from "./contacts";
 export * from "./employees";
+export * from "./employeeAttachments";

@@ -60,7 +60,7 @@ artifacts-monorepo/
 
 ## Database Schema
 
-Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`, `conversations`, `messages`, `finance_transactions`, `contacts`
+Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`, `conversations`, `messages`, `finance_transactions`, `contacts`, `employees`, `employee_attachments`
 
 Auth: Custom `auth_users` table created on first registration (id, email, password_hash).
 
@@ -75,7 +75,7 @@ Auth: Custom `auth_users` table created on first registration (id, email, passwo
 - `/inventory` — Inventory by category
 - `/finances` — Income/expense tracking with monthly charts and transaction table
 - `/contacts` — Contact directory (suppliers, buyers, vets, transport, other)
-- `/employees` — Employee management with CRUD, salary in COP, bank account, payroll summary cards
+- `/employees` — Employee management with CRUD, salary in COP, bank account, payroll summary cards; expandable rows with inline notes editing and file attachment upload (drag-drop, GCS-backed, image lightbox)
 - `/land` — Interactive satellite map (Esri World Imagery) with polygon zone drawing, color-coded zones, labels, notes
 - `/settings` — Farm, team, account settings
 
@@ -96,6 +96,10 @@ All under `/api`:
 - `PATCH /api/farms/:id/location` — save farm map center (lat/lng/zoom)
 - `GET/POST /api/farms/:id/employees`, `PUT/DELETE /api/farms/:id/employees/:empId`
 - `PATCH /api/farms/:id/pay-day`
+- `GET/POST /api/farms/:id/employees/:empId/attachments` — list / upload employee attachments
+- `DELETE /api/farms/:id/employees/:empId/attachments/:attachmentId` — delete attachment
+- `POST /api/storage/uploads/request-url` — get presigned GCS upload URL
+- `GET /api/storage/objects/*path` — serve private stored objects (employee attachments, etc.)
 - `GET /api/search?farmId=&q=`
 - `GET/POST /api/farms/:id/finances` — list / create finance transactions
 - `PUT/DELETE /api/farms/:id/finances/:txId` — update / delete a transaction

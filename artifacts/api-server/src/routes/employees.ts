@@ -1,6 +1,6 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
-import { employeesTable, farmMembersTable, farmsTable } from "@workspace/db";
+import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
@@ -98,6 +98,65 @@ router.patch("/farms/:farmId/pay-day", requireAuth, requireFarmAccess, async (re
     return res.json({ ok: true, payDay });
   } catch (err) {
     req.log.error({ err }, "Update pay day error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
+    const attachments = await db.select().from(employeeAttachmentsTable)
+      .where(and(
+        eq(employeeAttachmentsTable.farmId, farmId),
+        eq(employeeAttachmentsTable.employeeId, employeeId),
+      ))
+      .orderBy(employeeAttachmentsTable.createdAt);
+    return res.json(attachments);
+  } catch (err) {
+    req.log.error({ err }, "List employee attachments error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
+    const { objectPath, originalName, mimeType, sizeBytes } = req.body as {
+      objectPath: string; originalName: string; mimeType?: string; sizeBytes?: number;
+    };
+    if (!objectPath || !originalName) {
+      return res.status(400).json({ error: "objectPath and originalName are required" });
+    }
+    const employee = await db.select({ id: employeesTable.id }).from(employeesTable)
+      .where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId)));
+    if (!employee[0]) return res.status(404).json({ error: "employee_not_found" });
+    const attachment = await db.insert(employeeAttachmentsTable).values({
+      employeeId,
+      farmId,
+      objectPath,
+      originalName,
+      mimeType: mimeType || "application/octet-stream",
+      sizeBytes: sizeBytes || 0,
+    }).returning();
+    return res.status(201).json(attachment[0]);
+  } catch (err) {
+    req.log.error({ err }, "Create employee attachment error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.delete("/farms/:farmId/employees/:employeeId/attachments/:attachmentId", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, employeeId, attachmentId } = req.params as { farmId: string; employeeId: string; attachmentId: string };
+    await db.delete(employeeAttachmentsTable)
+      .where(and(
+        eq(employeeAttachmentsTable.id, attachmentId),
+        eq(employeeAttachmentsTable.employeeId, employeeId),
+        eq(employeeAttachmentsTable.farmId, farmId),
+      ));
+    return res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Delete employee attachment error");
     return res.status(500).json({ error: "internal" });
   }
 });
