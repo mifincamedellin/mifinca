@@ -82,6 +82,71 @@ function isImageMime(mime: string): boolean {
   return mime.startsWith("image/");
 }
 
+function useAuthBlobUrl(url: string): string | null {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    fetch(url)
+      .then((r) => (r.ok ? r.blob() : Promise.reject(r.status)))
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url]);
+  return blobUrl;
+}
+
+async function downloadAttachment(url: string, filename: string) {
+  const response = await fetch(url);
+  if (!response.ok) return;
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
+async function openPdfInTab(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) return;
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  window.open(objectUrl, "_blank");
+}
+
+function LightboxImage({ url, name, t }: { url: string; name: string; t: (key: string) => string }) {
+  const blobUrl = useAuthBlobUrl(url);
+  return (
+    <>
+      <div className="flex items-center justify-center min-h-[300px] max-h-[80vh] overflow-auto">
+        {blobUrl ? (
+          <img src={blobUrl} alt={name} className="max-w-full max-h-[75vh] object-contain rounded-xl" />
+        ) : (
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/40" />
+        )}
+      </div>
+      <div className="flex justify-end gap-2 px-3 pb-3">
+        <button
+          onClick={() => downloadAttachment(url, name)}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border/40 hover:bg-muted/30 transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          {t("emp.download")}
+        </button>
+      </div>
+    </>
+  );
+}
+
 function AttachmentThumb({ att, onDelete, onView }: {
   att: Attachment;
   onDelete: () => void;
@@ -89,34 +154,38 @@ function AttachmentThumb({ att, onDelete, onView }: {
 }) {
   const { t } = useTranslation();
   const isImage = isImageMime(att.mimeType);
+  const isPdf = att.mimeType === "application/pdf";
   const serveUrl = getServeUrl(att);
+  const blobUrl = useAuthBlobUrl(serveUrl);
 
   return (
     <div className="relative group rounded-xl border border-border/40 bg-card/70 overflow-hidden hover:border-primary/30 transition-colors">
       {isImage ? (
         <button onClick={onView} className="w-full aspect-square block overflow-hidden bg-muted/30">
-          <img
-            src={serveUrl}
-            alt={att.originalName}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-          />
+          {blobUrl ? (
+            <img
+              src={blobUrl}
+              alt={att.originalName}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/40" />
+            </div>
+          )}
         </button>
       ) : (
-        <a
-          href={serveUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          download={att.originalName}
+        <button
+          onClick={() => isPdf ? openPdfInTab(serveUrl) : downloadAttachment(serveUrl, att.originalName)}
           className="w-full aspect-square flex flex-col items-center justify-center gap-2 bg-muted/20 hover:bg-muted/40 transition-colors"
         >
-          {att.mimeType === "application/pdf" ? (
+          {isPdf ? (
             <FileText className="h-8 w-8 text-red-500" />
           ) : (
             <File className="h-8 w-8 text-muted-foreground" />
           )}
           <span className="text-xs text-muted-foreground text-center px-2 leading-tight line-clamp-2">{att.originalName}</span>
-        </a>
+        </button>
       )}
       <div className="px-2 py-1.5 border-t border-border/30">
         <p className="text-xs text-muted-foreground truncate leading-tight" title={att.originalName}>{att.originalName}</p>
@@ -133,15 +202,13 @@ function AttachmentThumb({ att, onDelete, onView }: {
             <ZoomIn className="h-3 w-3" />
           </button>
         )}
-        <a
-          href={serveUrl}
-          download={att.originalName}
+        <button
+          onClick={(e) => { e.stopPropagation(); downloadAttachment(serveUrl, att.originalName); }}
           className="p-1 rounded-lg bg-background/80 backdrop-blur-sm text-foreground hover:bg-background shadow-sm"
           title={t("emp.download")}
-          onClick={(e) => e.stopPropagation()}
         >
           <Download className="h-3 w-3" />
-        </a>
+        </button>
         <button
           onClick={onDelete}
           className="p-1 rounded-lg bg-background/80 backdrop-blur-sm text-destructive hover:bg-background shadow-sm"
@@ -409,25 +476,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
           <DialogHeader className="px-3 pt-2 pb-1">
             <DialogTitle className="text-sm font-medium text-muted-foreground truncate">{lightboxName}</DialogTitle>
           </DialogHeader>
-          {lightboxUrl && (
-            <div className="flex items-center justify-center min-h-[300px] max-h-[80vh] overflow-auto">
-              <img
-                src={lightboxUrl}
-                alt={lightboxName}
-                className="max-w-full max-h-[75vh] object-contain rounded-xl"
-              />
-            </div>
-          )}
-          <div className="flex justify-end gap-2 px-3 pb-3">
-            <a
-              href={lightboxUrl ?? ""}
-              download={lightboxName}
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border/40 hover:bg-muted/30 transition-colors"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {t("emp.download")}
-            </a>
-          </div>
+          {lightboxUrl && <LightboxImage url={lightboxUrl} name={lightboxName} t={t} />}
         </DialogContent>
       </Dialog>
     </>
