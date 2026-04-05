@@ -50,7 +50,7 @@ export function Login() {
           alt="Farm landscape" 
           className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-primary/40 backdrop-blur-[2px]"></div>
+        <div className="absolute inset-0 bg-primary/40 backdrop-blur-[1px]"></div>
       </div>
 
       <motion.div 
