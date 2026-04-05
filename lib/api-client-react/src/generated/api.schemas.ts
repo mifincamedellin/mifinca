@@ -478,3 +478,27 @@ export type GlobalSearchParams = {
   farmId: string;
   q: string;
 };
+
+export interface EmployeeAttachment {
+  id: string;
+  employeeId: string;
+  farmId: string;
+  fileKey: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  confirmed: boolean;
+  createdAt?: string | null;
+}
+
+export interface CreateAttachmentRequest {
+  /** @minLength 1 */
+  originalName: string;
+  mimeType?: string;
+  sizeBytes?: number;
+}
+
+export interface CreateAttachmentResponse {
+  attachment: EmployeeAttachment;
+  uploadURL: string;
+}

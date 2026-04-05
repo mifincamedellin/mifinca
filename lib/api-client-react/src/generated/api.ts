@@ -50,6 +50,9 @@ import type {
   UpdateProfileRequest,
   WeightRecord,
   Zone,
+  EmployeeAttachment,
+  CreateAttachmentRequest,
+  CreateAttachmentResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2634,3 +2637,70 @@ export function useGlobalSearch<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+// ── Employee Attachments ──────────────────────────────────────────────────────
+
+export const listEmployeeAttachmentsUrl = (farmId: string, employeeId: string) =>
+  `/api/farms/${farmId}/employees/${employeeId}/attachments`;
+
+export const listEmployeeAttachments = async (
+  farmId: string,
+  employeeId: string,
+  options?: RequestInit,
+): Promise<EmployeeAttachment[]> =>
+  customFetch<EmployeeAttachment[]>(listEmployeeAttachmentsUrl(farmId, employeeId), options);
+
+export const useListEmployeeAttachments = <
+  TData = Awaited<ReturnType<typeof listEmployeeAttachments>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  farmId: string,
+  employeeId: string,
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listEmployeeAttachments>>, TError, TData> },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const { query: queryOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? ["listEmployeeAttachments", farmId, employeeId];
+  const queryFn = () => listEmployeeAttachments(farmId, employeeId);
+  return useQuery({ queryKey, queryFn, ...queryOptions }) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+};
+
+export const createEmployeeAttachment = async (
+  farmId: string,
+  employeeId: string,
+  body: BodyType<CreateAttachmentRequest>,
+  options?: RequestInit,
+): Promise<CreateAttachmentResponse> =>
+  customFetch<CreateAttachmentResponse>(
+    `/api/farms/${farmId}/employees/${employeeId}/attachments`,
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(body),
+    },
+  );
+
+export const confirmEmployeeAttachment = async (
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+  options?: RequestInit,
+): Promise<EmployeeAttachment> =>
+  customFetch<EmployeeAttachment>(
+    `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}/confirm`,
+    { ...options, method: "PATCH" },
+  );
+
+export const deleteEmployeeAttachment = async (
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+  options?: RequestInit,
+): Promise<void> =>
+  customFetch<void>(
+    `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}`,
+    { ...options, method: "DELETE" },
+  );
+
+export const getEmployeeAttachmentFileUrl = (farmId: string, employeeId: string, attachmentId: string) =>
+  `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}/file`;

@@ -872,3 +872,25 @@ export const GlobalSearchResponse = zod.object({
   ),
 });
 
+export const EmployeeAttachment = zod.object({
+  id: zod.string().uuid(),
+  employeeId: zod.string().uuid(),
+  farmId: zod.string().uuid(),
+  fileKey: zod.string(),
+  originalName: zod.string(),
+  mimeType: zod.string(),
+  sizeBytes: zod.number().int(),
+  confirmed: zod.boolean(),
+  createdAt: zod.string().nullable().optional(),
+});
+
+export const CreateAttachmentRequest = zod.object({
+  originalName: zod.string().min(1),
+  mimeType: zod.string().optional(),
+  sizeBytes: zod.number().int().optional(),
+});
+
+export const CreateAttachmentResponse = zod.object({
+  attachment: EmployeeAttachment,
+  uploadURL: zod.string().url(),
+});
