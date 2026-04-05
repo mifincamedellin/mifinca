@@ -1,0 +1,80 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "KePiT4bWpMUbyAaV-z7qb"
+uri = "file://artifacts/finca-web/public/animals/brahman.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "bv9KOGX02jS1wuztScCLP"
+uri = "file://artifacts/finca-web/public/animals/simmental.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "KIrP6tsnMq8OnkBeFASFz"
+uri = "file://artifacts/finca-web/public/animals/cebu.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "Q-Gh1FfLWPvzlmcCcU5Qe"
+uri = "file://artifacts/finca-web/public/animals/gyr.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "x33Tbor8uiY5ftGLisP8R"
+uri = "file://artifacts/finca-web/public/animals/normando.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "Nk4O23ttlH6v5dNdNxYlt"
+uri = "file://artifacts/finca-web/public/animals/holstein.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "MWhZySo9Zjaa3K3pWSbTI"
+uri = "file://artifacts/finca-web/public/animals/landrace.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "yyynaeX_QkqjIKB20Y4Zo"
+uri = "file://artifacts/finca-web/public/animals/duroc.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "mULoSKW1qM2I0uouSKfC7"
+uri = "file://artifacts/finca-web/public/animals/yorkshire.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "dDfrUePv-QM8fHv2KYp7B"
+uri = "file://artifacts/finca-web/public/animals/pietrain.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "UGOqQ4klqCI56003RclB3"
+uri = "file://artifacts/finca-web/public/animals/criollo.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "lvrHBoBJB8ot-_eNNULjR"
+uri = "file://artifacts/finca-web/public/animals/nubian.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "rcHfJBs_poSxOHn-z2mWH"
+uri = "file://artifacts/finca-web/public/animals/boer.png"
+type = "image"
+title = "generated_image"
