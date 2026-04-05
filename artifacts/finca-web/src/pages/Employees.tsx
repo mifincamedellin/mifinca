@@ -186,15 +186,15 @@ export function Employees() {
   const topCards = [
     { icon: CalendarDays, color: "text-accent", bg: "bg-accent/10", label: t("emp.daysUntil"), value: t("emp.daysCount", { count: daysUntil }) },
     { icon: Banknote, color: "text-secondary", bg: "bg-secondary/10", label: t("emp.monthlyPayroll"), value: formatCOP(totals.monthly) },
-    { icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-100/60", label: t("emp.annualPayroll"), value: formatCOP(totals.monthly * 12) },
+    { icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100/60 dark:bg-emerald-950/40", label: t("emp.annualPayroll"), value: formatCOP(totals.monthly * 12) },
   ];
 
   const benefitCards = [
-    { icon: ShieldCheck, color: "text-blue-600", bg: "bg-blue-100/60", label: t("emp.totalPension"), value: formatCOP(totals.pension), sub: t("emp.perMonth") },
-    { icon: HeartPulse, color: "text-rose-500", bg: "bg-rose-100/60", label: t("emp.totalSalud"), value: formatCOP(totals.salud), sub: t("emp.perMonth") },
-    { icon: ShieldCheck, color: "text-orange-500", bg: "bg-orange-100/60", label: t("emp.totalArl"), value: formatCOP(totals.arl), sub: t("emp.perMonth") },
-    { icon: Receipt, color: "text-violet-600", bg: "bg-violet-100/60", label: t("emp.totalPrimas"), value: formatCOP(totals.primas), sub: t("emp.perSemester") },
-    { icon: Coins, color: "text-amber-600", bg: "bg-amber-100/60", label: t("emp.totalCesantias"), value: formatCOP(totals.cesantias), sub: t("emp.perYear") },
+    { icon: ShieldCheck, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100/60 dark:bg-blue-950/40", label: t("emp.totalPension"), value: formatCOP(totals.pension), sub: t("emp.perMonth") },
+    { icon: HeartPulse, color: "text-rose-500 dark:text-rose-400", bg: "bg-rose-100/60 dark:bg-rose-950/40", label: t("emp.totalSalud"), value: formatCOP(totals.salud), sub: t("emp.perMonth") },
+    { icon: ShieldCheck, color: "text-orange-500 dark:text-orange-400", bg: "bg-orange-100/60 dark:bg-orange-950/40", label: t("emp.totalArl"), value: formatCOP(totals.arl), sub: t("emp.perMonth") },
+    { icon: Receipt, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100/60 dark:bg-violet-950/40", label: t("emp.totalPrimas"), value: formatCOP(totals.primas), sub: t("emp.perSemester") },
+    { icon: Coins, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100/60 dark:bg-amber-950/40", label: t("emp.totalCesantias"), value: formatCOP(totals.cesantias), sub: t("emp.perYear") },
   ];
 
   return (
@@ -464,35 +464,35 @@ export function Employees() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
+                    <ShieldCheck className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
                     {t("emp.pension")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
                   <Input type="number" value={form.pension} onChange={e => setForm(f => ({ ...f, pension: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
-                    <HeartPulse className="h-3.5 w-3.5 text-rose-500" />
+                    <HeartPulse className="h-3.5 w-3.5 text-rose-500 dark:text-rose-400" />
                     {t("emp.salud")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
                   <Input type="number" value={form.salud} onChange={e => setForm(f => ({ ...f, salud: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-orange-500" />
+                    <ShieldCheck className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" />
                     {t("emp.arl")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
                   <Input type="number" value={form.arl} onChange={e => setForm(f => ({ ...f, arl: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
-                    <Receipt className="h-3.5 w-3.5 text-violet-600" />
+                    <Receipt className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                     {t("emp.primas")} <span className="text-muted-foreground font-normal">{t("emp.perSemester")}</span>
                   </Label>
                   <Input type="number" value={form.primas} onChange={e => setForm(f => ({ ...f, primas: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs flex items-center gap-1.5">
-                    <Coins className="h-3.5 w-3.5 text-amber-600" />
+                    <Coins className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                     {t("emp.cesantias")} <span className="text-muted-foreground font-normal">{t("emp.perYear")}</span>
                   </Label>
                   <Input type="number" value={form.cesantias} onChange={e => setForm(f => ({ ...f, cesantias: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
