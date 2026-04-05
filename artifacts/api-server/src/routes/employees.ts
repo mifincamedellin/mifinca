@@ -154,12 +154,28 @@ router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requ
       .orderBy(employeeAttachmentsTable.createdAt);
 
     // Fire-and-forget: prune unconfirmed rows older than 1 hour (failed/cancelled uploads)
-    db.delete(employeeAttachmentsTable)
-      .where(and(
-        eq(employeeAttachmentsTable.confirmed, false),
-        lt(employeeAttachmentsTable.createdAt, sql`NOW() - INTERVAL '1 hour'`),
-      ))
-      .catch(() => {});
+    // Also delete their corresponding storage objects to avoid GCS accumulation
+    (async () => {
+      try {
+        const stale = await db.select({ id: employeeAttachmentsTable.id, fileKey: employeeAttachmentsTable.fileKey })
+          .from(employeeAttachmentsTable)
+          .where(and(
+            eq(employeeAttachmentsTable.confirmed, false),
+            lt(employeeAttachmentsTable.createdAt, sql`NOW() - INTERVAL '1 hour'`),
+          ));
+        if (stale.length === 0) return;
+        await db.delete(employeeAttachmentsTable)
+          .where(and(
+            eq(employeeAttachmentsTable.confirmed, false),
+            lt(employeeAttachmentsTable.createdAt, sql`NOW() - INTERVAL '1 hour'`),
+          ));
+        for (const row of stale) {
+          objectStorageService.deleteObjectEntity(row.fileKey).catch(() => {});
+        }
+      } catch {
+        // Best-effort cleanup — do not throw
+      }
+    })();
 
     return res.json(attachments);
   } catch (err) {

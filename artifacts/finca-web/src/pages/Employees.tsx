@@ -229,6 +229,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
   const [notesDraft, setNotesDraft] = useState(emp.notes ?? "");
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
+  const [notesSaveError, setNotesSaveError] = useState(false);
   const savedNotesRef = useRef(emp.notes ?? "");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -269,7 +270,11 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
       savedNotesRef.current = draft;
       qc.invalidateQueries({ queryKey: ["employees", farmId] });
       setNotesSaved(true);
+      setNotesSaveError(false);
       setTimeout(() => setNotesSaved(false), 2000);
+    } catch {
+      setNotesSaveError(true);
+      setTimeout(() => setNotesSaveError(false), 3000);
     } finally {
       setNotesSaving(false);
     }
@@ -365,6 +370,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
             {t("emp.notesSection")}
             {notesSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />}
             {notesSaved && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-normal normal-case tracking-normal">✓ {t("emp.notesUpdated")}</span>}
+            {notesSaveError && <span className="text-xs text-red-500 dark:text-red-400 font-normal normal-case tracking-normal">⚠ {t("emp.notesSaveError")}</span>}
           </p>
           <textarea
             value={notesDraft}
