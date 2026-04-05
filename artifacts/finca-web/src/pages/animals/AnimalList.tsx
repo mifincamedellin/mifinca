@@ -357,20 +357,6 @@ export function AnimalList() {
         </div>
       )}
 
-      {/* Results header when filtering */}
-      {selectedSpecies !== "all" && !isLoading && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? t('animals.filter.result') : t('animals.filter.results')} · {SPECIES_EMOJI[selectedSpecies]} {t(`animals.sp.${selectedSpecies}`)}
-          </p>
-          <button
-            onClick={() => setSelectedSpecies("all")}
-            className="text-sm text-primary hover:underline flex items-center gap-1"
-          >
-            <X className="h-3 w-3" /> {t('animals.filter.clear')}
-          </button>
-        </div>
-      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
