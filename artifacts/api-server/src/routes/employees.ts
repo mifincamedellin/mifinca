@@ -3,6 +3,9 @@ import { db } from "@workspace/db";
 import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+import { ObjectStorageService } from "../lib/objectStorage.js";
+
+const objectStorageService = new ObjectStorageService();
 
 const router = Router();
 type AuthedReq = Request & { userId: string; farmMember?: typeof farmMembersTable.$inferSelect };
@@ -148,6 +151,16 @@ router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, req
 router.delete("/farms/:farmId/employees/:employeeId/attachments/:attachmentId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, employeeId, attachmentId } = req.params as { farmId: string; employeeId: string; attachmentId: string };
+    const [att] = await db.select({ objectPath: employeeAttachmentsTable.objectPath })
+      .from(employeeAttachmentsTable)
+      .where(and(
+        eq(employeeAttachmentsTable.id, attachmentId),
+        eq(employeeAttachmentsTable.employeeId, employeeId),
+        eq(employeeAttachmentsTable.farmId, farmId),
+      ));
+    if (att?.objectPath) {
+      await objectStorageService.deleteObjectEntity(att.objectPath);
+    }
     await db.delete(employeeAttachmentsTable)
       .where(and(
         eq(employeeAttachmentsTable.id, attachmentId),

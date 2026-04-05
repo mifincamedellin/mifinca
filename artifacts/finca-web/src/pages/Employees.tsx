@@ -161,6 +161,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
   const [notesDraft, setNotesDraft] = useState(emp.notes ?? "");
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
+  const savedNotesRef = useRef(emp.notes ?? "");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -179,14 +180,15 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
     },
   });
 
-  const saveNotes = useCallback(async () => {
+  const saveNotes = useCallback(async (draft: string) => {
+    if (draft === savedNotesRef.current) return;
     setNotesSaving(true);
     try {
       const body = {
         name: emp.name, phone: emp.phone, email: emp.email,
         startDate: emp.startDate, monthlySalary: emp.monthlySalary,
         bankName: emp.bankName, bankAccount: emp.bankAccount,
-        notes: notesDraft,
+        notes: draft,
         pension: emp.pension, salud: emp.salud, arl: emp.arl,
         primas: emp.primas, cesantias: emp.cesantias,
       };
@@ -196,15 +198,21 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("failed");
+      savedNotesRef.current = draft;
       qc.invalidateQueries({ queryKey: ["employees", farmId] });
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2000);
     } finally {
       setNotesSaving(false);
     }
-  }, [notesDraft, emp, farmId, qc]);
+  }, [emp, farmId, qc]);
 
   const uploadFile = useCallback(async (file: File) => {
+    const allowed = ["image/jpeg", "image/png", "application/pdf"];
+    if (!allowed.includes(file.type)) {
+      setUploadError(t("emp.dropzoneFormats"));
+      return;
+    }
     if (file.size > 20 * 1024 * 1024) {
       setUploadError("Archivo demasiado grande (máx. 20 MB)");
       return;
@@ -285,28 +293,20 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
 
         {/* Notes section */}
         <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <FileText className="h-3.5 w-3.5" />{t("emp.notesSection")}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+            <FileText className="h-3.5 w-3.5" />
+            {t("emp.notesSection")}
+            {notesSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />}
+            {notesSaved && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-normal normal-case tracking-normal">✓ {t("emp.notesUpdated")}</span>}
           </p>
-          <div className="flex gap-2 items-start">
-            <textarea
-              value={notesDraft}
-              onChange={e => setNotesDraft(e.target.value)}
-              placeholder={t("emp.notesPlaceholder")}
-              rows={3}
-              className="flex-1 resize-none rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-colors"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 flex-shrink-0 gap-1.5"
-              disabled={notesSaving || notesDraft === (emp.notes ?? "")}
-              onClick={saveNotes}
-            >
-              {notesSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              {notesSaved ? "✓" : t("emp.saveNotes")}
-            </Button>
-          </div>
+          <textarea
+            value={notesDraft}
+            onChange={e => setNotesDraft(e.target.value)}
+            onBlur={e => saveNotes(e.target.value)}
+            placeholder={t("emp.notesPlaceholder")}
+            rows={3}
+            className="w-full resize-none rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-colors"
+          />
         </div>
 
         {/* Attachments section */}
@@ -348,7 +348,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
               multiple
               className="sr-only"
               onChange={handleFileInput}
-              accept="image/*,application/pdf,.xlsx,.xls,.csv,.doc,.docx"
+              accept="image/jpeg,image/png,application/pdf"
             />
           </div>
 
