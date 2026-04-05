@@ -11,7 +11,6 @@ import chatRouter from "./chat.js";
 import financesRouter from "./finances.js";
 import contactsRouter from "./contacts.js";
 import employeesRouter from "./employees.js";
-import storageRouter from "./storage.js";
 import seedRouter from "./seed.js";
 
 const router: IRouter = Router();
@@ -28,7 +27,6 @@ router.use(chatRouter);
 router.use(financesRouter);
 router.use(contactsRouter);
 router.use(employeesRouter);
-router.use(storageRouter);
 router.use(seedRouter);
 
 export default router;
