@@ -148,6 +148,7 @@ router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requ
       .where(and(
         eq(employeeAttachmentsTable.farmId, farmId),
         eq(employeeAttachmentsTable.employeeId, employeeId),
+        eq(employeeAttachmentsTable.confirmed, true),
       ))
       .orderBy(employeeAttachmentsTable.createdAt);
     return res.json(attachments);
@@ -186,6 +187,25 @@ router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, req
     return res.status(201).json({ attachment, uploadURL });
   } catch (err) {
     req.log.error({ err }, "Create employee attachment error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.patch("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/confirm", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, employeeId, attachmentId } = req.params as { farmId: string; employeeId: string; attachmentId: string };
+    const [att] = await db.update(employeeAttachmentsTable)
+      .set({ confirmed: true })
+      .where(and(
+        eq(employeeAttachmentsTable.id, attachmentId),
+        eq(employeeAttachmentsTable.employeeId, employeeId),
+        eq(employeeAttachmentsTable.farmId, farmId),
+      ))
+      .returning();
+    if (!att) return res.status(404).json({ error: "attachment_not_found" });
+    return res.json(att);
+  } catch (err) {
+    req.log.error({ err }, "Confirm attachment error");
     return res.status(500).json({ error: "internal" });
   }
 });

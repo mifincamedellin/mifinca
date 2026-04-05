@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { employeesTable } from "./employees";
 import { farmsTable } from "./farms";
 
@@ -10,6 +10,7 @@ export const employeeAttachmentsTable = pgTable("employee_attachments", {
   originalName: text("original_name").notNull(),
   mimeType: text("mime_type").notNull().default("application/octet-stream"),
   sizeBytes: integer("size_bytes").notNull().default(0),
+  confirmed: boolean("confirmed").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
