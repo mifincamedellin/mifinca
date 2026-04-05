@@ -6,15 +6,14 @@ import { useStore, type SidebarTheme } from "@/lib/store";
 
 const THEMES: {
   id: SidebarTheme;
-  label: string;
+  labelKey: string;
   swatch: string;
-  swatchB?: string;
   emoji: string;
 }[] = [
-  { id: "tierra", label: "Tierra", swatch: "#3B1F10", emoji: "🌾" },
-  { id: "bosque", label: "Bosque", swatch: "#0A2115", emoji: "🌿" },
-  { id: "oceano", label: "Océano", swatch: "#0C1533", emoji: "🌊" },
-  { id: "vaca",   label: "Noche",  swatch: "#111111", emoji: "🌙" },
+  { id: "tierra", labelKey: "theme.tierra", swatch: "#3B1F10", emoji: "🌾" },
+  { id: "bosque", labelKey: "theme.bosque", swatch: "#0A2115", emoji: "🌿" },
+  { id: "oceano", labelKey: "theme.oceano", swatch: "#0C1533", emoji: "🌊" },
+  { id: "vaca",   labelKey: "theme.vaca",   swatch: "#111111", emoji: "🌙" },
 ];
 
 export function SidebarThemePicker() {
@@ -59,7 +58,7 @@ export function SidebarThemePicker() {
                           </div>
                         )}
                       </div>
-                      <span className="text-xs font-medium text-foreground/80">{theme.emoji} {theme.label}</span>
+                      <span className="text-xs font-medium text-foreground/80">{theme.emoji} {t(theme.labelKey)}</span>
                     </button>
                   );
                 })}
