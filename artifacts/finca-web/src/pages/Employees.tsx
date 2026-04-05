@@ -29,7 +29,7 @@ type Employee = {
 };
 
 type Attachment = {
-  id: string; employeeId: string; farmId: string; objectPath: string;
+  id: string; employeeId: string; farmId: string; fileKey: string;
   originalName: string; mimeType: string; sizeBytes: number; createdAt?: string | null;
 };
 

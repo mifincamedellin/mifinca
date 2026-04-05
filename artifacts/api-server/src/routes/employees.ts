@@ -115,7 +115,7 @@ router.get("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/file"
         eq(employeeAttachmentsTable.farmId, farmId),
       ));
     if (!att) return res.status(404).json({ error: "attachment_not_found" });
-    const objectFile = await objectStorageService.getObjectEntityFile(att.objectPath);
+    const objectFile = await objectStorageService.getObjectEntityFile(att.fileKey);
     const response = await objectStorageService.downloadObject(objectFile);
     res.status(response.status);
     response.headers.forEach((value: string, key: string) => res.setHeader(key, value));
@@ -165,11 +165,11 @@ router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, req
       .where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId)));
     if (!employee[0]) return res.status(404).json({ error: "employee_not_found" });
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+    const fileKey = objectStorageService.normalizeObjectEntityPath(uploadURL);
     const [attachment] = await db.insert(employeeAttachmentsTable).values({
       employeeId,
       farmId,
-      objectPath,
+      fileKey,
       originalName,
       mimeType: mimeType || "application/octet-stream",
       sizeBytes: sizeBytes || 0,
@@ -184,7 +184,7 @@ router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, req
 router.delete("/farms/:farmId/employees/:employeeId/attachments/:attachmentId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, employeeId, attachmentId } = req.params as { farmId: string; employeeId: string; attachmentId: string };
-    const [att] = await db.select({ objectPath: employeeAttachmentsTable.objectPath })
+    const [att] = await db.select({ fileKey: employeeAttachmentsTable.fileKey })
       .from(employeeAttachmentsTable)
       .where(and(
         eq(employeeAttachmentsTable.id, attachmentId),
@@ -192,7 +192,7 @@ router.delete("/farms/:farmId/employees/:employeeId/attachments/:attachmentId", 
         eq(employeeAttachmentsTable.farmId, farmId),
       ));
     if (!att) return res.status(404).json({ error: "attachment_not_found" });
-    await objectStorageService.deleteObjectEntity(att.objectPath);
+    await objectStorageService.deleteObjectEntity(att.fileKey);
     await db.delete(employeeAttachmentsTable)
       .where(and(
         eq(employeeAttachmentsTable.id, attachmentId),
