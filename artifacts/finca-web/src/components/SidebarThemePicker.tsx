@@ -14,7 +14,7 @@ const THEMES: {
   { id: "tierra", label: "Tierra", swatch: "#3B1F10", emoji: "🌾" },
   { id: "bosque", label: "Bosque", swatch: "#0A2115", emoji: "🌿" },
   { id: "oceano", label: "Océano", swatch: "#0C1533", emoji: "🌊" },
-  { id: "vaca",   label: "Vaca",   swatch: "#F4EFE4", swatchB: "#111111", emoji: "🐄" },
+  { id: "vaca",   label: "Noche",  swatch: "#111111", emoji: "🌙" },
 ];
 
 export function SidebarThemePicker() {
@@ -52,14 +52,7 @@ export function SidebarThemePicker() {
                       }`}
                     >
                       <div className="relative w-8 h-8 rounded-full overflow-hidden shadow-md ring-2 ring-offset-1 ring-white/50 flex-shrink-0">
-                        {theme.id === "vaca" ? (
-                          <div className="w-full h-full flex">
-                            <div className="w-1/2 h-full" style={{ backgroundColor: theme.swatch }} />
-                            <div className="w-1/2 h-full" style={{ backgroundColor: theme.swatchB }} />
-                          </div>
-                        ) : (
-                          <div className="w-full h-full" style={{ backgroundColor: theme.swatch }} />
-                        )}
+                        <div className="w-full h-full" style={{ backgroundColor: theme.swatch }} />
                         {isActive && (
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm" />

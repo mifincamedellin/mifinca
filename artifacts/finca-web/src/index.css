@@ -160,22 +160,53 @@
 }
 
 [data-sidebar-theme="vaca"] {
-  --sidebar: 40 28% 92%;
-  --sidebar-foreground: 0 0% 12%;
-  --sidebar-border: 0 0% 72%;
-  --sidebar-primary: 0 0% 22%;
-  --sidebar-primary-foreground: 40 28% 92%;
-  --sidebar-accent: 0 0% 84%;
-  --sidebar-accent-foreground: 0 0% 12%;
+  --button-outline: rgba(255, 255, 255, 0.10);
+  --badge-outline: rgba(255, 255, 255, 0.06);
+  --opaque-button-border-intensity: 10;
+  --elevate-1: rgba(255, 255, 255, 0.03);
+  --elevate-2: rgba(255, 255, 255, 0.06);
+
+  --background: 0 0% 8%;
+  --foreground: 40 15% 91%;
+  --border: 0 0% 17%;
+  --input: 0 0% 16%;
+
+  --card: 0 0% 11%;
+  --card-foreground: 40 15% 91%;
+  --card-border: 0 0% 20%;
+
+  --popover: 0 0% 11%;
+  --popover-foreground: 40 15% 91%;
+  --popover-border: 0 0% 17%;
+
+  --primary: 40 25% 85%;
+  --primary-foreground: 0 0% 8%;
+
+  --secondary: 113 22% 48%;
+  --secondary-foreground: 0 0% 98%;
+
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 57%;
+
+  --accent: 28 44% 59%;
+  --accent-foreground: 0 0% 98%;
+
+  --destructive: 0 65% 55%;
+  --destructive-foreground: 0 0% 98%;
+
+  --ring: 113 20% 48%;
+
+  --sidebar: 0 0% 6%;
+  --sidebar-foreground: 40 15% 88%;
+  --sidebar-border: 0 0% 13%;
+  --sidebar-primary: 113 22% 44%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 0 0% 11%;
+  --sidebar-accent-foreground: 40 15% 88%;
 }
 
 [data-sidebar-theme="vaca"] [data-sidebar="sidebar"] {
-  background-image:
-    linear-gradient(rgba(244, 239, 228, 0.5), rgba(244, 239, 228, 0.5)),
-    url("/cow-print.png");
-  background-size: 320px auto;
-  background-repeat: repeat;
-  background-position: top left;
+  background-image: none;
 }
 
 @layer base {
