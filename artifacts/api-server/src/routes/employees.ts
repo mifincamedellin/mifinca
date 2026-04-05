@@ -151,27 +151,22 @@ router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requ
 router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
-    const { objectPath, originalName, mimeType, sizeBytes } = req.body as {
-      objectPath: string; originalName: string; mimeType?: string; sizeBytes?: number;
+    const { originalName, mimeType, sizeBytes } = req.body as {
+      originalName: string; mimeType?: string; sizeBytes?: number;
     };
     const allowedMimeTypes = ["image/jpeg", "image/png", "application/pdf"];
     const MAX_SIZE = 20 * 1024 * 1024;
-    if (!objectPath || !originalName) {
-      return res.status(400).json({ error: "objectPath and originalName are required" });
-    }
-    if (!objectPath.startsWith("/objects/")) {
-      return res.status(400).json({ error: "invalid_object_path" });
-    }
+    if (!originalName) return res.status(400).json({ error: "originalName is required" });
     if (mimeType && !allowedMimeTypes.includes(mimeType)) {
       return res.status(400).json({ error: "unsupported_mime_type" });
     }
-    if (sizeBytes && sizeBytes > MAX_SIZE) {
-      return res.status(400).json({ error: "file_too_large" });
-    }
+    if (sizeBytes && sizeBytes > MAX_SIZE) return res.status(400).json({ error: "file_too_large" });
     const employee = await db.select({ id: employeesTable.id }).from(employeesTable)
       .where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId)));
     if (!employee[0]) return res.status(404).json({ error: "employee_not_found" });
-    const attachment = await db.insert(employeeAttachmentsTable).values({
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+    const [attachment] = await db.insert(employeeAttachmentsTable).values({
       employeeId,
       farmId,
       objectPath,
@@ -179,7 +174,7 @@ router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, req
       mimeType: mimeType || "application/octet-stream",
       sizeBytes: sizeBytes || 0,
     }).returning();
-    return res.status(201).json(attachment[0]);
+    return res.status(201).json({ attachment, uploadURL });
   } catch (err) {
     req.log.error({ err }, "Create employee attachment error");
     return res.status(500).json({ error: "internal" });

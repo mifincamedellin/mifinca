@@ -287,13 +287,17 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
     setIsUploading(true);
     setUploadError(null);
     try {
-      const urlRes = await fetch("/api/storage/uploads/request-url", {
+      const attRes = await fetch(`/api/farms/${farmId}/employees/${emp.id}/attachments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "application/octet-stream" }),
+        body: JSON.stringify({
+          originalName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+        }),
       });
-      if (!urlRes.ok) throw new Error("Failed to get upload URL");
-      const { uploadURL, objectPath } = await urlRes.json();
+      if (!attRes.ok) throw new Error("Failed to create attachment");
+      const { uploadURL } = await attRes.json();
 
       const putRes = await fetch(uploadURL, {
         method: "PUT",
@@ -301,18 +305,6 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
         headers: { "Content-Type": file.type || "application/octet-stream" },
       });
       if (!putRes.ok) throw new Error("Failed to upload file");
-
-      const attRes = await fetch(`/api/farms/${farmId}/employees/${emp.id}/attachments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          objectPath,
-          originalName: file.name,
-          mimeType: file.type || "application/octet-stream",
-          sizeBytes: file.size,
-        }),
-      });
-      if (!attRes.ok) throw new Error("Failed to record attachment");
 
       qc.invalidateQueries({ queryKey: ["employee-attachments", farmId, emp.id] });
     } catch (err) {
