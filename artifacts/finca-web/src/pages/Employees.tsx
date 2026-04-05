@@ -266,127 +266,130 @@ export function Employees() {
           </Button>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <Card className="rounded-2xl border-border/50 shadow-sm bg-card/60 overflow-hidden">
+          {/* Table header */}
+          <div className="grid grid-cols-[minmax(0,1fr)_130px_190px_190px_140px_96px] gap-4 px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-muted/30">
+            <span>{t("emp.name")}</span>
+            <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{t("emp.phone")}</span>
+            <span className="flex items-center gap-1.5"><Mail className="h-3 w-3" />{t("emp.email")}</span>
+            <span className="flex items-center gap-1.5"><Building2 className="h-3 w-3" />{t("emp.bankName")}</span>
+            <span className="text-right">{t("emp.monthly")}</span>
+            <span />
+          </div>
+
+          {/* Rows */}
           {employees.map((emp, i) => {
             const isExpanded = expandedId === emp.id;
             const hasBenefits = num(emp.pension) + num(emp.salud) + num(emp.arl) + num(emp.primas) + num(emp.cesantias) > 0;
             return (
-              <motion.div key={emp.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
-                <Card className="rounded-2xl border-border/50 shadow-sm hover:shadow-md transition-shadow bg-card/60 overflow-hidden">
-                  {/* Main row */}
-                  <div className="p-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                      {/* Avatar + name */}
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-lg font-serif font-bold text-primary">
-                            {emp.name.substring(0, 2).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground text-lg leading-tight">{emp.name}</p>
-                          {emp.startDate && (
-                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                              <CalendarDays className="h-3 w-3" />
-                              {t("emp.since")} {format(new Date(emp.startDate + "T12:00:00"), isEn ? "MMM d, yyyy" : "d 'de' MMMM yyyy", { locale: isEn ? undefined : es })}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+              <motion.div key={emp.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
+                {i > 0 && <Separator className="opacity-40" />}
 
-                      {/* Contact info */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm flex-shrink-0">
-                        {emp.phone && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-                            <span className="truncate">{emp.phone}</span>
-                          </div>
-                        )}
-                        {emp.email && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                            <span className="truncate">{emp.email}</span>
-                          </div>
-                        )}
-                        {emp.bankAccount && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
-                            <span className="truncate">{emp.bankName} · {emp.bankAccount}</span>
-                          </div>
-                        )}
-                      </div>
+                {/* Main row */}
+                <div className="grid grid-cols-[minmax(0,1fr)_130px_190px_190px_140px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/20 transition-colors">
 
-                      {/* Salary + actions */}
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("emp.monthly")}</p>
-                          <p className="text-lg font-serif font-bold text-secondary">
-                            {formatCOP(num(emp.monthlySalary))}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {hasBenefits && (
-                            <button
-                              onClick={() => setExpandedId(isExpanded ? null : emp.id)}
-                              className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors"
-                              title={isExpanded ? t("emp.hideBenefits") : t("emp.viewBenefits")}
-                            >
-                              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                            </button>
-                          )}
-                          <button onClick={() => openEdit(emp)} className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => setDeleteConfirm(emp.id)} className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
+                  {/* Avatar + name */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-serif font-bold text-primary">{emp.name.substring(0, 2).toUpperCase()}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground leading-tight truncate">{emp.name}</p>
+                      {emp.startDate && (
+                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                          <CalendarDays className="h-3 w-3 flex-shrink-0" />
+                          {format(new Date(emp.startDate + "T12:00:00"), isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es })}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Expandable benefits panel */}
-                  <AnimatePresence>
-                    {isExpanded && hasBenefits && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
+                  {/* Phone */}
+                  <div className="text-sm text-muted-foreground truncate min-w-0">
+                    {emp.phone || <span className="text-muted-foreground/30">—</span>}
+                  </div>
+
+                  {/* Email */}
+                  <div className="text-sm text-muted-foreground truncate min-w-0">
+                    {emp.email || <span className="text-muted-foreground/30">—</span>}
+                  </div>
+
+                  {/* Bank */}
+                  <div className="min-w-0">
+                    {emp.bankName || emp.bankAccount ? (
+                      <>
+                        <p className="text-sm text-muted-foreground truncate">{emp.bankName || "—"}</p>
+                        {emp.bankAccount && <p className="text-xs font-mono text-muted-foreground/60 truncate">{emp.bankAccount}</p>}
+                      </>
+                    ) : <span className="text-sm text-muted-foreground/30">—</span>}
+                  </div>
+
+                  {/* Salary */}
+                  <div className="text-right">
+                    <p className="font-serif font-bold text-secondary text-base">{formatCOP(num(emp.monthlySalary))}</p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-0.5">
+                    {hasBenefits && (
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : emp.id)}
+                        className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors"
+                        title={isExpanded ? t("emp.hideBenefits") : t("emp.viewBenefits")}
                       >
-                        <Separator />
-                        <div className="px-5 py-4 bg-muted/20">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("emp.benefitsSection")}</p>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                            {[
-                              { label: t("emp.pension"), value: num(emp.pension), sub: t("emp.perMonth"), icon: ShieldCheck, color: "text-blue-600", bg: "bg-blue-100/60" },
-                              { label: t("emp.salud"), value: num(emp.salud), sub: t("emp.perMonth"), icon: HeartPulse, color: "text-rose-500", bg: "bg-rose-100/60" },
-                              { label: t("emp.arl"), value: num(emp.arl), sub: t("emp.perMonth"), icon: ShieldCheck, color: "text-orange-500", bg: "bg-orange-100/60" },
-                              { label: t("emp.primas"), value: num(emp.primas), sub: t("emp.perSemester"), icon: Receipt, color: "text-violet-600", bg: "bg-violet-100/60" },
-                              { label: t("emp.cesantias"), value: num(emp.cesantias), sub: t("emp.perYear"), icon: Coins, color: "text-amber-600", bg: "bg-amber-100/60" },
-                            ].map(b => (
-                              <div key={b.label} className="bg-card/70 rounded-xl px-3 py-2.5 border border-border/30 flex items-start gap-2">
-                                <div className={`p-1.5 rounded-lg ${b.bg} mt-0.5 flex-shrink-0`}>
-                                  <b.icon className={`h-3.5 w-3.5 ${b.color}`} />
-                                </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground">{b.label}</p>
-                                  <p className="text-sm font-semibold text-foreground">{formatCOP(b.value)}</p>
-                                  <p className="text-xs text-muted-foreground/60">{b.sub}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
                     )}
-                  </AnimatePresence>
-                </Card>
+                    <button onClick={() => openEdit(emp)} className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => setDeleteConfirm(emp.id)} className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expandable benefits panel */}
+                <AnimatePresence>
+                  {isExpanded && hasBenefits && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <Separator />
+                      <div className="px-5 py-4 bg-muted/20">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("emp.benefitsSection")}</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                          {[
+                            { label: t("emp.pension"), value: num(emp.pension), sub: t("emp.perMonth"), icon: ShieldCheck, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100/60 dark:bg-blue-950/40" },
+                            { label: t("emp.salud"), value: num(emp.salud), sub: t("emp.perMonth"), icon: HeartPulse, color: "text-rose-500 dark:text-rose-400", bg: "bg-rose-100/60 dark:bg-rose-950/40" },
+                            { label: t("emp.arl"), value: num(emp.arl), sub: t("emp.perMonth"), icon: ShieldCheck, color: "text-orange-500 dark:text-orange-400", bg: "bg-orange-100/60 dark:bg-orange-950/40" },
+                            { label: t("emp.primas"), value: num(emp.primas), sub: t("emp.perSemester"), icon: Receipt, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100/60 dark:bg-violet-950/40" },
+                            { label: t("emp.cesantias"), value: num(emp.cesantias), sub: t("emp.perYear"), icon: Coins, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100/60 dark:bg-amber-950/40" },
+                          ].map(b => (
+                            <div key={b.label} className="bg-card/70 rounded-xl px-3 py-2.5 border border-border/30 flex items-start gap-2">
+                              <div className={`p-1.5 rounded-lg ${b.bg} mt-0.5 flex-shrink-0`}>
+                                <b.icon className={`h-3.5 w-3.5 ${b.color}`} />
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">{b.label}</p>
+                                <p className="text-sm font-semibold text-foreground">{formatCOP(b.value)}</p>
+                                <p className="text-xs text-muted-foreground/60">{b.sub}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}
-        </div>
+        </Card>
       )}
 
       {/* ── Add / Edit dialog ── */}
