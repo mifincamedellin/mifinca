@@ -36,7 +36,7 @@ function getInitials(name: string) {
 }
 
 const AVATAR_COLORS = [
-  "bg-secondary/80", "bg-clay/80", "bg-primary/70",
+  "bg-secondary/80", "bg-emerald-500", "bg-primary/70",
   "bg-purple-400", "bg-blue-400", "bg-orange-400",
 ];
 

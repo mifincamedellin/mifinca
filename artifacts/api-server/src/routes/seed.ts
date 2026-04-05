@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import {
   animalsTable, weightRecordsTable, medicalRecordsTable,
   inventoryItemsTable, financeTransactionsTable,
-  contactsTable, activityLogTable, farmMembersTable,
+  contactsTable, activityLogTable, farmMembersTable, employeesTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
@@ -26,38 +26,58 @@ function monthsAgo(n: number, day = 15) {
 router.post("/farms/:farmId/seed", requireAuth, requireFarmAccess, async (req, res) => {
   const farmId = req.params["farmId"]!;
   try {
-    // ── ANIMALS ──────────────────────────────────────────────────────────────
+    // ── ANIMALS (20) ─────────────────────────────────────────────────────────
     const animalRows = await db.insert(animalsTable).values([
-      { farmId, customTag: "BOV-001", species: "cattle", breed: "Brahman", name: "Reina", sex: "female", dateOfBirth: "2020-03-12", status: "active", notes: "Buena productora de leche", photoUrl: "/animals/reina-brahman.png" },
-      { farmId, customTag: "BOV-002", species: "cattle", breed: "Simmental", name: "Luna", sex: "female", dateOfBirth: "2021-07-05", status: "active", photoUrl: "/animals/luna-simmental.png" },
-      { farmId, customTag: "BOV-003", species: "cattle", breed: "Brahman", name: "Toro Negro", sex: "male", dateOfBirth: "2019-11-20", status: "active", notes: "Semental principal", photoUrl: "/animals/toro-negro.png" },
-      { farmId, customTag: "BOV-004", species: "cattle", breed: "Cebú", name: "Manchas", sex: "female", dateOfBirth: "2022-01-08", status: "active", photoUrl: "/animals/manchas-cebu.png" },
-      { farmId, customTag: "CER-001", species: "pig", breed: "Landrace", name: "Gordita", sex: "female", dateOfBirth: "2023-02-14", status: "active", photoUrl: "/animals/gordita-landrace.png" },
-      { farmId, customTag: "CER-002", species: "pig", breed: "Duroc", sex: "male", dateOfBirth: "2023-03-22", status: "active", photoUrl: "/animals/duroc-pig.png" },
-      { farmId, customTag: "CAB-001", species: "horse", breed: "Criollo Colombiano", name: "Rayo", sex: "male", dateOfBirth: "2018-05-30", status: "active", notes: "Caballo de trabajo", photoUrl: "/animals/rayo-horse.png" },
-      { farmId, customTag: "CAP-001", species: "goat", breed: "Nubian", name: "Bella", sex: "female", dateOfBirth: "2022-09-10", status: "active", photoUrl: "/animals/bella-nubian-goat.png" },
+      { farmId, customTag: "BOV-001", species: "cattle", breed: "Brahman",          name: "Reina",     sex: "female", dateOfBirth: "2020-03-12", status: "active", notes: "Buena productora de leche" },
+      { farmId, customTag: "BOV-002", species: "cattle", breed: "Simmental",        name: "Luna",      sex: "female", dateOfBirth: "2021-07-05", status: "active" },
+      { farmId, customTag: "BOV-003", species: "cattle", breed: "Brahman",          name: "Toro Negro",sex: "male",   dateOfBirth: "2019-11-20", status: "active", notes: "Semental principal" },
+      { farmId, customTag: "BOV-004", species: "cattle", breed: "Cebú",             name: "Manchas",   sex: "female", dateOfBirth: "2022-01-08", status: "active" },
+      { farmId, customTag: "BOV-005", species: "cattle", breed: "Gyr",              name: "Estrella",  sex: "female", dateOfBirth: "2021-04-18", status: "active", notes: "Alta producción láctea" },
+      { farmId, customTag: "BOV-006", species: "cattle", breed: "Brahman",          name: "Canela",    sex: "female", dateOfBirth: "2020-08-25", status: "active" },
+      { farmId, customTag: "BOV-007", species: "cattle", breed: "Normando",         name: "Vendaval",  sex: "male",   dateOfBirth: "2018-12-10", status: "active", notes: "Toro reproductor reserva" },
+      { farmId, customTag: "BOV-008", species: "cattle", breed: "Cebú",             name: "Rosada",    sex: "female", dateOfBirth: "2022-05-03", status: "active" },
+      { farmId, customTag: "BOV-009", species: "cattle", breed: "Simmental",        name: "Nube",      sex: "female", dateOfBirth: "2023-01-17", status: "active", notes: "Ternera en crecimiento" },
+      { farmId, customTag: "BOV-010", species: "cattle", breed: "Brahman",          name: "Palomo",    sex: "male",   dateOfBirth: "2022-09-29", status: "active" },
+      { farmId, customTag: "BOV-011", species: "cattle", breed: "Holstein",         name: "Lechera",   sex: "female", dateOfBirth: "2020-02-11", status: "active", notes: "Mejor productora del hato" },
+      { farmId, customTag: "BOV-012", species: "cattle", breed: "Gyr",              name: "Negrita",   sex: "female", dateOfBirth: "2021-11-06", status: "active" },
+      { farmId, customTag: "CER-001", species: "pig",    breed: "Landrace",         name: "Gordita",   sex: "female", dateOfBirth: "2023-02-14", status: "active" },
+      { farmId, customTag: "CER-002", species: "pig",    breed: "Duroc",            name: "Duroc",     sex: "male",   dateOfBirth: "2023-03-22", status: "active" },
+      { farmId, customTag: "CER-003", species: "pig",    breed: "Yorkshire",        name: "Rizada",    sex: "female", dateOfBirth: "2023-07-20", status: "active" },
+      { farmId, customTag: "CER-004", species: "pig",    breed: "Pietrain",         name: "Mota",      sex: "male",   dateOfBirth: "2023-08-14", status: "active" },
+      { farmId, customTag: "CAB-001", species: "horse",  breed: "Criollo Colombiano",name: "Rayo",     sex: "male",   dateOfBirth: "2018-05-30", status: "active", notes: "Caballo de trabajo" },
+      { farmId, customTag: "CAB-002", species: "horse",  breed: "Criollo Colombiano",name: "Trueno",   sex: "male",   dateOfBirth: "2017-03-05", status: "active", notes: "Caballo de paso fino" },
+      { farmId, customTag: "CAP-001", species: "goat",   breed: "Nubian",           name: "Bella",     sex: "female", dateOfBirth: "2022-09-10", status: "active" },
+      { farmId, customTag: "CAP-002", species: "goat",   breed: "Boer",             name: "Caramelo",  sex: "female", dateOfBirth: "2023-04-12", status: "active" },
     ]).returning();
 
-    const [reina, luna, toroNegro, manchas, gordita, cerDuroc, rayo, bella] = animalRows as typeof animalRows;
+    const [reina, luna, toroNegro, manchas, estrella, canela, , , nube, , lechera, , gordita, , , , rayo, trueno, bella] = animalRows as typeof animalRows;
 
     // ── WEIGHT RECORDS ───────────────────────────────────────────────────────
-    if (reina && luna && toroNegro && manchas && gordita && rayo && bella) {
+    if (reina && luna && toroNegro && manchas && gordita && rayo && bella && estrella && lechera && nube) {
       await db.insert(weightRecordsTable).values([
-        { animalId: reina.id, weightKg: "380", recordedAt: monthsAgo(3) },
-        { animalId: reina.id, weightKg: "392", recordedAt: monthsAgo(2) },
-        { animalId: reina.id, weightKg: "405", recordedAt: monthsAgo(1) },
-        { animalId: reina.id, weightKg: "418", recordedAt: daysAgo(5) },
-        { animalId: luna.id, weightKg: "290", recordedAt: monthsAgo(2) },
-        { animalId: luna.id, weightKg: "308", recordedAt: monthsAgo(1) },
-        { animalId: luna.id, weightKg: "321", recordedAt: daysAgo(10) },
-        { animalId: toroNegro.id, weightKg: "520", recordedAt: monthsAgo(2) },
-        { animalId: toroNegro.id, weightKg: "535", recordedAt: daysAgo(15) },
-        { animalId: manchas.id, weightKg: "210", recordedAt: monthsAgo(1) },
-        { animalId: manchas.id, weightKg: "228", recordedAt: daysAgo(7) },
-        { animalId: gordita.id, weightKg: "85", recordedAt: monthsAgo(1) },
-        { animalId: gordita.id, weightKg: "97", recordedAt: daysAgo(12) },
-        { animalId: rayo.id, weightKg: "430", recordedAt: monthsAgo(1) },
-        { animalId: bella.id, weightKg: "52", recordedAt: daysAgo(8) },
+        { animalId: reina.id,    weightKg: "380", recordedAt: monthsAgo(3) },
+        { animalId: reina.id,    weightKg: "392", recordedAt: monthsAgo(2) },
+        { animalId: reina.id,    weightKg: "405", recordedAt: monthsAgo(1) },
+        { animalId: reina.id,    weightKg: "418", recordedAt: daysAgo(5) },
+        { animalId: luna.id,     weightKg: "290", recordedAt: monthsAgo(2) },
+        { animalId: luna.id,     weightKg: "308", recordedAt: monthsAgo(1) },
+        { animalId: luna.id,     weightKg: "321", recordedAt: daysAgo(10) },
+        { animalId: toroNegro.id,weightKg: "520", recordedAt: monthsAgo(2) },
+        { animalId: toroNegro.id,weightKg: "535", recordedAt: daysAgo(15) },
+        { animalId: manchas.id,  weightKg: "210", recordedAt: monthsAgo(1) },
+        { animalId: manchas.id,  weightKg: "228", recordedAt: daysAgo(7) },
+        { animalId: gordita.id,  weightKg: "85",  recordedAt: monthsAgo(1) },
+        { animalId: gordita.id,  weightKg: "97",  recordedAt: daysAgo(12) },
+        { animalId: rayo.id,     weightKg: "430", recordedAt: monthsAgo(1) },
+        { animalId: bella.id,    weightKg: "52",  recordedAt: daysAgo(8) },
+        { animalId: estrella.id, weightKg: "340", recordedAt: monthsAgo(2) },
+        { animalId: estrella.id, weightKg: "358", recordedAt: daysAgo(9) },
+        { animalId: lechera.id,  weightKg: "420", recordedAt: monthsAgo(1) },
+        { animalId: lechera.id,  weightKg: "435", recordedAt: daysAgo(6) },
+        { animalId: nube.id,     weightKg: "145", recordedAt: monthsAgo(1) },
+        { animalId: nube.id,     weightKg: "162", recordedAt: daysAgo(14) },
+        ...(trueno ? [{ animalId: trueno.id, weightKg: "480", recordedAt: monthsAgo(1) }] : []),
+        ...(canela ? [{ animalId: canela.id, weightKg: "310", recordedAt: daysAgo(11) }] : []),
       ]);
     }
 
@@ -85,24 +105,46 @@ router.post("/farms/:farmId/seed", requireAuth, requireFarmAccess, async (req, r
       { farmId, category: "supplies", name: "Aretes de identificación", quantity: "45", unit: "units", lowStockThreshold: "10", costPerUnitCop: "3500", supplierName: "GanaderTech" },
     ]);
 
-    // ── FINANCES ─────────────────────────────────────────────────────────────
+    // ── EMPLOYEES (6 with parafiscal data) ───────────────────────────────────
+    await db.insert(employeesTable).values([
+      { farmId, name: "Juan Carlos Pérez",    phone: "+57 312 441 8821", email: "jcperez@gmail.com",       startDate: "2019-03-01", monthlySalary: "2000000", bankName: "Bancolombia",  bankAccount: "404-123456-78", notes: "Mayordomo principal",          pension: "240000", salud: "170000", arl: "10400", primas: "1000000", cesantias: "2000000" },
+      { farmId, name: "María José Rodríguez", phone: "+57 315 882 0034",                                   startDate: "2021-06-15", monthlySalary: "1160000", bankName: "Nequi",                              notes: "Ordeñadora turno mañana",       pension: "139200", salud: "98600",  arl: "6032",  primas: "580000",  cesantias: "1160000" },
+      { farmId, name: "Luis Alberto García",  phone: "+57 301 773 5509",                                   startDate: "2020-01-10", monthlySalary: "1300000", bankName: "Davivienda",  bankAccount: "234-987654-21", notes: "Vaquero y cuidado de potreros", pension: "156000", salud: "110500", arl: "6760",  primas: "650000",  cesantias: "1300000" },
+      { farmId, name: "Ana Lucía Torres",     phone: "+57 320 664 1127", email: "aluciatv@hotmail.com",    startDate: "2022-08-01", monthlySalary: "1500000", bankName: "Bancolombia", bankAccount: "404-654321-90", notes: "Auxiliar veterinaria",          pension: "180000", salud: "127500", arl: "7800",  primas: "750000",  cesantias: "1500000" },
+      { farmId, name: "Sebastián Morales",    phone: "+57 317 229 4453",                                   startDate: "2021-11-20", monthlySalary: "1800000", bankName: "Banco Bogotá",                        notes: "Tractorista y mantenimiento",   pension: "216000", salud: "153000", arl: "9360",  primas: "900000",  cesantias: "1800000" },
+      { farmId, name: "Carmen Rosa Jiménez",  phone: "+57 310 558 9976", email: "crjimenez@outlook.com",   startDate: "2018-05-14", monthlySalary: "2500000", bankName: "Bancolombia", bankAccount: "404-112233-44", notes: "Administradora de finca",       pension: "300000", salud: "212500", arl: "13000", primas: "1250000", cesantias: "2500000" },
+    ]);
+
+    // ── FINANCES (28 transactions) ────────────────────────────────────────────
     await db.insert(financeTransactionsTable).values([
-      { farmId, type: "income", category: "venta_leche", amount: "1850000", description: "Venta leche quincenal — 370 litros", date: daysAgo(5), notes: "Cooperativa Lácteos del Río" },
-      { farmId, type: "income", category: "venta_leche", amount: "1920000", description: "Venta leche quincenal — 384 litros", date: monthsAgo(1, 15) },
-      { farmId, type: "income", category: "venta_animales", amount: "3800000", description: "Venta 2 cerdos en pie", date: monthsAgo(1, 8), notes: "Frigorífico El Palmar" },
-      { farmId, type: "income", category: "venta_leche", amount: "1780000", description: "Venta leche quincenal — 356 litros", date: monthsAgo(2, 15) },
-      { farmId, type: "income", category: "venta_cosecha", amount: "2400000", description: "Venta maíz cosecha", date: monthsAgo(2, 5), notes: "450 kg al mercado local" },
-      { farmId, type: "income", category: "subsidio", amount: "1200000", description: "Subsidio FEDEGAN apoyo ganadero", date: monthsAgo(3, 20) },
-      { farmId, type: "income", category: "venta_leche", amount: "1650000", description: "Venta leche quincenal — 330 litros", date: monthsAgo(3, 1) },
-      { farmId, type: "expense", category: "alimentacion", amount: "1140000", description: "Concentrado bovino — 12 bultos", date: daysAgo(8), notes: "AgroSantos S.A.S" },
-      { farmId, type: "expense", category: "medicamentos", amount: "166000", description: "Ivermectina y Oxitetraciclina", date: monthsAgo(1, 12), notes: "VetFarma Colombia" },
-      { farmId, type: "expense", category: "servicios", amount: "185000", description: "Visita veterinario — 4 animales", date: monthsAgo(1, 20), notes: "Dr. Carlos Medina" },
-      { farmId, type: "expense", category: "mano_obra", amount: "900000", description: "Jornalero mensual", date: monthsAgo(1, 28) },
-      { farmId, type: "expense", category: "mano_obra", amount: "900000", description: "Jornalero mensual", date: monthsAgo(2, 28) },
-      { farmId, type: "expense", category: "alimentacion", amount: "1080000", description: "Sal mineralizada y concentrado", date: monthsAgo(2, 10) },
-      { farmId, type: "expense", category: "transporte", amount: "320000", description: "Flete ganado — Municipio La Mesa", date: monthsAgo(2, 20) },
-      { farmId, type: "expense", category: "insumos", amount: "84000", description: "Aretes y jeringas", date: monthsAgo(3, 10) },
-      { farmId, type: "expense", category: "mano_obra", amount: "900000", description: "Jornalero mensual", date: monthsAgo(3, 28) },
+      { farmId, type: "income",  category: "venta_leche",    amount: "2050000",  description: "Venta leche quincenal — 410 litros",              date: daysAgo(1),        notes: "Cooperativa Lácteos del Río" },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1850000",  description: "Venta leche quincenal — 370 litros",              date: daysAgo(2),        notes: "Cooperativa Lácteos del Río" },
+      { farmId, type: "income",  category: "venta_animales", amount: "5200000",  description: "Venta novillo Palomo — 480 kg en pie",            date: daysAgo(4),        notes: "Frigorífico El Palmar" },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1990000",  description: "Venta leche quincenal — 398 litros",              date: daysAgo(35),       notes: null },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1920000",  description: "Venta leche quincenal — 384 litros",              date: monthsAgo(1, 15), notes: null },
+      { farmId, type: "income",  category: "venta_animales", amount: "3800000",  description: "Venta 2 cerdos Duroc en pie",                     date: monthsAgo(1, 8),  notes: "Frigorífico El Palmar" },
+      { farmId, type: "income",  category: "otros",           amount: "850000",   description: "Alquiler potrero norte — 3 meses",                date: daysAgo(45),       notes: "Vecino Eduardo Salcedo" },
+      { farmId, type: "income",  category: "venta_cosecha",  amount: "3100000",  description: "Venta fríjol cosecha principal — 620 kg",         date: daysAgo(55),       notes: "Mercado Fusagasugá" },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1780000",  description: "Venta leche quincenal — 356 litros",              date: monthsAgo(2, 15), notes: null },
+      { farmId, type: "income",  category: "venta_cosecha",  amount: "2400000",  description: "Venta maíz cosecha — 450 kg",                     date: monthsAgo(2, 5),  notes: "Mercado local" },
+      { farmId, type: "income",  category: "subsidio",       amount: "1200000",  description: "Subsidio FEDEGAN apoyo ganadero",                 date: monthsAgo(3, 20), notes: null },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1650000",  description: "Venta leche quincenal — 330 litros",              date: monthsAgo(3, 1),  notes: null },
+      { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: daysAgo(3),        notes: "Juan C., María J., Luis A., Ana L., Sebastián M., Carmen R." },
+      { farmId, type: "expense", category: "prestaciones",   amount: "1231620",  description: "Pensión + Salud + ARL mensual empleados",         date: daysAgo(4),        notes: "Pago parafiscales mes anterior" },
+      { farmId, type: "expense", category: "alimentacion",   amount: "1350000",  description: "Concentrado bovino Ganaplus — 15 bultos",         date: daysAgo(12),       notes: "AgroSantos S.A.S" },
+      { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: monthsAgo(1, 28), notes: null },
+      { farmId, type: "expense", category: "medicamentos",   amount: "166000",   description: "Ivermectina y Oxitetraciclina",                   date: monthsAgo(1, 12), notes: "VetFarma Colombia" },
+      { farmId, type: "expense", category: "servicios",      amount: "280000",   description: "Visita veterinario — 4 animales",                 date: monthsAgo(1, 20), notes: "Dr. Carlos Medina" },
+      { farmId, type: "expense", category: "alimentacion",   amount: "1080000",  description: "Sal mineralizada y concentrado",                  date: monthsAgo(2, 10), notes: null },
+      { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: monthsAgo(2, 28), notes: null },
+      { farmId, type: "expense", category: "transporte",     amount: "450000",   description: "Flete 4 novillos a Bogotá",                       date: daysAgo(22),       notes: "Transportes Hernández" },
+      { farmId, type: "expense", category: "servicios",      amount: "185000",   description: "Mantenimiento cerca eléctrica potrero 2",         date: daysAgo(28),       notes: "Sebastián Morales + materiales" },
+      { farmId, type: "expense", category: "insumos",        amount: "84000",    description: "Aretes de identificación y jeringas",             date: monthsAgo(3, 10), notes: null },
+      { farmId, type: "expense", category: "medicamentos",   amount: "210000",   description: "Vitaminas ADE y antibiótico terneros",            date: daysAgo(40),       notes: "VetFarma Colombia" },
+      { farmId, type: "expense", category: "alimentacion",   amount: "1140000",  description: "Concentrado bovino — 12 bultos",                  date: monthsAgo(1, 8),  notes: "AgroSantos S.A.S" },
+      { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: monthsAgo(3, 28), notes: null },
+      { farmId, type: "expense", category: "insumos",        amount: "320000",   description: "Sal mineralizada — 5 bultos extra temporada seca",date: monthsAgo(2, 20), notes: null },
+      { farmId, type: "expense", category: "servicios",      amount: "650000",   description: "Instalación bebederos automáticos potrero 3",     date: monthsAgo(3, 5),  notes: "Herrería El Cóndor" },
     ]);
 
     // ── CONTACTS ─────────────────────────────────────────────────────────────
@@ -142,6 +184,7 @@ router.delete("/farms/:farmId/seed", requireAuth, requireFarmAccess, async (req,
     await db.delete(contactsTable).where(eq(contactsTable.farmId, farmId));
     await db.delete(inventoryItemsTable).where(eq(inventoryItemsTable.farmId, farmId));
     await db.delete(activityLogTable).where(eq(activityLogTable.farmId, farmId));
+    await db.delete(employeesTable).where(eq(employeesTable.farmId, farmId));
     // Animals cascade-deletes weight/medical records
     await db.delete(animalsTable).where(eq(animalsTable.farmId, farmId));
 
