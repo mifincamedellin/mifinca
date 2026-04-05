@@ -103,7 +103,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div data-sidebar-theme={sidebarTheme} className="flex min-h-screen w-full bg-background">
+      <div data-sidebar-theme={sidebarTheme} className={`flex min-h-screen w-full bg-background${sidebarTheme === "vaca" ? " dark" : ""}`}>
         <Sidebar className="border-r-border/50">
           <SidebarContent>
             <div className="p-6">

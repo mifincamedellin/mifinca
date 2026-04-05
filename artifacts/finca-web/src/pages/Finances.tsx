@@ -170,12 +170,12 @@ export function Finances() {
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: t("fin.income"), value: totalIncome, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50 border-green-100" },
-          { label: t("fin.expense"), value: totalExpense, icon: TrendingDown, color: "text-red-500", bg: "bg-red-50 border-red-100" },
-          { label: t("fin.balance"), value: balance, icon: DollarSign, color: balance >= 0 ? "text-blue-600" : "text-red-500", bg: "bg-blue-50 border-blue-100" },
+          { label: t("fin.income"), value: totalIncome, icon: TrendingUp, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 border-green-100 dark:bg-green-950/40 dark:border-green-800/30" },
+          { label: t("fin.expense"), value: totalExpense, icon: TrendingDown, color: "text-red-500 dark:text-red-400", bg: "bg-red-50 border-red-100 dark:bg-red-950/40 dark:border-red-800/30" },
+          { label: t("fin.balance"), value: balance, icon: DollarSign, color: balance >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-500 dark:text-red-400", bg: "bg-blue-50 border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/30" },
         ].map(card => (
           <div key={card.label} className={`${card.bg} border rounded-2xl p-5 flex items-center gap-4`}>
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white shadow-sm`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white dark:bg-white/10 shadow-sm`}>
               <card.icon className={`h-6 w-6 ${card.color}`} />
             </div>
             <div>
