@@ -107,7 +107,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <Sidebar className="border-r-border/50">
           <SidebarContent>
             <div className="p-6">
-              <h1 className="text-2xl font-serif font-bold text-primary-foreground">Finca</h1>
+              <h1 className="text-2xl font-serif font-bold text-sidebar-foreground">Finca</h1>
             </div>
             <SidebarGroup>
               <SidebarGroupLabel className="text-sidebar-foreground/50">Menu</SidebarGroupLabel>
