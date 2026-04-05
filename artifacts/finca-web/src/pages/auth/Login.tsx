@@ -113,13 +113,8 @@ export function Login() {
           </Form>
 
           <div className="mt-4">
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-black/10" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card/95 px-2 text-muted-foreground">o</span>
-              </div>
+            <div className="my-4">
+              <span className="w-full border-t border-black/10 block" />
             </div>
             <Button
               type="button"
@@ -128,7 +123,7 @@ export function Login() {
               onClick={handleDemoLogin}
               disabled={login.isPending}
             >
-              🌾 Entrar como demo
+              🌾 {i18n.language === "en" ? "Enter as demo" : "Entrar como demo"}
             </Button>
           </div>
 
