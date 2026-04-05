@@ -5,7 +5,6 @@ import {
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
 import { requireAuth } from "../middleware/auth.js";
 
 const router: IRouter = Router();
@@ -79,11 +78,11 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
 });
 
 /**
- * GET /storage/objects/*
+ * GET /storage/objects/*path
  *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
+ * Generic authenticated object serving endpoint. Requires auth.
+ * For application objects (e.g. employee attachments) prefer the
+ * resource-scoped endpoints that enforce farm-level ownership.
  */
 router.get("/storage/objects/*path", requireAuth, async (req: Request, res: Response) => {
   try {
@@ -91,21 +90,6 @@ router.get("/storage/objects/*path", requireAuth, async (req: Request, res: Resp
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
 
     const response = await objectStorageService.downloadObject(objectFile);
 

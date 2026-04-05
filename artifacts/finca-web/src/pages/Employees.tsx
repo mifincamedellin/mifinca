@@ -74,8 +74,8 @@ function formatBytes(bytes: number): string {
 
 function num(v?: string | null) { return parseFloat(v ?? "0") || 0; }
 
-function getServeUrl(objectPath: string): string {
-  return `/api/storage${objectPath}`;
+function getServeUrl(att: Attachment): string {
+  return `/api/farms/${att.farmId}/employees/${att.employeeId}/attachments/${att.id}/file`;
 }
 
 function isImageMime(mime: string): boolean {
@@ -89,7 +89,7 @@ function AttachmentThumb({ att, onDelete, onView }: {
 }) {
   const { t } = useTranslation();
   const isImage = isImageMime(att.mimeType);
-  const serveUrl = getServeUrl(att.objectPath);
+  const serveUrl = getServeUrl(att);
 
   return (
     <div className="relative group rounded-xl border border-border/40 bg-card/70 overflow-hidden hover:border-primary/30 transition-colors">
@@ -372,7 +372,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
                   att={att}
                   onDelete={() => deleteAttachment(att)}
                   onView={() => {
-                    setLightboxUrl(getServeUrl(att.objectPath));
+                    setLightboxUrl(getServeUrl(att));
                     setLightboxName(att.originalName);
                   }}
                 />

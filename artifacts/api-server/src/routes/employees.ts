@@ -105,6 +105,33 @@ router.patch("/farms/:farmId/pay-day", requireAuth, requireFarmAccess, async (re
   }
 });
 
+router.get("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/file", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, employeeId, attachmentId } = req.params as { farmId: string; employeeId: string; attachmentId: string };
+    const [att] = await db.select().from(employeeAttachmentsTable)
+      .where(and(
+        eq(employeeAttachmentsTable.id, attachmentId),
+        eq(employeeAttachmentsTable.employeeId, employeeId),
+        eq(employeeAttachmentsTable.farmId, farmId),
+      ));
+    if (!att) return res.status(404).json({ error: "attachment_not_found" });
+    const objectFile = await objectStorageService.getObjectEntityFile(att.objectPath);
+    const response = await objectStorageService.downloadObject(objectFile);
+    res.status(response.status);
+    response.headers.forEach((value: string, key: string) => res.setHeader(key, value));
+    if (response.body) {
+      const { Readable } = await import("stream");
+      const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
+      nodeStream.pipe(res);
+    } else {
+      res.end();
+    }
+  } catch (err) {
+    req.log.error({ err }, "Serve attachment file error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
