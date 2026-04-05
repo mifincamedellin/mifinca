@@ -98,8 +98,8 @@ All under `/api`:
 - `PATCH /api/farms/:id/pay-day`
 - `GET/POST /api/farms/:id/employees/:empId/attachments` — list / upload employee attachments
 - `DELETE /api/farms/:id/employees/:empId/attachments/:attachmentId` — delete attachment
+- `GET /api/farms/:id/employees/:empId/attachments/:attId/file` — serve attachment (farm-scoped auth)
 - `POST /api/storage/uploads/request-url` — get presigned GCS upload URL
-- `GET /api/storage/objects/*path` — serve private stored objects (employee attachments, etc.)
 - `GET /api/search?farmId=&q=`
 - `GET/POST /api/farms/:id/finances` — list / create finance transactions
 - `PUT/DELETE /api/farms/:id/finances/:txId` — update / delete a transaction

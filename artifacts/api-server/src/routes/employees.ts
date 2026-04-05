@@ -154,8 +154,19 @@ router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, req
     const { objectPath, originalName, mimeType, sizeBytes } = req.body as {
       objectPath: string; originalName: string; mimeType?: string; sizeBytes?: number;
     };
+    const allowedMimeTypes = ["image/jpeg", "image/png", "application/pdf"];
+    const MAX_SIZE = 20 * 1024 * 1024;
     if (!objectPath || !originalName) {
       return res.status(400).json({ error: "objectPath and originalName are required" });
+    }
+    if (!objectPath.startsWith("/objects/")) {
+      return res.status(400).json({ error: "invalid_object_path" });
+    }
+    if (mimeType && !allowedMimeTypes.includes(mimeType)) {
+      return res.status(400).json({ error: "unsupported_mime_type" });
+    }
+    if (sizeBytes && sizeBytes > MAX_SIZE) {
+      return res.status(400).json({ error: "file_too_large" });
     }
     const employee = await db.select({ id: employeesTable.id }).from(employeesTable)
       .where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId)));
@@ -185,9 +196,8 @@ router.delete("/farms/:farmId/employees/:employeeId/attachments/:attachmentId", 
         eq(employeeAttachmentsTable.employeeId, employeeId),
         eq(employeeAttachmentsTable.farmId, farmId),
       ));
-    if (att?.objectPath) {
-      await objectStorageService.deleteObjectEntity(att.objectPath);
-    }
+    if (!att) return res.status(404).json({ error: "attachment_not_found" });
+    await objectStorageService.deleteObjectEntity(att.objectPath);
     await db.delete(employeeAttachmentsTable)
       .where(and(
         eq(employeeAttachmentsTable.id, attachmentId),

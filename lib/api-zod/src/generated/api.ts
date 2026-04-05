@@ -893,10 +893,3 @@ export const RequestUploadUrlResponse = zod.object({
     })
     .optional(),
 });
-
-/**
- * @summary Serve an object entity from PRIVATE_OBJECT_DIR
- */
-export const GetStorageObjectParams = zod.object({
-  objectPath: zod.coerce.string(),
-});
