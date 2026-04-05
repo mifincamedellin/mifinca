@@ -44,20 +44,27 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const { token, logout, activeFarmId, setActiveFarmId, sidebarTheme } = useStore();
 
-  const { data: user } = useGetMe({
+  const { data: user, isError: authFailed } = useGetMe({
     query: { enabled: !!token, retry: false }
   });
 
   const { data: farms } = useListFarms({
-    query: { enabled: !!token }
+    query: { enabled: !!token && !authFailed }
   });
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated or token expired
   useEffect(() => {
     if (!token && location !== '/login' && location !== '/register') {
       setLocation('/login');
     }
   }, [token, location, setLocation]);
+
+  useEffect(() => {
+    if (authFailed && token) {
+      logout();
+      setLocation('/login');
+    }
+  }, [authFailed, token, logout, setLocation]);
 
   // Set initial active farm
   useEffect(() => {

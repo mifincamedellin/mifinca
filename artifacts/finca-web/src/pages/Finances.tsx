@@ -67,7 +67,9 @@ export function Finances() {
     queryKey: ["finances", activeFarmId],
     queryFn: async () => {
       const res = await fetch(`/api/farms/${activeFarmId}/finances`);
-      return res.json();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!activeFarmId,
   });
