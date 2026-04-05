@@ -23,7 +23,8 @@ router.get("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (re
 router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId } = req.params as { farmId: string };
-    const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes } = req.body;
+    const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes,
+            pension, salud, arl, primas, cesantias } = req.body;
     const employee = await db.insert(employeesTable).values({
       farmId,
       name,
@@ -34,6 +35,11 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
       bankName: bankName || "Bancolombia",
       bankAccount: bankAccount || null,
       notes: notes || null,
+      pension: pension ? String(pension) : "0",
+      salud: salud ? String(salud) : "0",
+      arl: arl ? String(arl) : "0",
+      primas: primas ? String(primas) : "0",
+      cesantias: cesantias ? String(cesantias) : "0",
     }).returning();
     return res.status(201).json(employee[0]);
   } catch (err) {
@@ -45,7 +51,8 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
 router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
-    const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes } = req.body;
+    const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes,
+            pension, salud, arl, primas, cesantias } = req.body;
     const updated = await db.update(employeesTable).set({
       name,
       phone: phone || null,
@@ -55,6 +62,11 @@ router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAcces
       bankName: bankName || "Bancolombia",
       bankAccount: bankAccount || null,
       notes: notes || null,
+      pension: pension ? String(pension) : "0",
+      salud: salud ? String(salud) : "0",
+      arl: arl ? String(arl) : "0",
+      primas: primas ? String(primas) : "0",
+      cesantias: cesantias ? String(cesantias) : "0",
       updatedAt: new Date(),
     }).where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId))).returning();
     if (!updated[0]) return res.status(404).json({ error: "not_found" });

@@ -14,6 +14,12 @@ export const employeesTable = pgTable("employees", {
   bankName: text("bank_name").default("Bancolombia"),
   bankAccount: text("bank_account"),
   notes: text("notes"),
+  // Colombian labour benefits
+  pension: decimal("pension", { precision: 12, scale: 2 }).default("0"),
+  salud: decimal("salud", { precision: 12, scale: 2 }).default("0"),
+  arl: decimal("arl", { precision: 12, scale: 2 }).default("0"),
+  primas: decimal("primas", { precision: 12, scale: 2 }).default("0"),
+  cesantias: decimal("cesantias", { precision: 12, scale: 2 }).default("0"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
