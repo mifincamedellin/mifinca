@@ -118,7 +118,15 @@ router.get("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/file"
     const objectFile = await objectStorageService.getObjectEntityFile(att.fileKey);
     const response = await objectStorageService.downloadObject(objectFile);
     res.status(response.status);
-    response.headers.forEach((value: string, key: string) => res.setHeader(key, value));
+    // Override Content-Type with DB-validated value (prevents GCS header spoofing / XSS)
+    const safeName = att.originalName.replace(/[^\w.\-]/g, "_");
+    res.setHeader("Content-Type", att.mimeType);
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    // Forward other headers (Content-Length, ETag, etc.) but skip content-type
+    response.headers.forEach((value: string, key: string) => {
+      if (key.toLowerCase() !== "content-type") res.setHeader(key, value);
+    });
     if (response.body) {
       const { Readable } = await import("stream");
       const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
