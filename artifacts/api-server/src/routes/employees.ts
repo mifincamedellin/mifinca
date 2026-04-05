@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
-import { ObjectStorageService } from "../lib/objectStorage.js";
+import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -127,6 +127,7 @@ router.get("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/file"
       res.end();
     }
   } catch (err) {
+    if (err instanceof ObjectNotFoundError) return res.status(404).json({ error: "file_not_found" });
     req.log.error({ err }, "Serve attachment file error");
     return res.status(500).json({ error: "internal" });
   }

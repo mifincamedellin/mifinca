@@ -82,9 +82,10 @@ function isImageMime(mime: string): boolean {
   return mime.startsWith("image/");
 }
 
-function useAuthBlobUrl(url: string): string | null {
+function useAuthBlobUrl(url: string | null): string | null {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   useEffect(() => {
+    if (!url) return;
     let objectUrl: string | null = null;
     let cancelled = false;
     fetch(url)
@@ -156,7 +157,7 @@ function AttachmentThumb({ att, onDelete, onView }: {
   const isImage = isImageMime(att.mimeType);
   const isPdf = att.mimeType === "application/pdf";
   const serveUrl = getServeUrl(att);
-  const blobUrl = useAuthBlobUrl(serveUrl);
+  const blobUrl = useAuthBlobUrl(isImage ? serveUrl : null);
 
   return (
     <div className="relative group rounded-xl border border-border/40 bg-card/70 overflow-hidden hover:border-primary/30 transition-colors">
