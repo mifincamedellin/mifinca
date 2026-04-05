@@ -113,6 +113,7 @@ router.get("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/file"
         eq(employeeAttachmentsTable.id, attachmentId),
         eq(employeeAttachmentsTable.employeeId, employeeId),
         eq(employeeAttachmentsTable.farmId, farmId),
+        eq(employeeAttachmentsTable.confirmed, true),
       ));
     if (!att) return res.status(404).json({ error: "attachment_not_found" });
     const objectFile = await objectStorageService.getObjectEntityFile(att.fileKey);
