@@ -7,8 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Settings as SettingsIcon, AlertTriangle, User, CreditCard,
-  Star, Check, Plus, Trash2, Mail, Pencil, X,
+  Star, Check, Plus, Trash2, Mail, Pencil, X, Lock,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,7 +63,51 @@ export function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingEmail, setEditingEmail] = useState(false);
-  const [paymentMethods] = useState<PaymentMethod[]>(DEMO_PAYMENT_METHODS);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEMO_PAYMENT_METHODS);
+  const [addCardOpen, setAddCardOpen] = useState(false);
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardSaving, setCardSaving] = useState(false);
+
+  const formatCardNumber = (val: string) =>
+    val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+
+  const formatExpiry = (val: string) => {
+    const digits = val.replace(/\D/g, "").slice(0, 4);
+    return digits.length >= 3 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+  };
+
+  const detectBrand = (num: string) => {
+    const n = num.replace(/\s/g, "");
+    if (/^4/.test(n)) return "visa";
+    if (/^5[1-5]/.test(n)) return "mastercard";
+    if (/^3[47]/.test(n)) return "amex";
+    return "card";
+  };
+
+  const handleAddCard = () => {
+    const digits = cardNumber.replace(/\s/g, "");
+    if (digits.length < 16 || !cardHolder.trim() || cardExpiry.length < 5 || cardCvv.length < 3) return;
+    setCardSaving(true);
+    setTimeout(() => {
+      const [month, year] = cardExpiry.split("/");
+      const newCard: PaymentMethod = {
+        id: crypto.randomUUID(),
+        brand: detectBrand(cardNumber),
+        last4: digits.slice(-4),
+        expMonth: parseInt(month, 10),
+        expYear: parseInt(`20${year}`, 10),
+        isDefault: paymentMethods.length === 0,
+      };
+      setPaymentMethods((prev) => [...prev, newCard]);
+      setCardNumber(""); setCardHolder(""); setCardExpiry(""); setCardCvv("");
+      setCardSaving(false);
+      setAddCardOpen(false);
+      toast({ title: t("settings.addCard"), description: `•••• ${newCard.last4}` });
+    }, 800);
+  };
 
   const { data: farm } = useGetFarm(activeFarmId || '', {
     query: { enabled: !!activeFarmId }
@@ -306,7 +356,7 @@ export function Settings() {
             <CreditCard className="h-5 w-5 text-primary" />
             <h2 className="text-2xl font-serif text-primary">{t("settings.paymentMethods")}</h2>
           </div>
-          <Button variant="outline" className="rounded-xl border-secondary/40 text-secondary hover:bg-secondary/5 gap-2">
+          <Button variant="outline" onClick={() => setAddCardOpen(true)} className="rounded-xl border-secondary/40 text-secondary hover:bg-secondary/5 gap-2">
             <Plus className="h-4 w-4" /> {t("settings.addCard")}
           </Button>
         </div>
@@ -320,6 +370,7 @@ export function Settings() {
             <p className="text-sm text-muted-foreground/70 mt-1 max-w-xs">{t("settings.noPaymentMethodsDesc")}</p>
             <Button
               variant="outline"
+              onClick={() => setAddCardOpen(true)}
               className="mt-4 rounded-xl border-secondary/40 text-secondary hover:bg-secondary/5 gap-2"
             >
               <Plus className="h-4 w-4" /> {t("settings.addCard")}
@@ -359,6 +410,104 @@ export function Settings() {
           {t("settings.deleteFarm")}
         </Button>
       </Card>
+
+      {/* ── ADD CARD DIALOG ── */}
+      <Dialog open={addCardOpen} onOpenChange={setAddCardOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl text-primary flex items-center gap-2">
+              <CreditCard className="h-5 w-5" /> {t("settings.addCardTitle")}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {/* Card number */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">{t("settings.cardNumber")}</Label>
+              <div className="relative">
+                <Input
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                  placeholder={t("settings.cardNumberPlaceholder")}
+                  className="rounded-xl pr-12 tracking-widest font-mono"
+                  inputMode="numeric"
+                  maxLength={19}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium uppercase">
+                  {detectBrand(cardNumber) !== "card" ? detectBrand(cardNumber) : ""}
+                </span>
+              </div>
+            </div>
+
+            {/* Cardholder */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">{t("settings.cardHolder")}</Label>
+              <Input
+                value={cardHolder}
+                onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
+                placeholder={t("settings.cardHolderPlaceholder")}
+                className="rounded-xl uppercase tracking-wide"
+                maxLength={26}
+              />
+            </div>
+
+            {/* Expiry + CVV */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">{t("settings.cardExpiry")}</Label>
+                <Input
+                  value={cardExpiry}
+                  onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                  placeholder={t("settings.cardExpiryPlaceholder")}
+                  className="rounded-xl font-mono"
+                  inputMode="numeric"
+                  maxLength={5}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1">
+                  {t("settings.cardCvv")}
+                  <Lock className="h-3 w-3 text-muted-foreground" />
+                </Label>
+                <Input
+                  value={cardCvv}
+                  onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="•••"
+                  className="rounded-xl font-mono"
+                  inputMode="numeric"
+                  type="password"
+                  maxLength={4}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl"
+                onClick={() => setAddCardOpen(false)}
+                disabled={cardSaving}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                className="flex-1 rounded-xl bg-secondary hover:bg-secondary/90 text-white"
+                onClick={handleAddCard}
+                disabled={
+                  cardSaving ||
+                  cardNumber.replace(/\s/g, "").length < 16 ||
+                  !cardHolder.trim() ||
+                  cardExpiry.length < 5 ||
+                  cardCvv.length < 3
+                }
+              >
+                {cardSaving ? t("common.saving") : t("settings.cardSave")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
