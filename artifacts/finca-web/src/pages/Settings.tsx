@@ -31,30 +31,14 @@ const emailSchema = z.object({
   email: z.string().email(),
 });
 
-const PLANS = [
-  {
-    key: "basic",
-    labelEs: "Básico",
-    labelEn: "Basic",
-    price: "Gratis",
-    color: "bg-muted/60 text-muted-foreground",
-    badge: "bg-muted text-muted-foreground",
-    features: ["1 finca", "Hasta 50 animales", "Inventario básico", "Soporte comunitario"],
-    featuresEn: ["1 farm", "Up to 50 animals", "Basic inventory", "Community support"],
-    current: true,
-  },
-  {
-    key: "pro",
-    labelEs: "Pro",
-    labelEn: "Pro",
-    price: "$29/mes",
-    color: "bg-secondary/10 border-secondary",
-    badge: "bg-secondary text-white",
-    features: ["Fincas ilimitadas", "Animales ilimitados", "IA Asistente avanzada", "Finanzas y reportes", "Soporte prioritario"],
-    featuresEn: ["Unlimited farms", "Unlimited animals", "Advanced AI Assistant", "Finances & reports", "Priority support"],
-    current: false,
-  },
-];
+const PRO_PLAN = {
+  key: "pro",
+  labelEs: "Pro",
+  labelEn: "Pro",
+  price: "400.000 COP/mes",
+  features: ["Fincas ilimitadas", "Animales ilimitados", "IA Asistente avanzada", "Finanzas y reportes", "Soporte prioritario"],
+  featuresEn: ["Unlimited farms", "Unlimited animals", "Advanced AI Assistant", "Finances & reports", "Priority support"],
+};
 
 type PaymentMethod = {
   id: string;
@@ -294,40 +278,24 @@ export function Settings() {
           <h2 className="text-2xl font-serif text-primary">{t("settings.plan")}</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.key}
-              className={`relative rounded-2xl border-2 p-6 transition-all ${
-                plan.current
-                  ? "border-primary/30 bg-primary/5"
-                  : "border-secondary/30 bg-secondary/5 hover:border-secondary/60"
-              }`}
-            >
-              {plan.current && (
-                <Badge className="absolute top-4 right-4 bg-primary/10 text-primary border-primary/20 text-xs">
-                  {t("settings.currentPlan")}
-                </Badge>
-              )}
-              <p className="text-lg font-bold text-foreground mb-1">
-                {lang === "en" ? plan.labelEn : plan.labelEs}
-              </p>
-              <p className="text-2xl font-serif text-primary mb-4">{plan.price}</p>
-              <ul className="space-y-2 mb-6">
-                {(lang === "en" ? plan.featuresEn : plan.features).map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Check className="h-4 w-4 text-secondary flex-shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              {!plan.current && (
-                <Button className="w-full rounded-xl bg-secondary hover:bg-secondary/90 text-white">
-                  {t("settings.upgrade")}
-                </Button>
-              )}
-            </div>
-          ))}
+        <div className="max-w-sm">
+          <div className="relative rounded-2xl border-2 border-secondary/40 bg-secondary/5 p-6">
+            <Badge className="absolute top-4 right-4 bg-primary/10 text-primary border-primary/20 text-xs">
+              {t("settings.currentPlan")}
+            </Badge>
+            <p className="text-lg font-bold text-foreground mb-1">
+              {lang === "en" ? PRO_PLAN.labelEn : PRO_PLAN.labelEs}
+            </p>
+            <p className="text-2xl font-serif text-primary mb-4">{PRO_PLAN.price}</p>
+            <ul className="space-y-2">
+              {(lang === "en" ? PRO_PLAN.featuresEn : PRO_PLAN.features).map((f) => (
+                <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-secondary flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </Card>
 
