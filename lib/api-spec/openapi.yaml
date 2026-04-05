@@ -717,6 +717,12 @@ paths:
       tags: [Employees]
       operationId: createEmployeeAttachment
       summary: Create an attachment row and return a presigned GCS upload URL
+      description: |
+        Two-phase upload lifecycle:
+        1. POST this endpoint — creates a DB row with `confirmed=false` and returns a presigned GCS URL (`uploadURL`).
+        2. Client PUTs the file directly to `uploadURL`.
+        3. Client calls PATCH /confirm — sets `confirmed=true`; the attachment becomes visible in listings.
+        Unconfirmed rows (failed/abandoned uploads) are pruned automatically after 1 hour.
       parameters:
         - name: farmId
           in: path

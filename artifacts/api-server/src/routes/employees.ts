@@ -231,13 +231,17 @@ router.delete("/farms/:farmId/employees/:employeeId/attachments/:attachmentId", 
         eq(employeeAttachmentsTable.farmId, farmId),
       ));
     if (!att) return res.status(404).json({ error: "attachment_not_found" });
-    await objectStorageService.deleteObjectEntity(att.fileKey);
+    // DB-first: if DB delete fails we never touch storage (no stale rows);
+    // if storage cleanup fails after DB delete we get an orphaned GCS object (harmless, invisible to users)
     await db.delete(employeeAttachmentsTable)
       .where(and(
         eq(employeeAttachmentsTable.id, attachmentId),
         eq(employeeAttachmentsTable.employeeId, employeeId),
         eq(employeeAttachmentsTable.farmId, farmId),
       ));
+    objectStorageService.deleteObjectEntity(att.fileKey).catch((err) => {
+      req.log.warn({ err, fileKey: att.fileKey }, "Storage object cleanup failed after DB delete");
+    });
     return res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "Delete employee attachment error");
