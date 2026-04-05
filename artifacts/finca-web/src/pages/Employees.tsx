@@ -214,7 +214,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setUploadError("Archivo demasiado grande (máx. 20 MB)");
+      setUploadError(t("emp.fileTooLarge"));
       return;
     }
     setIsUploading(true);
@@ -360,7 +360,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
           {attachmentsLoading ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span>Cargando...</span>
+              <span>{t("emp.attachmentsLoading")}</span>
             </div>
           ) : attachments.length === 0 ? (
             <p className="text-xs text-muted-foreground/60 italic">{t("emp.noAttachments")}</p>
