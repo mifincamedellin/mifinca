@@ -28,7 +28,7 @@ export function Login() {
   };
 
   const handleDemoLogin = () => {
-    login.mutate({ email: "demo@finca.co", password: "demo1234" });
+    login.mutate({ email: "demo@fincacolombia.com", password: "demo1234" });
   };
 
   return (
