@@ -103,8 +103,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex min-h-screen w-full bg-background">
-        <div data-sidebar-theme={sidebarTheme}>
+      <div data-sidebar-theme={sidebarTheme} className="flex min-h-screen w-full bg-background">
         <Sidebar className="border-r-border/50">
           <SidebarContent>
             <div className="p-6">
@@ -152,7 +151,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </SidebarFooter>
         </Sidebar>
-        </div>
 
         <div className="flex flex-col flex-1 min-w-0">
           <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-30">
