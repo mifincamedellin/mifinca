@@ -688,8 +688,202 @@ paths:
               schema:
                 $ref: "#/components/schemas/SearchResults"
 
+  /farms/{farmId}/employees/{employeeId}/attachments:
+    get:
+      tags: [Employees]
+      operationId: listEmployeeAttachments
+      summary: List confirmed attachments for an employee
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of confirmed attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmployeeAttachment"
+    post:
+      tags: [Employees]
+      operationId: createEmployeeAttachment
+      summary: Create an attachment row and return a presigned GCS upload URL
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAttachmentRequest"
+      responses:
+        "201":
+          description: Attachment row created; upload URL returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAttachmentResponse"
+
+  /farms/{farmId}/employees/{employeeId}/attachments/{attachmentId}/confirm:
+    patch:
+      tags: [Employees]
+      operationId: confirmEmployeeAttachment
+      summary: Mark an attachment upload as complete (sets confirmed=true)
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attachment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeAttachment"
+        "404":
+          description: Attachment not found
+
+  /farms/{farmId}/employees/{employeeId}/attachments/{attachmentId}:
+    delete:
+      tags: [Employees]
+      operationId: deleteEmployeeAttachment
+      summary: Delete an attachment (DB row + GCS object)
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attachment deleted
+        "404":
+          description: Attachment not found
+
+  /farms/{farmId}/employees/{employeeId}/attachments/{attachmentId}/file:
+    get:
+      tags: [Employees]
+      operationId: getEmployeeAttachmentFile
+      summary: Stream attachment file (farm-scoped auth, forced download headers)
+      parameters:
+        - name: farmId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Attachment or file not found
+
 components:
   schemas:
+    EmployeeAttachment:
+      type: object
+      required: [id, employeeId, farmId, fileKey, originalName, mimeType, sizeBytes, confirmed]
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        farmId:
+          type: string
+          format: uuid
+        fileKey:
+          type: string
+        originalName:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+        confirmed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateAttachmentRequest:
+      type: object
+      required: [originalName]
+      properties:
+        originalName:
+          type: string
+          minLength: 1
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+
+    CreateAttachmentResponse:
+      type: object
+      required: [attachment, uploadURL]
+      properties:
+        attachment:
+          $ref: "#/components/schemas/EmployeeAttachment"
+        uploadURL:
+          type: string
+          format: uri
+
     HealthStatus:
       type: object
       properties:

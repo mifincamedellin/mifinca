@@ -297,7 +297,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
           sizeBytes: file.size,
         }),
       });
-      if (!attRes.ok) throw new Error("Failed to create attachment");
+      if (!attRes.ok) throw new Error("upload_error");
       const { attachment, uploadURL } = await attRes.json();
 
       const putRes = await fetch(uploadURL, {
@@ -305,18 +305,18 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
         body: file,
         headers: { "Content-Type": file.type || "application/octet-stream" },
       });
-      if (!putRes.ok) throw new Error("Failed to upload file");
+      if (!putRes.ok) throw new Error("upload_error");
 
       // Confirm the attachment only after a successful upload
       const confirmRes = await fetch(
         `/api/farms/${farmId}/employees/${emp.id}/attachments/${attachment.id}/confirm`,
         { method: "PATCH" },
       );
-      if (!confirmRes.ok) throw new Error("Failed to confirm attachment");
+      if (!confirmRes.ok) throw new Error("upload_error");
 
       qc.invalidateQueries({ queryKey: ["employee-attachments", farmId, emp.id] });
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } catch {
+      setUploadError(t("emp.uploadError"));
     } finally {
       setIsUploading(false);
     }

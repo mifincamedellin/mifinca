@@ -96,10 +96,10 @@ All under `/api`:
 - `PATCH /api/farms/:id/location` — save farm map center (lat/lng/zoom)
 - `GET/POST /api/farms/:id/employees`, `PUT/DELETE /api/farms/:id/employees/:empId`
 - `PATCH /api/farms/:id/pay-day`
-- `GET/POST /api/farms/:id/employees/:empId/attachments` — list / upload employee attachments
-- `DELETE /api/farms/:id/employees/:empId/attachments/:attachmentId` — delete attachment
-- `GET /api/farms/:id/employees/:empId/attachments/:attId/file` — serve attachment (farm-scoped auth)
-- `POST /api/storage/uploads/request-url` — get presigned GCS upload URL
+- `GET/POST /api/farms/:id/employees/:empId/attachments` — list (confirmed only) / create attachment row + presigned URL
+- `PATCH /api/farms/:id/employees/:empId/attachments/:attachmentId/confirm` — mark upload complete
+- `DELETE /api/farms/:id/employees/:empId/attachments/:attachmentId` — delete attachment (DB + GCS)
+- `GET /api/farms/:id/employees/:empId/attachments/:attId/file` — serve attachment (farm-scoped auth, forced download headers)
 - `GET /api/search?farmId=&q=`
 - `GET/POST /api/farms/:id/finances` — list / create finance transactions
 - `PUT/DELETE /api/farms/:id/finances/:txId` — update / delete a transaction
