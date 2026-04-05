@@ -1,7 +1,7 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
 import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt, sql } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
 
@@ -151,6 +151,15 @@ router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requ
         eq(employeeAttachmentsTable.confirmed, true),
       ))
       .orderBy(employeeAttachmentsTable.createdAt);
+
+    // Fire-and-forget: prune unconfirmed rows older than 1 hour (failed/cancelled uploads)
+    db.delete(employeeAttachmentsTable)
+      .where(and(
+        eq(employeeAttachmentsTable.confirmed, false),
+        lt(employeeAttachmentsTable.createdAt, sql`NOW() - INTERVAL '1 hour'`),
+      ))
+      .catch(() => {});
+
     return res.json(attachments);
   } catch (err) {
     req.log.error({ err }, "List employee attachments error");
