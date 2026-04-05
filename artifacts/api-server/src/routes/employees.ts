@@ -27,7 +27,7 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
   try {
     const { farmId } = req.params as { farmId: string };
     const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes,
-            pension, salud, arl, primas, cesantias } = req.body;
+            pension, salud, arl, primas, cesantias, photoUrl } = req.body;
     const employee = await db.insert(employeesTable).values({
       farmId,
       name,
@@ -43,6 +43,7 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
       arl: arl ? String(arl) : "0",
       primas: primas ? String(primas) : "0",
       cesantias: cesantias ? String(cesantias) : "0",
+      photoUrl: photoUrl || null,
     }).returning();
     return res.status(201).json(employee[0]);
   } catch (err) {
@@ -55,7 +56,7 @@ router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAcces
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
     const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes,
-            pension, salud, arl, primas, cesantias } = req.body;
+            pension, salud, arl, primas, cesantias, photoUrl } = req.body;
     const updated = await db.update(employeesTable).set({
       name,
       phone: phone || null,
@@ -70,6 +71,7 @@ router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAcces
       arl: arl ? String(arl) : "0",
       primas: primas ? String(primas) : "0",
       cesantias: cesantias ? String(cesantias) : "0",
+      photoUrl: photoUrl !== undefined ? (photoUrl || null) : undefined,
       updatedAt: new Date(),
     }).where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId))).returning();
     if (!updated[0]) return res.status(404).json({ error: "not_found" });

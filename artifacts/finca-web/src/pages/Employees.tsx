@@ -14,7 +14,7 @@ import {
   Users, Plus, Pencil, Trash2, Phone, Mail, CalendarDays,
   Banknote, Building2, TrendingUp, Loader2, ChevronDown, ChevronUp,
   HeartPulse, ShieldCheck, Receipt, Coins, Calculator, FileText,
-  Image, File, Download, X, ZoomIn, Paperclip, Upload,
+  Image, File, Download, X, ZoomIn, Paperclip, Upload, Camera,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -25,7 +25,7 @@ type Employee = {
   email?: string | null; startDate?: string | null; monthlySalary?: string | null;
   bankName?: string | null; bankAccount?: string | null; notes?: string | null;
   pension?: string | null; salud?: string | null; arl?: string | null;
-  primas?: string | null; cesantias?: string | null;
+  primas?: string | null; cesantias?: string | null; photoUrl?: string | null;
 };
 
 type Attachment = {
@@ -36,7 +36,7 @@ type Attachment = {
 const EMPTY_FORM = {
   name: "", phone: "", email: "", startDate: "",
   monthlySalary: "", bankName: "Bancolombia", bankAccount: "", notes: "",
-  pension: "", salud: "", arl: "", primas: "", cesantias: "",
+  pension: "", salud: "", arl: "", primas: "", cesantias: "", photoUrl: "",
 };
 
 const COL_RATES = {
@@ -504,6 +504,7 @@ export function Employees() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: employees = [], isLoading } = useQuery<Employee[]>({
     queryKey: ["employees", activeFarmId],
@@ -553,11 +554,20 @@ export function Employees() {
   const openEdit = (emp: Employee) => {
     setEditEmployee(emp);
     setForm({
-      name: emp.name, phone: emp.phone ?? "", email: emp.email ?? "",
-      startDate: emp.startDate ?? "", monthlySalary: emp.monthlySalary ?? "",
-      bankName: emp.bankName ?? "Bancolombia", bankAccount: emp.bankAccount ?? "",
-      notes: emp.notes ?? "", pension: emp.pension ?? "", salud: emp.salud ?? "",
-      arl: emp.arl ?? "", primas: emp.primas ?? "", cesantias: emp.cesantias ?? "",
+      name: emp.name,
+      phone: emp.phone ?? "",
+      email: emp.email ?? "",
+      startDate: emp.startDate ?? "",
+      monthlySalary: emp.monthlySalary ?? "",
+      bankName: emp.bankName ?? "Bancolombia",
+      bankAccount: emp.bankAccount ?? "",
+      notes: emp.notes ?? "",
+      pension: emp.pension ?? "",
+      salud: emp.salud ?? "",
+      arl: emp.arl ?? "",
+      primas: emp.primas ?? "",
+      cesantias: emp.cesantias ?? "",
+      photoUrl: emp.photoUrl ?? "",
     });
     setDialogOpen(true);
   };
@@ -571,6 +581,17 @@ export function Employees() {
 
   const handleAutoCalc = () => { setForm(f => ({ ...f, ...autoCalcBenefits(f.monthlySalary) })); };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm(f => ({ ...f, photoUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ── Totals ──
   const totals = useMemo(() => ({
     monthly: employees.reduce((s, e) => s + num(e.monthlySalary), 0),
     pension: employees.reduce((s, e) => s + num(e.pension), 0),
@@ -688,8 +709,14 @@ export function Employees() {
 
                   {/* Avatar + name */}
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-serif font-bold text-primary">{emp.name.substring(0, 2).toUpperCase()}</span>
+                    <div className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden">
+                      {emp.photoUrl ? (
+                        <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-serif font-bold text-primary">{emp.name.substring(0, 2).toUpperCase()}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-foreground leading-tight truncate">{emp.name}</p>
@@ -774,6 +801,54 @@ export function Employees() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {/* Photo upload */}
+            <div className="flex items-center gap-4">
+              <div
+                className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 border-dashed border-border/60 flex items-center justify-center bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => photoInputRef.current?.click()}
+              >
+                {form.photoUrl ? (
+                  <img src={form.photoUrl} alt="preview" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1">
+                <Label className="text-sm font-medium">{t("emp.photo")}</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("emp.photoHint")}</p>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl text-xs"
+                    onClick={() => photoInputRef.current?.click()}
+                  >
+                    {form.photoUrl ? t("emp.changePhoto") : t("emp.uploadPhoto")}
+                  </Button>
+                  {form.photoUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-xl text-xs text-muted-foreground"
+                      onClick={() => { setForm(f => ({ ...f, photoUrl: "" })); if (photoInputRef.current) photoInputRef.current.value = ""; }}
+                    >
+                      {t("emp.removePhoto")}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+            </div>
+
+            {/* Basic info */}
             <div>
               <Label>{t("emp.name")} *</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required className="rounded-xl mt-1" />

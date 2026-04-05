@@ -14,6 +14,7 @@ export const employeesTable = pgTable("employees", {
   bankName: text("bank_name").default("Bancolombia"),
   bankAccount: text("bank_account"),
   notes: text("notes"),
+  photoUrl: text("photo_url"),
   // Colombian labour benefits
   pension: decimal("pension", { precision: 12, scale: 2 }).default("0"),
   salud: decimal("salud", { precision: 12, scale: 2 }).default("0"),
