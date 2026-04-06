@@ -88,6 +88,8 @@ const translations = {
       save: "Ahorre 20%",
       popular: "Más popular",
       perMonth: "/mes",
+      perYear: "/año",
+      custom: "A la medida",
       tiers: [
         {
           name: "Semilla",
@@ -96,15 +98,15 @@ const translations = {
           cta: "Empezar gratis",
         },
         {
-          name: "Finca",
+          name: "Agricultor",
           desc: "Todo lo que necesita un ganadero.",
           features: ["1 finca", "Animales ilimitados", "Todas las funciones", "Asesor IA integrado", "Soporte estándar"],
           cta: "Probar por 14 días",
         },
         {
-          name: "Hacienda",
-          desc: "Para grandes operaciones.",
-          features: ["Hasta 5 fincas", "Animales ilimitados", "Todas las funciones", "Reportes personalizados", "Soporte prioritario"],
+          name: "Pro",
+          desc: "Para operaciones a gran escala.",
+          features: ["Fincas ilimitadas", "Animales ilimitados", "Todas las funciones", "Reportes personalizados", "Soporte prioritario"],
           cta: "Contactar ventas",
         },
       ],
@@ -198,6 +200,8 @@ const translations = {
       save: "Save 20%",
       popular: "Most popular",
       perMonth: "/mo",
+      perYear: "/yr",
+      custom: "Custom",
       tiers: [
         {
           name: "Seed",
@@ -206,15 +210,15 @@ const translations = {
           cta: "Start for free",
         },
         {
-          name: "Farm",
+          name: "Farmer",
           desc: "Everything a rancher needs.",
           features: ["1 farm", "Unlimited animals", "All features", "AI Advisor included", "Standard support"],
           cta: "Try free for 14 days",
         },
         {
-          name: "Hacienda",
+          name: "Pro",
           desc: "For large-scale operations.",
-          features: ["Up to 5 farms", "Unlimited animals", "All features", "Custom reports", "Priority support"],
+          features: ["Unlimited farms", "Unlimited animals", "All features", "Custom reports", "Priority support"],
           cta: "Contact sales",
         },
       ],
@@ -561,6 +565,7 @@ export default function Home() {
                 <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[0].desc}</p>
                 <div className="mb-6">
                   <span className="text-4xl font-bold font-serif">$0</span>
+                  <span className="text-muted-foreground ml-1 text-sm">COP</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
                   {t.pricing.tiers[0].features.map((feature, i) => (
@@ -583,8 +588,12 @@ export default function Home() {
                 <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[1].name}</h3>
                 <p className="text-primary-foreground/80 text-sm mb-6">{t.pricing.tiers[1].desc}</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold font-serif">${annualBilling ? "24" : "29"}</span>
-                  <span className="text-primary-foreground/60">{t.pricing.perMonth}</span>
+                  <span className="text-4xl font-bold font-serif">
+                    ${annualBilling ? "4.000.000" : "400.000"}
+                  </span>
+                  <span className="text-primary-foreground/60 ml-1">
+                    COP{annualBilling ? t.pricing.perYear : t.pricing.perMonth}
+                  </span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
                   {t.pricing.tiers[1].features.map((feature, i) => (
@@ -604,8 +613,7 @@ export default function Home() {
                 <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[2].name}</h3>
                 <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[2].desc}</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold font-serif">${annualBilling ? "64" : "79"}</span>
-                  <span className="text-muted-foreground">{t.pricing.perMonth}</span>
+                  <span className="text-4xl font-bold font-serif">{t.pricing.custom}</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
                   {t.pricing.tiers[2].features.map((feature, i) => (
