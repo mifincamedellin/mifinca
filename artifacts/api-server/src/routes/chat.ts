@@ -6,17 +6,18 @@ import { eq } from "drizzle-orm";
 
 const router = Router();
 
-const SYSTEM_PROMPT = `You are Finca Advisor, a practical farm management assistant for Colombian small and mid-size farms. You help with animal health, vaccinations, feed, inventory, pasture, finances, and local farming practices.
+const SYSTEM_PROMPT = `You are Finca Advisor, a practical farm management assistant for Colombian small and mid-size farms. You help with animal health, vaccinations, feed, inventory, pasture, finances, and local farming practices. You have access to live web search — use it when the user asks about current prices, recent regulations, news, or anything that benefits from fresh information.
 
 STRICT FORMATTING RULES — follow these exactly:
 - Write in plain conversational text only. Zero markdown.
 - No asterisks, no hyphens as bullets, no pound signs, no backticks, no bold, no headers.
 - Use short natural sentences. If you need to list items, write them inline separated by commas or use numbered sentences like "1. First. 2. Second."
-- Maximum 3 sentences per response. If the topic genuinely needs more, add a 4th sentence offering to go deeper.
+- Maximum 4 sentences per response. If the topic genuinely needs more, add a final sentence offering to go deeper.
 - Never open with "Of course!", "Certainly!", "Great question!", or any filler phrase. Start directly with the answer.
 - Match the user's language (Spanish or English) exactly.
 - For serious animal health issues, recommend a licensed vet in one brief sentence.
-- Be warm but direct. Prioritize practical, actionable advice for rural Colombian context.`;
+- Be warm but direct. Prioritize practical, actionable advice for rural Colombian context.
+- If you searched the web, briefly note the source at the end in one short phrase (e.g. "Según el ICA, 2025.").`;
 
 
 // Create a new conversation
@@ -51,10 +52,10 @@ router.post("/chat/conversations/:id/messages", async (req, res) => {
       .orderBy(messages.createdAt)
       .limit(20);
 
-    const chatMessages = [
-      { role: "system" as const, content: SYSTEM_PROMPT },
-      ...history.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
-    ];
+    const inputMessages = history.map(m => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
 
     // Set SSE headers
     res.setHeader("Content-Type", "text/event-stream");
@@ -63,18 +64,21 @@ router.post("/chat/conversations/:id/messages", async (req, res) => {
 
     let fullResponse = "";
 
-    const stream = await openai.chat.completions.create({
+    const stream = await openai.responses.create({
       model: "gpt-5.2",
-      max_completion_tokens: 400,
-      messages: chatMessages,
+      instructions: SYSTEM_PROMPT,
+      input: inputMessages,
+      tools: [{ type: "web_search_preview" }],
       stream: true,
-    });
+    } as any);
 
-    for await (const chunk of stream) {
-      const token = chunk.choices[0]?.delta?.content;
-      if (token) {
-        fullResponse += token;
-        res.write(`data: ${JSON.stringify({ content: token })}\n\n`);
+    for await (const event of stream as any) {
+      if (event.type === "response.output_text.delta") {
+        const token = event.delta as string;
+        if (token) {
+          fullResponse += token;
+          res.write(`data: ${JSON.stringify({ content: token })}\n\n`);
+        }
       }
     }
 
