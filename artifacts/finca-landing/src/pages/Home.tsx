@@ -585,7 +585,7 @@ export default function Home() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-accent text-accent-foreground text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide">
                   {t.pricing.popular}
                 </div>
-                <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[1].name}</h3>
+                <h3 className="text-2xl font-serif font-medium mb-2 text-white">{t.pricing.tiers[1].name}</h3>
                 <p className="text-primary-foreground/80 text-sm mb-6">{t.pricing.tiers[1].desc}</p>
                 <div className="mb-6">
                   <span className="text-3xl font-bold font-serif">
