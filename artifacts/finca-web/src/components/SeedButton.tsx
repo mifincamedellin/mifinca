@@ -44,6 +44,8 @@ export function SeedButton() {
 
   const busy = phase === "seeding" || phase === "clearing";
 
+  if (!import.meta.env.DEV) return null;
+
   return (
     <>
       {/* Inline trigger — placed directly in the header */}
