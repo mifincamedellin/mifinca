@@ -17,7 +17,7 @@ import { AnimalLineage } from "./AnimalLineage";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 
 const SPECIES_EMOJI: Record<string, string> = {
   cattle: "🐄", pig: "🐖", horse: "🐴",
@@ -70,6 +70,7 @@ export function AnimalDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
   const [medicalOpen, setMedicalOpen] = useState(false);
+  const [editingMedical, setEditingMedical] = useState<any | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +85,18 @@ export function AnimalDetail() {
   const updateAnimal = useUpdateAnimal();
   const createWeightRecord = useCreateWeightRecord();
   const createMedicalRecord = useCreateMedicalRecord();
+
+  const updateMedicalRecord = useMutation({
+    mutationFn: async ({ recordId, data }: { recordId: string; data: any }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals/${id}/medical/${recordId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("update failed");
+      return res.json();
+    },
+  });
 
   const weightForm = useForm<WeightForm>({
     resolver: zodResolver(weightSchema),
@@ -110,18 +123,49 @@ export function AnimalDetail() {
     defaultValues: { recordType: "checkup", title: "", recordDate: new Date().toISOString().split("T")[0], description: "", vetName: "", costCop: "", nextDueDate: "" },
   });
 
+  const openEditMedical = (record: any) => {
+    setEditingMedical(record);
+    medicalForm.reset({
+      recordType: record.recordType,
+      title: record.title,
+      recordDate: record.recordDate ? record.recordDate.split("T")[0] : new Date().toISOString().split("T")[0],
+      description: record.description ?? "",
+      vetName: record.vetName ?? "",
+      costCop: record.costCop ? String(record.costCop) : "",
+      nextDueDate: record.nextDueDate ? record.nextDueDate.split("T")[0] : "",
+    });
+    setMedicalOpen(true);
+  };
+
   const onMedicalSubmit = (data: MedicalForm) => {
     if (!activeFarmId || !id) return;
-    createMedicalRecord.mutate(
-      { farmId: activeFarmId, animalId: id, data: { ...data, costCop: data.costCop !== "" && data.costCop != null ? Number(data.costCop) : undefined } as any },
-      {
-        onSuccess: () => {
-          setMedicalOpen(false);
-          medicalForm.reset({ recordType: "checkup", title: "", recordDate: new Date().toISOString().split("T")[0], description: "", vetName: "", costCop: "", nextDueDate: "" });
-          refetch();
+    const payload = { ...data, costCop: data.costCop !== "" && data.costCop != null ? Number(data.costCop) : undefined };
+    const resetDefaults = { recordType: "checkup" as const, title: "", recordDate: new Date().toISOString().split("T")[0], description: "", vetName: "", costCop: "" as any, nextDueDate: "" };
+
+    if (editingMedical) {
+      updateMedicalRecord.mutate(
+        { recordId: editingMedical.id, data: payload },
+        {
+          onSuccess: () => {
+            setMedicalOpen(false);
+            setEditingMedical(null);
+            medicalForm.reset(resetDefaults);
+            refetch();
+          }
         }
-      }
-    );
+      );
+    } else {
+      createMedicalRecord.mutate(
+        { farmId: activeFarmId, animalId: id, data: payload as any },
+        {
+          onSuccess: () => {
+            setMedicalOpen(false);
+            medicalForm.reset(resetDefaults);
+            refetch();
+          }
+        }
+      );
+    }
   };
 
   const form = useForm<EditForm>({
@@ -450,11 +494,11 @@ export function AnimalDetail() {
       </Dialog>
 
       {/* Medical record dialog */}
-      <Dialog open={medicalOpen} onOpenChange={setMedicalOpen}>
+      <Dialog open={medicalOpen} onOpenChange={(v) => { setMedicalOpen(v); if (!v) setEditingMedical(null); }}>
         <DialogContent className="sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl text-primary flex items-center gap-2">
-              <Syringe className="h-5 w-5" /> {t('animals.addMedical')}
+              <Syringe className="h-5 w-5" /> {editingMedical ? (isEn ? "Edit Record" : "Editar Registro") : t('animals.addMedical')}
             </DialogTitle>
           </DialogHeader>
           <Form {...medicalForm}>
@@ -557,8 +601,8 @@ export function AnimalDetail() {
                 </FormItem>
               )} />
 
-              <Button type="submit" disabled={createMedicalRecord.isPending} className="w-full rounded-xl py-6 bg-primary hover:bg-primary/90">
-                {createMedicalRecord.isPending ? t('common.saving') : t('common.save')}
+              <Button type="submit" disabled={createMedicalRecord.isPending || updateMedicalRecord.isPending} className="w-full rounded-xl py-6 bg-primary hover:bg-primary/90">
+                {(createMedicalRecord.isPending || updateMedicalRecord.isPending) ? t('common.saving') : t('common.save')}
               </Button>
             </form>
           </Form>
@@ -714,19 +758,28 @@ export function AnimalDetail() {
                   <div className="space-y-4">
                     {animal.medicalRecords.map((record) => (
                       <div key={record.id} className="p-4 rounded-xl border border-border/40 bg-black/[0.02] flex items-start gap-4">
-                        <div className="p-3 bg-white rounded-lg shadow-sm">
+                        <div className="p-3 bg-white rounded-lg shadow-sm flex-shrink-0">
                           <Syringe className="h-5 w-5 text-accent" />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-primary">{record.title}</h4>
-                          <p className="text-sm text-muted-foreground mt-1">{record.description}</p>
-                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground font-medium">
+                          {record.description && <p className="text-sm text-muted-foreground mt-1">{record.description}</p>}
+                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground font-medium flex-wrap">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3"/> {format(new Date(record.recordDate), 'dd MMM yyyy')}
                             </span>
-                            {record.vetName && <span>• Vet: {record.vetName}</span>}
+                            {record.vetName && <span>• {record.vetName}</span>}
+                            {(record as any).costCop && <span>• {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number((record as any).costCop))}</span>}
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => openEditMedical(record)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors flex-shrink-0 mt-0.5"
+                          title={isEn ? "Edit record" : "Editar registro"}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
                       </div>
                     ))}
                   </div>

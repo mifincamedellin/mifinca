@@ -292,4 +292,22 @@ router.post("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarm
   }
 });
 
+router.put("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
+    const { recordType, title, description, vetName, costCop, recordDate, nextDueDate } = req.body;
+
+    const updated = await db.update(medicalRecordsTable)
+      .set({ recordType, title, description, vetName, costCop: costCop != null ? String(costCop) : null, recordDate, nextDueDate: nextDueDate || null })
+      .where(and(eq(medicalRecordsTable.id, recordId), eq(medicalRecordsTable.animalId, animalId)))
+      .returning();
+
+    if (!updated[0]) return res.status(404).json({ error: "not_found" });
+    return res.json(updated[0]);
+  } catch (err) {
+    req.log.error({ err }, "Update medical error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 export default router;
