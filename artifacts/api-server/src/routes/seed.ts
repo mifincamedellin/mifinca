@@ -174,46 +174,92 @@ export async function seedDemoFarmData(farmId: string) {
 
   ]).returning();
 
-  const [reina, luna, toroNegro, manchas, estrella, canela, , , nube, , lechera, , gordita, , , , rayo, trueno, bella] = animalRows as typeof animalRows;
+  // ── WEIGHT RECORDS — all animals, 4 records each ─────────────────────────
+  const weightRecords = animalRows.flatMap((animal, i) => {
+    const isMale = animal.sex === "male";
+    let base: number;
+    switch (animal.species) {
+      case "cattle": base = isMale ? 490 : 330; break;
+      case "pig":    base = isMale ? 102 : 88;  break;
+      case "horse":  base = isMale ? 500 : 440; break;
+      case "goat":   base = isMale ? 64  : 50;  break;
+      case "sheep":  base = isMale ? 72  : 60;  break;
+      default:       base = 200;
+    }
+    const v = (i * 7 + 3) % 18;
+    const w1 = base - 14 + v;
+    const w2 = w1 + 8  + (v % 5);
+    const w3 = w2 + 9  + ((v + 2) % 6);
+    const w4 = w3 + 7  + ((v + 4) % 5);
+    return [
+      { animalId: animal.id, weightKg: String(w1), recordedAt: monthsAgo(3) },
+      { animalId: animal.id, weightKg: String(w2), recordedAt: monthsAgo(2) },
+      { animalId: animal.id, weightKg: String(w3), recordedAt: monthsAgo(1) },
+      { animalId: animal.id, weightKg: String(w4), recordedAt: daysAgo(5 + (i % 22)) },
+    ];
+  });
+  await db.insert(weightRecordsTable).values(weightRecords);
 
-  if (reina && luna && toroNegro && manchas && gordita && rayo && bella && estrella && lechera && nube) {
-    await db.insert(weightRecordsTable).values([
-      { animalId: reina.id,    weightKg: "380", recordedAt: monthsAgo(3) },
-      { animalId: reina.id,    weightKg: "392", recordedAt: monthsAgo(2) },
-      { animalId: reina.id,    weightKg: "405", recordedAt: monthsAgo(1) },
-      { animalId: reina.id,    weightKg: "418", recordedAt: daysAgo(5) },
-      { animalId: luna.id,     weightKg: "290", recordedAt: monthsAgo(2) },
-      { animalId: luna.id,     weightKg: "308", recordedAt: monthsAgo(1) },
-      { animalId: luna.id,     weightKg: "321", recordedAt: daysAgo(10) },
-      { animalId: toroNegro.id,weightKg: "520", recordedAt: monthsAgo(2) },
-      { animalId: toroNegro.id,weightKg: "535", recordedAt: daysAgo(15) },
-      { animalId: manchas.id,  weightKg: "210", recordedAt: monthsAgo(1) },
-      { animalId: manchas.id,  weightKg: "228", recordedAt: daysAgo(7) },
-      { animalId: gordita.id,  weightKg: "85",  recordedAt: monthsAgo(1) },
-      { animalId: gordita.id,  weightKg: "97",  recordedAt: daysAgo(12) },
-      { animalId: rayo.id,     weightKg: "430", recordedAt: monthsAgo(1) },
-      { animalId: bella.id,    weightKg: "52",  recordedAt: daysAgo(8) },
-      { animalId: estrella.id, weightKg: "340", recordedAt: monthsAgo(2) },
-      { animalId: estrella.id, weightKg: "358", recordedAt: daysAgo(9) },
-      { animalId: lechera.id,  weightKg: "420", recordedAt: monthsAgo(1) },
-      { animalId: lechera.id,  weightKg: "435", recordedAt: daysAgo(6) },
-      { animalId: nube.id,     weightKg: "145", recordedAt: monthsAgo(1) },
-      { animalId: nube.id,     weightKg: "162", recordedAt: daysAgo(14) },
-      ...(trueno ? [{ animalId: trueno.id, weightKg: "480", recordedAt: monthsAgo(1) }] : []),
-      ...(canela ? [{ animalId: canela.id, weightKg: "310", recordedAt: daysAgo(11) }] : []),
-    ]);
-  }
+  // ── MEDICAL RECORDS — all animals, 2–3 records each ──────────────────────
+  const cattleVaccines = [
+    { recordType: "vaccination" as const, title: "Vacuna Aftosa",             description: "Dosis semestral fiebre aftosa — reglamentaria ICA",    costCop: "45000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 4 },
+    { recordType: "deworming"   as const, title: "Desparasitación interna",   description: "Ivermectina 1% — control nematodos y ectoparásitos",    costCop: "28000", vetName: "Dr. Carlos Medina", monthsBack: 1, nextMonths: 3 },
+    { recordType: "vaccination" as const, title: "Vacuna Brucelosis",         description: "Cepa RB51 — control oficial FEDEGAN",                   costCop: "35000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
+    { recordType: "deworming"   as const, title: "Desparasitación externa",   description: "Garrapaticida Amitraz — potrero 2 y 3",                 costCop: "32000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 2 },
+    { recordType: "vaccination" as const, title: "Vacuna Rabia Bovina",       description: "Vacunación anual reglamentaria Ministerio Agricultura",  costCop: "38000", vetName: "Dr. Carlos Medina", monthsBack: 4, nextMonths: 8 },
+    { recordType: "checkup"     as const, title: "Revisión sanitaria",        description: "Control sanitario rutinario — peso y condición corporal", costCop: "55000", vetName: "Dr. Carlos Medina", monthsBack: 1, nextMonths: 3 },
+  ];
+  const pigVaccines = [
+    { recordType: "vaccination" as const, title: "Vacuna Peste Porcina",      description: "Dosis semestral PPC — reglamentaria",                   costCop: "38000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 6 },
+    { recordType: "deworming"   as const, title: "Desparasitación piara",     description: "Fenbendazol preventivo — ciclo trimestral",              costCop: "22000", vetName: undefined,            monthsBack: 1, nextMonths: 3 },
+    { recordType: "vaccination" as const, title: "Vacuna Aftosa porcinos",    description: "Control fiebre aftosa en porcinos",                     costCop: "32000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
+  ];
+  const horseVaccines = [
+    { recordType: "vaccination" as const, title: "Vacuna Tétano equino",      description: "Toxoide tetánico anual — Criollo Colombiano",            costCop: "48000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 9 },
+    { recordType: "deworming"   as const, title: "Desparasitación equina",    description: "Ivermectina + Praziquantel — semestral",                 costCop: "35000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 4 },
+    { recordType: "vaccination" as const, title: "Vacuna Influenza equina",   description: "Control influenza — vacuna bivalente",                   costCop: "62000", vetName: "Dr. Carlos Medina", monthsBack: 4, nextMonths: 8 },
+  ];
+  const goatVaccines = [
+    { recordType: "vaccination" as const, title: "Vacuna Clostridiosis",      description: "Polivalente clostridiosis caprina",                      costCop: "28000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
+    { recordType: "deworming"   as const, title: "Desparasitación caprinos",  description: "Levamisol + Albendazol — control gastrointestinal",      costCop: "18000", vetName: undefined,            monthsBack: 1, nextMonths: 3 },
+  ];
 
-  if (reina && luna && gordita && toroNegro) {
-    await db.insert(medicalRecordsTable).values([
-      { animalId: reina.id,    recordType: "vaccination", title: "Vacuna Aftosa",          description: "Dosis semestral fiebre aftosa",           vetName: "Dr. Carlos Medina", costCop: "45000", recordDate: monthsAgo(2), nextDueDate: monthsAgo(-4) },
-      { animalId: reina.id,    recordType: "deworming",   title: "Desparasitación externa",description: "Ivermectina 1% dosis completa",            vetName: "Dr. Carlos Medina", costCop: "28000", recordDate: monthsAgo(1) },
-      { animalId: luna.id,     recordType: "vaccination", title: "Vacuna Brucelosis",      description: "Cepa RB51 para hembras menores",          vetName: "Dr. Carlos Medina", costCop: "35000", recordDate: monthsAgo(3) },
-      { animalId: luna.id,     recordType: "checkup",     title: "Revisión prenatal",      description: "Confirmación preñez mes 5",               vetName: "Dr. Carlos Medina", costCop: "60000", recordDate: monthsAgo(1) },
-      { animalId: toroNegro.id,recordType: "vaccination", title: "Vacuna Rabia Bovina",    description: "Vacunación anual reglamentaria",          vetName: "Dr. Carlos Medina", costCop: "38000", recordDate: monthsAgo(4) },
-      { animalId: gordita.id,  recordType: "deworming",   title: "Desparasitación cerda",  description: "Fenbendazol preventivo",                  costCop: "22000", recordDate: daysAgo(20) },
-    ]);
-  }
+  const medicalRecords = animalRows.flatMap((animal, i) => {
+    let pool: typeof cattleVaccines;
+    switch (animal.species) {
+      case "pig":   pool = pigVaccines;   break;
+      case "horse": pool = horseVaccines; break;
+      case "goat":  pool = goatVaccines;  break;
+      default:      pool = cattleVaccines; break;
+    }
+    const v1 = pool[i % pool.length]!;
+    const v2 = pool[(i + 1) % pool.length]!;
+    const records = [
+      {
+        animalId: animal.id, recordType: v1.recordType, title: v1.title,
+        description: v1.description, costCop: v1.costCop,
+        vetName: v1.vetName ?? undefined, recordDate: monthsAgo(v1.monthsBack),
+        nextDueDate: monthsAgo(-v1.nextMonths),
+      },
+      {
+        animalId: animal.id, recordType: v2.recordType, title: v2.title,
+        description: v2.description, costCop: v2.costCop,
+        vetName: v2.vetName ?? undefined, recordDate: monthsAgo(v2.monthsBack + 1),
+      },
+    ];
+    // Every 3rd animal gets a checkup too
+    if (i % 3 === 0 && animal.species === "cattle") {
+      records.push({
+        animalId: animal.id, recordType: "checkup" as const,
+        title: "Control de condición corporal",
+        description: "Evaluación nutricional y condición corporal — escala 1–5",
+        costCop: "40000", vetName: "Dr. Carlos Medina",
+        recordDate: daysAgo(8 + (i % 20)),
+      });
+    }
+    return records;
+  });
+  await db.insert(medicalRecordsTable).values(medicalRecords);
 
   await db.insert(inventoryItemsTable).values([
     { farmId, category: "feed",     name: "Concentrado Bovino Engorde", quantity: "18", unit: "bags",  lowStockThreshold: "5",  costPerUnitCop: "95000",  supplierName: "AgroSantos S.A.S",     notes: "Bulto 40kg" },
@@ -296,17 +342,19 @@ export async function seedDemoFarmData(farmId: string) {
   ]);
 
   // ── MILK RECORDS (30 days for main dairy cows) ───────────────────────────
-  if (lechera && estrella && reina) {
-    const milkRows: Parameters<typeof db.insert>[0] extends never ? never : {
-      animalId: string; recordedAt: string; amountLiters: string; session: "morning" | "afternoon" | "full_day"; notes?: string;
-    }[] = [];
+  // Indices: 0=Reina, 4=Estrella, 10=Lechera (all Holstein/Gyr cattle females)
+  const lecheraA = animalRows[10]; // Lechera  — Holstein  — 18–20 L/day
+  const estrellaA = animalRows[4]; // Estrella — Gyr       — 14–16 L/day
+  const reinaA    = animalRows[0]; // Reina    — Brahman   — 11–13 L/day
+  if (lecheraA && estrellaA && reinaA) {
+    const milkRows: { animalId: string; recordedAt: string; amountLiters: string; session: "morning" | "afternoon" | "full_day"; notes?: string }[] = [];
     for (let i = 0; i < 30; i++) {
-      milkRows.push({ animalId: lechera.id,  recordedAt: daysAgo(i), amountLiters: (18 + Math.round((Math.random() - 0.5) * 4)).toFixed(1), session: "morning" });
-      milkRows.push({ animalId: lechera.id,  recordedAt: daysAgo(i), amountLiters: (10 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "afternoon" });
-      milkRows.push({ animalId: estrella.id, recordedAt: daysAgo(i), amountLiters: (14 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "morning" });
-      milkRows.push({ animalId: estrella.id, recordedAt: daysAgo(i), amountLiters: (8  + Math.round((Math.random() - 0.5) * 2)).toFixed(1), session: "afternoon" });
-      milkRows.push({ animalId: reina.id,    recordedAt: daysAgo(i), amountLiters: (11 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "morning" });
-      milkRows.push({ animalId: reina.id,    recordedAt: daysAgo(i), amountLiters: (7  + Math.round((Math.random() - 0.5) * 2)).toFixed(1), session: "afternoon" });
+      milkRows.push({ animalId: lecheraA.id,  recordedAt: daysAgo(i), amountLiters: (18 + Math.round((Math.random() - 0.5) * 4)).toFixed(1), session: "morning" });
+      milkRows.push({ animalId: lecheraA.id,  recordedAt: daysAgo(i), amountLiters: (10 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "afternoon" });
+      milkRows.push({ animalId: estrellaA.id, recordedAt: daysAgo(i), amountLiters: (14 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "morning" });
+      milkRows.push({ animalId: estrellaA.id, recordedAt: daysAgo(i), amountLiters: (8  + Math.round((Math.random() - 0.5) * 2)).toFixed(1), session: "afternoon" });
+      milkRows.push({ animalId: reinaA.id,    recordedAt: daysAgo(i), amountLiters: (11 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "morning" });
+      milkRows.push({ animalId: reinaA.id,    recordedAt: daysAgo(i), amountLiters: (7  + Math.round((Math.random() - 0.5) * 2)).toFixed(1), session: "afternoon" });
     }
     await db.insert(milkRecordsTable).values(milkRows);
   }
