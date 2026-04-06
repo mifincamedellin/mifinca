@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useParams, Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
-import { useGetAnimal, useListWeightRecords, useUpdateAnimal } from "@workspace/api-client-react";
+import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,13 @@ const SPECIES_EMOJI: Record<string, string> = {
   goat: "🐐", sheep: "🐑", chicken: "🐔", other: "🐾",
 };
 const ALL_SPECIES = ["cattle", "pig", "horse", "goat", "sheep", "chicken", "other"];
+
+const weightSchema = z.object({
+  weightKg: z.coerce.number().positive(),
+  recordedAt: z.string().min(1),
+  notes: z.string().optional(),
+});
+type WeightForm = z.infer<typeof weightSchema>;
 
 const editSchema = z.object({
   name: z.string().optional(),
@@ -48,6 +55,7 @@ export function AnimalDetail() {
   const qc = useQueryClient();
 
   const [editOpen, setEditOpen] = useState(false);
+  const [weightOpen, setWeightOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,6 +68,27 @@ export function AnimalDetail() {
   });
 
   const updateAnimal = useUpdateAnimal();
+  const createWeightRecord = useCreateWeightRecord();
+
+  const weightForm = useForm<WeightForm>({
+    resolver: zodResolver(weightSchema),
+    defaultValues: { weightKg: undefined as any, recordedAt: new Date().toISOString().split("T")[0], notes: "" },
+  });
+
+  const onWeightSubmit = (data: WeightForm) => {
+    if (!activeFarmId || !id) return;
+    createWeightRecord.mutate(
+      { farmId: activeFarmId, animalId: id, data: { weightKg: data.weightKg, recordedAt: data.recordedAt, notes: data.notes } },
+      {
+        onSuccess: () => {
+          setWeightOpen(false);
+          weightForm.reset({ weightKg: undefined as any, recordedAt: new Date().toISOString().split("T")[0], notes: "" });
+          refetch();
+          qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/animals/${id}/weights`] });
+        }
+      }
+    );
+  };
 
   const form = useForm<EditForm>({
     resolver: zodResolver(editSchema),
@@ -330,6 +359,62 @@ export function AnimalDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Weight recording dialog */}
+      <Dialog open={weightOpen} onOpenChange={setWeightOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl text-primary flex items-center gap-2">
+              <Scale className="h-5 w-5" /> {t('animals.recordWeight')}
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...weightForm}>
+            <form onSubmit={weightForm.handleSubmit(onWeightSubmit)} className="space-y-4 pt-1">
+              <FormField control={weightForm.control} name="weightKg" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">{isEn ? "Weight" : "Peso"}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="0"
+                        {...field}
+                        value={field.value ?? ""}
+                        className="rounded-xl pr-10 text-lg"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">kg</span>
+                    </div>
+                  </FormControl>
+                </FormItem>
+              )} />
+              <FormField control={weightForm.control} name="recordedAt" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">{isEn ? "Date" : "Fecha"}</FormLabel>
+                  <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={weightForm.control} name="notes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">{isEn ? "Notes" : "Notas"} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                  <FormControl>
+                    <textarea
+                      {...field}
+                      rows={2}
+                      className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      placeholder={isEn ? "e.g. After vaccination..." : "Ej: Después de vacunación..."}
+                    />
+                  </FormControl>
+                </FormItem>
+              )} />
+              <Button type="submit" disabled={createWeightRecord.isPending} className="w-full rounded-xl py-6 bg-primary hover:bg-primary/90">
+                {createWeightRecord.isPending ? t('common.saving') : t('common.save')}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-1 space-y-6">
           <Card className="overflow-hidden rounded-2xl border-none shadow-md bg-card">
@@ -433,8 +518,8 @@ export function AnimalDetail() {
               <Card className="p-6 rounded-2xl border-border/50 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-xl font-serif text-primary">{t('animals.weightEvolution')}</h3>
-                  <Button size="sm" className="rounded-xl bg-secondary hover:bg-secondary/90 hover-elevate">
-                    {t('animals.recordWeight')}
+                  <Button size="sm" onClick={() => setWeightOpen(true)} className="rounded-xl bg-primary hover:bg-primary/90 hover-elevate">
+                    <Scale className="h-3.5 w-3.5 mr-1.5" /> {t('animals.recordWeight')}
                   </Button>
                 </div>
                 {weights && weights.length > 0 ? (
