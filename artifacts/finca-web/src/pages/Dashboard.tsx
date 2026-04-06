@@ -351,10 +351,7 @@ export function Dashboard() {
       {/* ── Alert row: Medical Events + Low Stock ───────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Upcoming medical events */}
-        <Card
-          className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 cursor-pointer hover:shadow-md transition-all hover:border-border group flex flex-col"
-          onClick={() => navigate("/animals")}
-        >
+        <Card className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-serif text-primary flex items-center gap-2">
               <Syringe className="h-4 w-4 text-accent" />
@@ -370,36 +367,45 @@ export function Dashboard() {
           {upcomingMedical.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">{t("dashboard.noUpcomingEvents")}</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-1.5">
               {upcomingMedical.map((evt) => {
-                const evtAny = evt as typeof evt & { animalName?: string };
+                const evtAny = evt as typeof evt & { animalName?: string; animalId?: string };
                 const dueDate = evt.nextDueDate || evt.recordDate;
                 const dateStr = dueDate
                   ? format(new Date(dueDate), isEn ? "MMM d" : "d 'de' MMM", isEn ? {} : { locale: es })
                   : "—";
                 const typeLabel = RECORD_TYPE_LABELS[evt.recordType]?.[isEn ? "en" : "es"] ?? evt.recordType;
                 return (
-                  <li key={evt.id} className="flex items-center gap-3 group/item">
-                    <div className="w-2 h-2 rounded-full bg-accent flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground leading-tight truncate">{evt.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {evtAny.animalName || "—"} · {dateStr}
-                      </p>
-                    </div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent/80 flex-shrink-0 capitalize">
-                      {typeLabel}
-                    </span>
+                  <li key={evt.id}>
+                    <button
+                      onClick={() => evtAny.animalId && navigate(`/animals/${evtAny.animalId}`)}
+                      className="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-accent/5 transition-colors group/item text-left"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-accent flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground leading-tight truncate">{evt.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {evtAny.animalName || "—"} · {dateStr}
+                        </p>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent/80 flex-shrink-0 capitalize">
+                        {typeLabel}
+                      </span>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground/0 group-hover/item:text-accent/50 flex-shrink-0 transition-colors" />
+                    </button>
                   </li>
                 );
               })}
             </ul>
           )}
           </div>
-          <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 group-hover:text-accent transition-colors">
+          <button
+            onClick={() => navigate("/animals")}
+            className="flex items-center gap-1 mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 hover:text-accent transition-colors w-full"
+          >
             <ArrowRight className="h-3 w-3" />
-            {isEn ? "Go to animals" : "Ver animales"}
-          </div>
+            {isEn ? "View all animals" : "Ver todos los animales"}
+          </button>
         </Card>
 
         {/* Low stock items */}
