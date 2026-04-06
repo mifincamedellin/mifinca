@@ -306,10 +306,10 @@ export function AnimalList() {
 
       {/* Species filter chips — always shown once data loads */}
       {!isLoading && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <button
             onClick={() => setSelectedSpecies("all")}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
               selectedSpecies === "all"
                 ? "bg-primary text-primary-foreground border-primary shadow-sm"
                 : "bg-card border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary"
@@ -335,7 +335,7 @@ export function AnimalList() {
               <button
                 key={sp}
                 onClick={() => setSelectedSpecies(active ? "all" : sp)}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
                   active
                     ? "bg-secondary text-white border-secondary shadow-sm"
                     : isEmpty
