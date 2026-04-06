@@ -36,8 +36,8 @@ const translations = {
       stat: "Ganancia mensual",
     },
     features: {
-      heading: "Todo bajo control, desde cualquier lugar.",
-      sub: "Reemplazamos las libretas y las hojas de cálculo confusas con herramientas diseñadas para la realidad del campo.",
+      heading: "Todo bajo control,\ndesde cualquier lugar.",
+      sub: "Reemplazamos las libretas y las hojas de cálculo confusas\ncon herramientas diseñadas para la realidad del campo.",
       items: [
         {
           title: "Control de Animales",
@@ -146,8 +146,8 @@ const translations = {
       stat: "Monthly profit",
     },
     features: {
-      heading: "Everything under control, from anywhere.",
-      sub: "We replace confusing notebooks and spreadsheets with tools designed for the reality of farm life.",
+      heading: "Everything under control,\nfrom anywhere.",
+      sub: "We replace confusing notebooks and spreadsheets\nwith tools designed for the reality of farm life.",
       items: [
         {
           title: "Animal Tracking",
@@ -434,8 +434,8 @@ export default function Home() {
         <section id="caracteristicas" className="py-24 bg-card border-y border-border">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto mb-20">
-              <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6">{t.features.heading}</h2>
-              <p className="text-lg text-muted-foreground">{t.features.sub}</p>
+              <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6 whitespace-pre-line">{t.features.heading}</h2>
+              <p className="text-lg text-muted-foreground whitespace-pre-line">{t.features.sub}</p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
