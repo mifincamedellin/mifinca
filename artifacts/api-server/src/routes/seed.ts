@@ -1,12 +1,33 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { db, pool } from "@workspace/db";
 import {
   animalsTable, weightRecordsTable, medicalRecordsTable,
   inventoryItemsTable, financeTransactionsTable,
   contactsTable, activityLogTable, farmMembersTable, employeesTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+
+const DEMO_USER_ID    = "00000000-0000-0000-0000-000000000001";
+const DEMO_USER_EMAIL = "demo@fincacolombia.com";
+const DEMO_USER_PASS  = "demo1234";
+
+async function ensureDemoAuthUser() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_users (
+      id UUID PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+  const hash = await bcrypt.hash(DEMO_USER_PASS, 10);
+  await pool.query(`
+    INSERT INTO auth_users (id, email, password_hash) VALUES ($1, $2, $3)
+    ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash
+  `, [DEMO_USER_ID, DEMO_USER_EMAIL, hash]);
+}
 
 const router = Router();
 
@@ -26,6 +47,7 @@ function monthsAgo(n: number, day = 15) {
 router.post("/farms/:farmId/seed", requireAuth, requireFarmAccess, async (req, res) => {
   const farmId = req.params["farmId"]!;
   try {
+    await ensureDemoAuthUser();
     // ── ANIMALS (20) ─────────────────────────────────────────────────────────
     const animalRows = await db.insert(animalsTable).values([
       { farmId, customTag: "BOV-001", species: "cattle", breed: "Brahman",          name: "Reina",     sex: "female", dateOfBirth: "2020-03-12", status: "active", notes: "Buena productora de leche", photoUrl: "/animals/brahman.png" },
