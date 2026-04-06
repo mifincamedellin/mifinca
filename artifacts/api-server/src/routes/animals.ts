@@ -137,10 +137,10 @@ router.put("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
 
-    const { photoUrl, customTag, species, breed, name, sex, dateOfBirth, status, motherId, fatherId, currentZoneId, animalType, notes } = req.body;
+    const { photoUrl, customTag, species, breed, name, sex, dateOfBirth, status, motherId, fatherId, currentZoneId, animalType, notes, purchaseDate, purchasePrice } = req.body;
 
     const updated = await db.update(animalsTable)
-      .set({ photoUrl, customTag, species, breed, name, sex, dateOfBirth, status, motherId, fatherId, currentZoneId, animalType, notes, updatedAt: new Date() })
+      .set({ photoUrl, customTag, species, breed, name, sex, dateOfBirth, status, motherId, fatherId, currentZoneId, animalType, notes, purchaseDate: purchaseDate || null, purchasePrice: purchasePrice != null ? String(purchasePrice) : null, updatedAt: new Date() })
       .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId)))
       .returning();
 

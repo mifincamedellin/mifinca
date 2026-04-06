@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, date, timestamp, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { farmsTable } from "./farms";
@@ -24,6 +24,8 @@ export const animalsTable = pgTable("animals", {
   photoUrl: text("photo_url"),
   animalType: text("animal_type"),
   notes: text("notes"),
+  purchaseDate: date("purchase_date"),
+  purchasePrice: numeric("purchase_price", { precision: 14, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

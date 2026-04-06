@@ -33,6 +33,8 @@ const editSchema = z.object({
   sex: z.enum(["male", "female", "unknown"]).optional(),
   status: z.enum(["active", "sold", "deceased"]).optional(),
   dateOfBirth: z.string().optional(),
+  purchaseDate: z.string().optional(),
+  purchasePrice: z.coerce.number().positive().optional().or(z.literal("")),
   notes: z.string().optional(),
   photoUrl: z.string().optional(),
 });
@@ -69,6 +71,8 @@ export function AnimalDetail() {
       sex: (animal.sex as any) ?? "unknown",
       status: (animal.status as any) ?? "active",
       dateOfBirth: animal.dateOfBirth ? animal.dateOfBirth.split("T")[0] : "",
+      purchaseDate: (animal as any).purchaseDate ? (animal as any).purchaseDate.split("T")[0] : "",
+      purchasePrice: (animal as any).purchasePrice ? String((animal as any).purchasePrice) : "",
       notes: (animal as any).notes ?? "",
       photoUrl: animal.photoUrl ?? "",
     } : {},
@@ -90,8 +94,13 @@ export function AnimalDetail() {
 
   const onSubmit = (data: EditForm) => {
     if (!activeFarmId || !id) return;
+    const payload = {
+      ...data,
+      purchasePrice: data.purchasePrice !== "" && data.purchasePrice != null ? Number(data.purchasePrice) : null,
+      purchaseDate: data.purchaseDate || null,
+    };
     updateAnimal.mutate(
-      { farmId: activeFarmId, animalId: id, data },
+      { farmId: activeFarmId, animalId: id, data: payload as any },
       {
         onSuccess: () => {
           setEditOpen(false);
@@ -269,6 +278,35 @@ export function AnimalDetail() {
                 )} />
               </div>
 
+              {/* Purchase Date + Price */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={form.control} name="purchaseDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('animals.purchaseDate')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="purchasePrice" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('animals.purchasePrice')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          {...field}
+                          value={field.value ?? ""}
+                          className="rounded-xl pr-14"
+                          placeholder="0"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">COP</span>
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
               {/* Notes */}
               <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem>
@@ -321,6 +359,23 @@ export function AnimalDetail() {
                   {animal.dateOfBirth
                     ? format(new Date(animal.dateOfBirth), 'dd MMM yyyy', { locale: isEn ? undefined : es })
                     : t('animals.birthUnknown')}
+                </p>
+              </div>
+              <div className="pt-3 border-t border-border/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('animals.purchaseDate')}</p>
+                <p className="font-medium text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary/50" />
+                  {(animal as any).purchaseDate
+                    ? format(new Date((animal as any).purchaseDate), 'dd MMM yyyy', { locale: isEn ? undefined : es })
+                    : <span className="text-muted-foreground/60 italic font-normal text-sm">{t('animals.notPurchased')}</span>}
+                </p>
+              </div>
+              <div className="pt-3 border-t border-border/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('animals.purchasePrice')}</p>
+                <p className="font-medium text-foreground">
+                  {(animal as any).purchasePrice
+                    ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number((animal as any).purchasePrice))
+                    : <span className="text-muted-foreground/60 italic font-normal text-sm">{t('animals.notPurchased')}</span>}
                 </p>
               </div>
             </div>
