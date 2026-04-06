@@ -476,7 +476,7 @@ const resources = {
       "dashboard.newAnimal": "New Animal",
       "dashboard.newTransaction": "Transaction",
       "dashboard.medicalEvent": "Medical Event",
-      "animals.subtitle": "Track and manage your herd and livestock",
+      "animals.subtitle": "Track and manage your livestock",
       "animals.search": "Search animals...",
       "animals.add": "Add Animal",
       "animals.species": "Species",
