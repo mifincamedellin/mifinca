@@ -15,3 +15,4 @@ export * from "./financeTransactions";
 export * from "./contacts";
 export * from "./employees";
 export * from "./employeeAttachments";
+export * from "./milkRecords";

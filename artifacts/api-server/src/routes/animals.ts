@@ -1,7 +1,7 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
 import {
-  animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable,
+  animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable, milkRecordsTable,
 } from "@workspace/db";
 import { eq, and, desc, ilike, or } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
@@ -288,6 +288,53 @@ router.post("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarm
     return res.status(201).json(record[0]);
   } catch (err) {
     req.log.error({ err }, "Add medical error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.get("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { animalId } = req.params as { farmId: string; animalId: string };
+    const records = await db.select().from(milkRecordsTable)
+      .where(eq(milkRecordsTable.animalId, animalId))
+      .orderBy(desc(milkRecordsTable.recordedAt));
+    return res.json(records);
+  } catch (err) {
+    req.log.error({ err }, "List milk error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.post("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { animalId } = req.params as { farmId: string; animalId: string };
+    const { amountLiters, recordedAt, session, notes } = req.body;
+    const record = await db.insert(milkRecordsTable).values({
+      animalId,
+      amountLiters: String(amountLiters),
+      recordedAt: recordedAt ?? new Date().toISOString().split("T")[0],
+      session: session || null,
+      notes: notes || null,
+    }).returning();
+    return res.status(201).json(record[0]);
+  } catch (err) {
+    req.log.error({ err }, "Create milk error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.put("/farms/:farmId/animals/:animalId/milk/:recordId", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
+    const { amountLiters, recordedAt, session, notes } = req.body;
+    const updated = await db.update(milkRecordsTable)
+      .set({ amountLiters: String(amountLiters), recordedAt, session: session || null, notes: notes || null })
+      .where(and(eq(milkRecordsTable.id, recordId), eq(milkRecordsTable.animalId, animalId)))
+      .returning();
+    if (!updated[0]) return res.status(404).json({ error: "not_found" });
+    return res.json(updated[0]);
+  } catch (err) {
+    req.log.error({ err }, "Update milk error");
     return res.status(500).json({ error: "internal" });
   }
 });

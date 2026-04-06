@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X } from "lucide-react";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -17,7 +17,7 @@ import { AnimalLineage } from "./AnimalLineage";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 const SPECIES_EMOJI: Record<string, string> = {
   cattle: "🐄", pig: "🐖", horse: "🐴",
@@ -44,6 +44,14 @@ const weightSchema = z.object({
   notes: z.string().optional(),
 });
 type WeightForm = z.infer<typeof weightSchema>;
+
+const milkSchema = z.object({
+  amountLiters: z.coerce.number().positive(),
+  recordedAt: z.string().min(1),
+  session: z.enum(["morning", "afternoon", "evening", "full_day"]).optional(),
+  notes: z.string().optional(),
+});
+type MilkForm = z.infer<typeof milkSchema>;
 
 const editSchema = z.object({
   name: z.string().optional(),
@@ -85,6 +93,69 @@ export function AnimalDetail() {
   const updateAnimal = useUpdateAnimal();
   const createWeightRecord = useCreateWeightRecord();
   const createMedicalRecord = useCreateMedicalRecord();
+
+  const [milkOpen, setMilkOpen] = useState(false);
+  const [editingMilk, setEditingMilk] = useState<any | null>(null);
+
+  const { data: milkRecords = [], refetch: refetchMilk } = useQuery<any[]>({
+    queryKey: [`/api/farms/${activeFarmId}/animals/${id}/milk`],
+    queryFn: async () => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals/${id}/milk`);
+      if (!res.ok) throw new Error("fetch milk failed");
+      return res.json();
+    },
+    enabled: !!(activeFarmId && id && animal?.species === "cattle"),
+  });
+
+  const milkForm = useForm<MilkForm>({
+    resolver: zodResolver(milkSchema),
+    defaultValues: { amountLiters: undefined as any, recordedAt: new Date().toISOString().split("T")[0], session: undefined, notes: "" },
+  });
+
+  const createMilkRecord = useMutation({
+    mutationFn: async (data: MilkForm) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals/${id}/milk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("create milk failed");
+      return res.json();
+    },
+    onSuccess: () => { setMilkOpen(false); milkForm.reset(); refetchMilk(); },
+  });
+
+  const updateMilkRecord = useMutation({
+    mutationFn: async ({ recordId, data }: { recordId: string; data: MilkForm }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals/${id}/milk/${recordId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("update milk failed");
+      return res.json();
+    },
+    onSuccess: () => { setMilkOpen(false); setEditingMilk(null); milkForm.reset(); refetchMilk(); },
+  });
+
+  const openEditMilk = (record: any) => {
+    setEditingMilk(record);
+    milkForm.reset({
+      amountLiters: Number(record.amountLiters),
+      recordedAt: record.recordedAt,
+      session: record.session || undefined,
+      notes: record.notes || "",
+    });
+    setMilkOpen(true);
+  };
+
+  const onMilkSubmit = (data: MilkForm) => {
+    if (editingMilk) {
+      updateMilkRecord.mutate({ recordId: editingMilk.id, data });
+    } else {
+      createMilkRecord.mutate(data);
+    }
+  };
 
   const updateMedicalRecord = useMutation({
     mutationFn: async ({ recordId, data }: { recordId: string; data: any }) => {
@@ -609,6 +680,62 @@ export function AnimalDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Milk record dialog */}
+      {animal.species === "cattle" && (
+        <Dialog open={milkOpen} onOpenChange={(v) => { setMilkOpen(v); if (!v) { setEditingMilk(null); milkForm.reset(); } }}>
+          <DialogContent className="sm:max-w-sm rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-2xl text-primary flex items-center gap-2">
+                <Droplets className="h-5 w-5 text-sky-500" />
+                {editingMilk ? (isEn ? "Edit Record" : "Editar Registro") : t('animals.milk.logTitle')}
+              </DialogTitle>
+            </DialogHeader>
+            <Form {...milkForm}>
+              <form onSubmit={milkForm.handleSubmit(onMilkSubmit)} className="space-y-4 pt-1">
+                <FormField control={milkForm.control} name="amountLiters" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">{t('animals.milk.amount')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.1" min="0" placeholder="e.g. 12.5" className="rounded-xl" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={milkForm.control} name="recordedAt" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">{isEn ? "Date" : "Fecha"}</FormLabel>
+                    <FormControl><Input type="date" className="rounded-xl" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={milkForm.control} name="session" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">{t('animals.milk.session')} <span className="text-muted-foreground font-normal">({isEn ? "optional" : "opcional"})</span></FormLabel>
+                    <FormControl>
+                      <select {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value || undefined)}
+                        className="w-full border border-input bg-background rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                        <option value="">{isEn ? "— Select —" : "— Seleccionar —"}</option>
+                        <option value="morning">{t('animals.milk.session.morning')}</option>
+                        <option value="afternoon">{t('animals.milk.session.afternoon')}</option>
+                        <option value="evening">{t('animals.milk.session.evening')}</option>
+                        <option value="full_day">{t('animals.milk.session.full_day')}</option>
+                      </select>
+                    </FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={milkForm.control} name="notes" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">{t('animals.milk.notes')} <span className="text-muted-foreground font-normal">({isEn ? "optional" : "opcional"})</span></FormLabel>
+                    <FormControl><Input placeholder="..." className="rounded-xl" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                <Button type="submit" disabled={createMilkRecord.isPending || updateMilkRecord.isPending} className="w-full rounded-xl py-6 bg-primary hover:bg-primary/90">
+                  {(createMilkRecord.isPending || updateMilkRecord.isPending) ? t('common.saving') : t('common.save')}
+                </Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-1 space-y-6">
           <Card className="overflow-hidden rounded-2xl border-none shadow-md bg-card">
@@ -677,6 +804,12 @@ export function AnimalDetail() {
                 <GitBranch className="h-3.5 w-3.5" />
                 {t('animals.tab.lineage')}
               </TabsTrigger>
+              {animal.species === "cattle" && (
+                <TabsTrigger value="milk" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-1 flex items-center gap-1.5">
+                  <Droplets className="h-3.5 w-3.5" />
+                  {t('animals.tab.milk')}
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 mt-0">
@@ -798,6 +931,117 @@ export function AnimalDetail() {
                 onRefresh={() => refetch()}
               />
             </TabsContent>
+
+            {animal.species === "cattle" && (
+              <TabsContent value="milk" className="mt-0 space-y-6">
+                {/* Stats row */}
+                {(() => {
+                  const today = new Date().toISOString().split("T")[0];
+                  const todayTotal = milkRecords.filter(r => r.recordedAt === today).reduce((s, r) => s + Number(r.amountLiters), 0);
+                  const last30 = milkRecords.filter(r => r.recordedAt >= new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0]);
+                  const last30Total = last30.reduce((s, r) => s + Number(r.amountLiters), 0);
+                  const uniqueDays30 = new Set(last30.map(r => r.recordedAt)).size;
+                  const dailyAvg = uniqueDays30 > 0 ? (last30Total / uniqueDays30).toFixed(1) : "0";
+
+                  const chartData = Object.entries(
+                    milkRecords.slice(0, 60).reduce((acc: Record<string, number>, r) => {
+                      acc[r.recordedAt] = (acc[r.recordedAt] || 0) + Number(r.amountLiters);
+                      return acc;
+                    }, {})
+                  ).sort(([a], [b]) => a.localeCompare(b)).map(([date, total]) => ({
+                    date: format(new Date(date + "T12:00:00"), "dd/MM"),
+                    total,
+                  }));
+
+                  return (
+                    <>
+                      <div className="grid grid-cols-3 gap-4">
+                        <Card className="p-5 rounded-2xl bg-gradient-to-br from-sky-50 to-card shadow-sm border-border/40">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('animals.milk.totalToday')}</p>
+                          <p className="text-3xl font-serif font-bold text-primary">{todayTotal.toFixed(1)}<span className="text-base font-normal text-muted-foreground ml-1">L</span></p>
+                        </Card>
+                        <Card className="p-5 rounded-2xl bg-gradient-to-br from-sky-50 to-card shadow-sm border-border/40">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('animals.milk.avgDaily')}</p>
+                          <p className="text-3xl font-serif font-bold text-primary">{dailyAvg}<span className="text-base font-normal text-muted-foreground ml-1">L</span></p>
+                        </Card>
+                        <Card className="p-5 rounded-2xl bg-gradient-to-br from-sky-50 to-card shadow-sm border-border/40">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('animals.milk.last30')}</p>
+                          <p className="text-3xl font-serif font-bold text-primary">{last30Total.toFixed(1)}<span className="text-base font-normal text-muted-foreground ml-1">L</span></p>
+                        </Card>
+                      </div>
+
+                      {chartData.length > 0 && (
+                        <Card className="p-6 rounded-2xl shadow-sm border-border/40">
+                          <h3 className="font-semibold text-primary mb-4 flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4" />{t('animals.milk.chart')}
+                          </h3>
+                          <ResponsiveContainer width="100%" height={180}>
+                            <LineChart data={chartData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.4)" />
+                              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                              <YAxis tick={{ fontSize: 11 }} unit="L" />
+                              <Tooltip formatter={(v: number) => [`${v.toFixed(1)} L`, ""]} />
+                              <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </Card>
+                      )}
+                    </>
+                  );
+                })()}
+
+                {/* Records list + Log button */}
+                <Card className="p-6 rounded-2xl shadow-sm border-border/40">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-primary flex items-center gap-2">
+                      <Droplets className="h-4 w-4 text-sky-500" />{isEn ? "Milk Log" : "Registros"}
+                    </h3>
+                    <Button size="sm" onClick={() => { setEditingMilk(null); milkForm.reset({ amountLiters: undefined as any, recordedAt: new Date().toISOString().split("T")[0], session: undefined, notes: "" }); setMilkOpen(true); }} className="rounded-xl bg-primary hover:bg-primary/90 gap-1.5">
+                      <Plus className="h-4 w-4" />{t('animals.milk.logBtn')}
+                    </Button>
+                  </div>
+                  {milkRecords.length === 0 ? (
+                    <div className="py-12 text-center flex flex-col items-center text-muted-foreground">
+                      <Droplets className="h-10 w-10 text-border mb-3" />
+                      <p className="text-sm">{t('animals.milk.noRecords')}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {milkRecords.map((record: any) => {
+                        const sessionLabel: Record<string, string> = {
+                          morning: t('animals.milk.session.morning'),
+                          afternoon: t('animals.milk.session.afternoon'),
+                          evening: t('animals.milk.session.evening'),
+                          full_day: t('animals.milk.session.full_day'),
+                        };
+                        return (
+                          <div key={record.id} className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-black/[0.01] hover:bg-black/[0.03] transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-sky-50 rounded-lg">
+                                <Droplets className="h-4 w-4 text-sky-500" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-primary text-sm">{Number(record.amountLiters).toFixed(1)} L</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {format(new Date(record.recordedAt + "T12:00:00"), isEn ? "MMM dd, yyyy" : "dd MMM yyyy", { locale: isEn ? undefined : es })}
+                                  {record.session && <> · {sessionLabel[record.session] || record.session}</>}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {record.notes && <p className="text-xs text-muted-foreground max-w-[120px] truncate hidden sm:block">{record.notes}</p>}
+                              <button type="button" onClick={() => openEditMilk(record)} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                                <Edit className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Card>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>
