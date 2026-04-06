@@ -352,7 +352,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Upcoming medical events */}
         <Card
-          className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 cursor-pointer hover:shadow-md transition-all hover:border-border group"
+          className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 cursor-pointer hover:shadow-md transition-all hover:border-border group flex flex-col"
           onClick={() => navigate("/animals")}
         >
           <div className="flex items-center justify-between mb-4">
@@ -366,6 +366,7 @@ export function Dashboard() {
               </span>
             )}
           </div>
+          <div className="flex-1">
           {upcomingMedical.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">{t("dashboard.noUpcomingEvents")}</p>
           ) : (
@@ -394,6 +395,7 @@ export function Dashboard() {
               })}
             </ul>
           )}
+          </div>
           <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 group-hover:text-accent transition-colors">
             <ArrowRight className="h-3 w-3" />
             {isEn ? "Go to animals" : "Ver animales"}
@@ -402,7 +404,7 @@ export function Dashboard() {
 
         {/* Low stock items */}
         <Card
-          className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 cursor-pointer hover:shadow-md transition-all hover:border-border group"
+          className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 cursor-pointer hover:shadow-md transition-all hover:border-border group flex flex-col"
           onClick={() => navigate("/inventory")}
         >
           <div className="flex items-center justify-between mb-4">
@@ -416,29 +418,31 @@ export function Dashboard() {
               </span>
             )}
           </div>
-          {lowStockItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">{t("dashboard.allStockOk")}</p>
-          ) : (
-            <ul className="space-y-3">
-              {lowStockItems.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${item.status === "expired" ? "bg-destructive" : "bg-amber-500"}`} />
-                    <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                  </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                    item.status === "expired"
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                  }`}>
-                    {item.status === "expired"
-                      ? (isEn ? "Expired" : "Vencido")
-                      : `${item.quantity} ${item.unit}`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="flex-1">
+            {lowStockItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">{t("dashboard.allStockOk")}</p>
+            ) : (
+              <ul className="space-y-3">
+                {lowStockItems.map((item) => (
+                  <li key={item.id} className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${item.status === "expired" ? "bg-destructive" : "bg-amber-500"}`} />
+                      <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                      item.status === "expired"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    }`}>
+                      {item.status === "expired"
+                        ? (isEn ? "Expired" : "Vencido")
+                        : `${item.quantity} ${item.unit}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 group-hover:text-accent transition-colors">
             <ArrowRight className="h-3 w-3" />
             {isEn ? "Go to inventory" : "Ver inventario"}
