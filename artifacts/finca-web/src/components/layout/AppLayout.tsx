@@ -106,8 +106,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <div data-sidebar-theme={sidebarTheme} className={`flex min-h-screen w-full bg-background${sidebarTheme === "vaca" ? " dark" : ""}`}>
         <Sidebar className="border-r-border/50">
           <SidebarContent>
-            <div className="p-6">
-              <h1 className="text-2xl font-serif font-bold text-sidebar-foreground">Finca</h1>
+            <div className="p-6 flex items-center gap-2">
+              <img src="/logo.png" alt="miFinca" className="h-9 w-9 object-contain rounded-lg" />
+              <h1 className="text-2xl font-serif text-sidebar-foreground">
+                <span className="font-medium">mi</span><span className="font-bold">Finca</span>
+              </h1>
             </div>
             <SidebarGroup>
               <SidebarGroupLabel className="text-sidebar-foreground/50">Menu</SidebarGroupLabel>
