@@ -290,19 +290,19 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-8">
             <button
               onClick={() => scrollTo("caracteristicas")}
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors cursor-pointer"
             >
               {t.nav.features}
             </button>
             <button
               onClick={() => scrollTo("asesor")}
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors cursor-pointer"
             >
               {t.nav.advisor}
             </button>
             <button
               onClick={() => scrollTo("planes")}
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors cursor-pointer"
             >
               {t.nav.pricing}
             </button>
