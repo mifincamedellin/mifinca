@@ -1,21 +1,53 @@
+import { useState, useRef } from "react";
 import { useParams, Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
-import { useGetAnimal, useListWeightRecords } from "@workspace/api-client-react";
+import { useGetAnimal, useListWeightRecords, useUpdateAnimal } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { AnimalLineage } from "./AnimalLineage";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useQueryClient } from "@tanstack/react-query";
+
+const SPECIES_EMOJI: Record<string, string> = {
+  cattle: "🐄", pig: "🐖", horse: "🐴",
+  goat: "🐐", sheep: "🐑", chicken: "🐔", other: "🐾",
+};
+const ALL_SPECIES = ["cattle", "pig", "horse", "goat", "sheep", "chicken", "other"];
+
+const editSchema = z.object({
+  name: z.string().optional(),
+  customTag: z.string().optional(),
+  species: z.string().optional(),
+  breed: z.string().optional(),
+  sex: z.enum(["male", "female", "unknown"]).optional(),
+  status: z.enum(["active", "sold", "deceased"]).optional(),
+  dateOfBirth: z.string().optional(),
+  notes: z.string().optional(),
+  photoUrl: z.string().optional(),
+});
+type EditForm = z.infer<typeof editSchema>;
 
 export function AnimalDetail() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const { activeFarmId } = useStore();
   const isEn = i18n.language === "en";
+  const qc = useQueryClient();
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: animal, isLoading, refetch } = useGetAnimal(activeFarmId || '', id || '', {
     query: { enabled: !!(activeFarmId && id) }
@@ -24,6 +56,52 @@ export function AnimalDetail() {
   const { data: weights } = useListWeightRecords(activeFarmId || '', id || '', {
     query: { enabled: !!(activeFarmId && id) }
   });
+
+  const updateAnimal = useUpdateAnimal();
+
+  const form = useForm<EditForm>({
+    resolver: zodResolver(editSchema),
+    values: animal ? {
+      name: animal.name ?? "",
+      customTag: animal.customTag ?? "",
+      species: animal.species ?? "cattle",
+      breed: animal.breed ?? "",
+      sex: (animal.sex as any) ?? "unknown",
+      status: (animal.status as any) ?? "active",
+      dateOfBirth: animal.dateOfBirth ? animal.dateOfBirth.split("T")[0] : "",
+      notes: (animal as any).notes ?? "",
+      photoUrl: animal.photoUrl ?? "",
+    } : {},
+  });
+
+  const watchedSpecies = form.watch("species") ?? "cattle";
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setPhotoPreview(dataUrl);
+      form.setValue("photoUrl", dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onSubmit = (data: EditForm) => {
+    if (!activeFarmId || !id) return;
+    updateAnimal.mutate(
+      { farmId: activeFarmId, animalId: id, data },
+      {
+        onSuccess: () => {
+          setEditOpen(false);
+          setPhotoPreview(null);
+          refetch();
+          qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/animals`] });
+        }
+      }
+    );
+  };
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">{t('animals.loadingDetails')}</div>;
   if (!animal) return <div className="p-8 text-center text-destructive">{t('animals.notFound')}</div>;
@@ -47,10 +125,172 @@ export function AnimalDetail() {
             {animal.species} • {animal.sex || t('animals.unknownSex')}
           </p>
         </div>
-        <Button variant="outline" className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover-elevate">
+        <Button
+          variant="outline"
+          className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover-elevate"
+          onClick={() => { setPhotoPreview(null); setEditOpen(true); }}
+        >
           <Edit className="h-4 w-4 mr-2" /> {t('animals.edit')}
         </Button>
       </div>
+
+      {/* Edit dialog */}
+      <Dialog open={editOpen} onOpenChange={(v) => { setEditOpen(v); if (!v) setPhotoPreview(null); }}>
+        <DialogContent className="sm:max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl text-primary">{t('animals.edit')}</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pt-1">
+
+              {/* Species grid */}
+              <FormField control={form.control} name="species" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-semibold">{t('animals.species')}</FormLabel>
+                  <div className="grid grid-cols-4 gap-2 pt-1">
+                    {ALL_SPECIES.map(sp => (
+                      <button
+                        key={sp}
+                        type="button"
+                        onClick={() => field.onChange(sp)}
+                        className={`flex flex-col items-center gap-1 py-3 px-1 rounded-xl border text-xs font-medium transition-all ${
+                          field.value === sp
+                            ? "bg-secondary/10 border-secondary text-secondary shadow-sm"
+                            : "bg-muted/30 border-border/40 text-muted-foreground hover:border-secondary/40"
+                        }`}
+                      >
+                        <span className="text-2xl">{SPECIES_EMOJI[sp]}</span>
+                        <span>{t(`animals.sp.${sp}`)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </FormItem>
+              )} />
+
+              {/* Photo */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">
+                  {t('animals.photo')} <span className="text-muted-foreground font-normal">({t('common.optional')})</span>
+                </label>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                {(photoPreview || animal.photoUrl) ? (
+                  <div className="relative rounded-xl overflow-hidden h-36 bg-muted/30 border border-border/40">
+                    <img src={photoPreview || animal.photoUrl!} alt="preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoPreview(null); form.setValue("photoUrl", ""); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                      className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                    >
+                      <Camera className="h-3 w-3" /> {isEn ? "Change" : "Cambiar"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-28 rounded-xl border-2 border-dashed border-border/50 hover:border-secondary/50 bg-muted/20 hover:bg-secondary/5 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-secondary transition-all"
+                  >
+                    <Upload className="h-6 w-6" />
+                    <span className="text-sm">{t('animals.photoUpload')}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Tag + Name */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={form.control} name="customTag" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ID / Tag</FormLabel>
+                    <FormControl><Input {...field} className="rounded-xl" placeholder="EJ: BOV-001" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="name" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('animals.name')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl><Input {...field} className="rounded-xl" placeholder="EJ: Reina" /></FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Breed + Sex */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={form.control} name="breed" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('animals.breed')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl><Input {...field} className="rounded-xl" placeholder="EJ: Brahman" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="sex" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{isEn ? "Sex" : "Sexo"}</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      >
+                        <option value="male">{isEn ? "Male" : "Macho"}</option>
+                        <option value="female">{isEn ? "Female" : "Hembra"}</option>
+                        <option value="unknown">{isEn ? "Unknown" : "Desconocido"}</option>
+                      </select>
+                    </FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Status + Birth */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={form.control} name="status" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('animals.status')}</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      >
+                        <option value="active">{isEn ? "Active" : "Activo"}</option>
+                        <option value="sold">{isEn ? "Sold" : "Vendido"}</option>
+                        <option value="deceased">{isEn ? "Deceased" : "Fallecido"}</option>
+                      </select>
+                    </FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('animals.birth')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Notes */}
+              <FormField control={form.control} name="notes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{isEn ? "Notes" : "Notas"} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                  <FormControl>
+                    <textarea
+                      {...field}
+                      rows={3}
+                      className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      placeholder={isEn ? "Any observations..." : "Observaciones..."}
+                    />
+                  </FormControl>
+                </FormItem>
+              )} />
+
+              <Button type="submit" disabled={updateAnimal.isPending} className="w-full rounded-xl py-6 bg-primary hover:bg-primary/90">
+                {updateAnimal.isPending ? t('common.saving') : t('common.save')}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-1 space-y-6">
@@ -147,14 +387,14 @@ export function AnimalDetail() {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={weights} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis 
-                          dataKey="recordedAt" 
+                        <XAxis
+                          dataKey="recordedAt"
                           tickFormatter={(val) => format(new Date(val), 'MMM dd')}
                           axisLine={false} tickLine={false}
                           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} dy={10}
                         />
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                        <Tooltip 
+                        <Tooltip
                           labelFormatter={(val) => format(new Date(val), 'dd MMM yyyy')}
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                         />
