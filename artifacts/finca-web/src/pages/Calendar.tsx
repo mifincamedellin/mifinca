@@ -5,14 +5,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isToday, parseISO } from "date-fns";
+import {
+  format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
+  isSameDay, isToday, isSameMonth, addMonths, subMonths, parseISO,
+} from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, X, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Trash2, User, CalendarX } from "lucide-react";
 
 type FarmEvent = {
   id: string;
@@ -28,13 +31,13 @@ type FarmEvent = {
   createdAt?: string;
 };
 
-const CATEGORY_COLORS: Record<string, { pill: string; dot: string; label: string; labelEs: string }> = {
-  feeding:     { pill: "bg-green-100 text-green-800 border-green-200",   dot: "bg-green-500",   label: "Feeding",      labelEs: "Alimentación" },
-  health:      { pill: "bg-rose-100 text-rose-800 border-rose-200",      dot: "bg-rose-500",    label: "Health",       labelEs: "Salud" },
-  harvest:     { pill: "bg-amber-100 text-amber-800 border-amber-200",   dot: "bg-amber-500",   label: "Harvest",      labelEs: "Cosecha" },
-  maintenance: { pill: "bg-blue-100 text-blue-800 border-blue-200",      dot: "bg-blue-500",    label: "Maintenance",  labelEs: "Mantenimiento" },
-  meeting:     { pill: "bg-violet-100 text-violet-800 border-violet-200",dot: "bg-violet-500",  label: "Meeting",      labelEs: "Reunión" },
-  other:       { pill: "bg-slate-100 text-slate-700 border-slate-200",   dot: "bg-slate-400",   label: "Other",        labelEs: "Otro" },
+const CATEGORY_COLORS: Record<string, { pill: string; dot: string; bar: string; label: string; labelEs: string }> = {
+  feeding:     { pill: "bg-green-100 text-green-800 border-green-200",    dot: "bg-green-500",   bar: "bg-green-500",   label: "Feeding",     labelEs: "Alimentación" },
+  health:      { pill: "bg-rose-100 text-rose-800 border-rose-200",       dot: "bg-rose-500",    bar: "bg-rose-500",    label: "Health",      labelEs: "Salud" },
+  harvest:     { pill: "bg-amber-100 text-amber-800 border-amber-200",    dot: "bg-amber-500",   bar: "bg-amber-500",   label: "Harvest",     labelEs: "Cosecha" },
+  maintenance: { pill: "bg-blue-100 text-blue-800 border-blue-200",       dot: "bg-blue-500",    bar: "bg-blue-500",    label: "Maintenance", labelEs: "Mantenimiento" },
+  meeting:     { pill: "bg-violet-100 text-violet-800 border-violet-200", dot: "bg-violet-500",  bar: "bg-violet-500",  label: "Meeting",     labelEs: "Reunión" },
+  other:       { pill: "bg-slate-100 text-slate-700 border-slate-200",    dot: "bg-slate-400",   bar: "bg-slate-400",   label: "Other",       labelEs: "Otro" },
 };
 
 const eventSchema = z.object({
@@ -51,20 +54,20 @@ const WEEKDAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const WEEKDAYS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function Calendar() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
   const isEn = i18n.language === "en";
 
-  const now = new Date();
-  const [currentDate, setCurrentDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
+  const today = useMemo(() => new Date(), []);
+  const [currentDate, setCurrentDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<FarmEvent | null>(null);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const monthLabel = format(currentDate, isEn ? "MMMM yyyy" : "MMMM yyyy", { locale: isEn ? undefined : es });
+  const monthLabel = format(currentDate, "MMMM yyyy", { locale: isEn ? undefined : es });
 
   const days = useMemo(() => {
     const start = startOfMonth(currentDate);
@@ -72,15 +75,17 @@ export function Calendar() {
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
 
-  const firstDayOfWeek = getDay(days[0]);
+  const firstDayOfWeek = getDay(days[0]!);
   const paddingDays = Array(firstDayOfWeek).fill(null);
+
+  // Fetch a wider window so navigation feels instant
+  const fetchFrom = format(subMonths(startOfMonth(currentDate), 1), "yyyy-MM-dd");
+  const fetchTo   = format(addMonths(endOfMonth(currentDate),   1), "yyyy-MM-dd");
 
   const { data: events = [] } = useQuery<FarmEvent[]>({
     queryKey: [`/api/farms/${activeFarmId}/events`, year, month],
     queryFn: async () => {
-      const from = format(startOfMonth(currentDate), "yyyy-MM-dd");
-      const to = format(endOfMonth(currentDate), "yyyy-MM-dd");
-      const res = await fetch(`/api/farms/${activeFarmId}/events?from=${from}&to=${to}`);
+      const res = await fetch(`/api/farms/${activeFarmId}/events?from=${fetchFrom}&to=${fetchTo}`);
       if (!res.ok) throw new Error("fetch events failed");
       return res.json();
     },
@@ -94,7 +99,11 @@ export function Calendar() {
 
   const openCreate = (dateStr?: string) => {
     setEditingEvent(null);
-    form.reset({ title: "", description: "", startDate: dateStr || format(new Date(), "yyyy-MM-dd"), endDate: "", category: "other", assignedTo: "" });
+    form.reset({
+      title: "", description: "",
+      startDate: dateStr || format(selectedDate, "yyyy-MM-dd"),
+      endDate: "", category: "other", assignedTo: "",
+    });
     setDialogOpen(true);
   };
 
@@ -111,11 +120,12 @@ export function Calendar() {
     setDialogOpen(true);
   };
 
+  const invalidate = () => qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/events`, year, month] });
+
   const createEvent = useMutation({
     mutationFn: async (data: EventForm) => {
       const res = await fetch(`/api/farms/${activeFarmId}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, allDay: true }),
       });
       if (!res.ok) throw new Error("create failed");
@@ -127,8 +137,7 @@ export function Calendar() {
   const updateEvent = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: EventForm }) => {
       const res = await fetch(`/api/farms/${activeFarmId}/events/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, allDay: true }),
       });
       if (!res.ok) throw new Error("update failed");
@@ -145,14 +154,9 @@ export function Calendar() {
     onSuccess: () => { setDialogOpen(false); setEditingEvent(null); invalidate(); },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/events`, year, month] });
-
   const onSubmit = (data: EventForm) => {
-    if (editingEvent) {
-      updateEvent.mutate({ id: editingEvent.id, data });
-    } else {
-      createEvent.mutate(data);
-    }
+    if (editingEvent) updateEvent.mutate({ id: editingEvent.id, data });
+    else createEvent.mutate(data);
   };
 
   const eventsForDay = (date: Date): FarmEvent[] => {
@@ -164,17 +168,41 @@ export function Calendar() {
     });
   };
 
-  const weekdays = isEn ? WEEKDAYS_EN : WEEKDAYS_ES;
+  const goToPrevMonth = () => {
+    const prev = subMonths(currentDate, 1);
+    setCurrentDate(prev);
+  };
 
+  const goToNextMonth = () => {
+    const next = addMonths(currentDate, 1);
+    setCurrentDate(next);
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    setSelectedDate(today);
+  };
+
+  const handleDayClick = (day: Date) => {
+    setSelectedDate(day);
+    if (!isSameMonth(day, currentDate)) {
+      setCurrentDate(new Date(day.getFullYear(), day.getMonth(), 1));
+    }
+  };
+
+  const weekdays = isEn ? WEEKDAYS_EN : WEEKDAYS_ES;
+  const isPending = createEvent.isPending || updateEvent.isPending;
+
+  const selectedDayEvents = eventsForDay(selectedDate);
+
+  const selectedDateLabel = format(selectedDate, isEn ? "EEEE, MMMM d" : "EEEE, d 'de' MMMM", { locale: isEn ? undefined : es });
   const catLabel = (cat: string | null | undefined) => {
-    const c = CATEGORY_COLORS[cat || "other"];
+    const c = CATEGORY_COLORS[cat || "other"]!;
     return isEn ? c.label : c.labelEs;
   };
 
-  const isPending = createEvent.isPending || updateEvent.isPending;
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -183,30 +211,31 @@ export function Calendar() {
         </div>
         <Button onClick={() => openCreate()} className="rounded-xl bg-primary hover:bg-primary/90 gap-2">
           <Plus className="h-4 w-4" />
-          {isEn ? "New Event" : "Nuevo Evento"}
+          <span className="hidden sm:inline">{isEn ? "New Event" : "Nuevo Evento"}</span>
+          <span className="sm:hidden">{isEn ? "Add" : "Nuevo"}</span>
         </Button>
       </div>
 
       <Card className="rounded-2xl shadow-sm border-border/40 overflow-hidden">
         {/* Month navigation */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border/40 bg-card">
           <button
-            onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+            onClick={goToPrevMonth}
             className="p-2 rounded-xl hover:bg-black/5 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-serif font-semibold text-primary capitalize">{monthLabel}</h2>
+            <h2 className="text-base sm:text-lg font-serif font-semibold text-primary capitalize">{monthLabel}</h2>
             <button
-              onClick={() => setCurrentDate(new Date(now.getFullYear(), now.getMonth(), 1))}
+              onClick={goToToday}
               className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-colors"
             >
               {isEn ? "Today" : "Hoy"}
             </button>
           </div>
           <button
-            onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+            onClick={goToNextMonth}
             className="p-2 rounded-xl hover:bg-black/5 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronRight className="h-5 w-5" />
@@ -216,7 +245,7 @@ export function Calendar() {
         {/* Weekday headers */}
         <div className="grid grid-cols-7 border-b border-border/40 bg-muted/20">
           {weekdays.map((wd) => (
-            <div key={wd} className="py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <div key={wd} className="py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
               {wd}
             </div>
           ))}
@@ -225,50 +254,142 @@ export function Calendar() {
         {/* Calendar grid */}
         <div className="grid grid-cols-7">
           {paddingDays.map((_, i) => (
-            <div key={`pad-${i}`} className="min-h-[110px] border-b border-r border-border/20 bg-muted/5" />
+            <div key={`pad-${i}`} className="min-h-[64px] sm:min-h-[100px] border-b border-r border-border/20 bg-muted/5" />
           ))}
 
           {days.map((day, idx) => {
             const isLastCol = (firstDayOfWeek + idx) % 7 === 6;
-            const todayClass = isToday(day) ? "bg-primary text-primary-foreground" : "text-foreground";
             const dayEvents = eventsForDay(day);
             const dateStr = format(day, "yyyy-MM-dd");
+            const isSelected = isSameDay(day, selectedDate);
+            const isTodayDay = isToday(day);
 
             return (
               <div
                 key={dateStr}
-                className={`min-h-[110px] border-b border-border/20 ${isLastCol ? "" : "border-r"} p-2 cursor-pointer hover:bg-primary/[0.03] transition-colors group`}
-                onClick={() => openCreate(dateStr)}
+                onClick={() => handleDayClick(day)}
+                className={`min-h-[64px] sm:min-h-[100px] border-b border-border/20 ${isLastCol ? "" : "border-r"} p-1.5 sm:p-2 cursor-pointer transition-colors ${isSelected ? "bg-primary/[0.06]" : "hover:bg-primary/[0.03]"}`}
               >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${isToday(day) ? "bg-primary text-primary-foreground" : "group-hover:bg-primary/10 group-hover:text-primary"}`}>
+                {/* Day number */}
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full text-xs sm:text-sm font-medium transition-colors
+                      ${isTodayDay
+                        ? "bg-primary text-primary-foreground"
+                        : isSelected
+                          ? "bg-primary/15 text-primary font-semibold ring-1 ring-primary/40"
+                          : "text-foreground"
+                      }`}
+                  >
                     {format(day, "d")}
                   </span>
-                  {dayEvents.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground font-medium">{dayEvents.length > 3 ? `+${dayEvents.length}` : ""}</span>
+                  {dayEvents.length > 2 && (
+                    <span className="text-[9px] text-muted-foreground font-medium hidden sm:block">+{dayEvents.length - 2}</span>
                   )}
                 </div>
-                <div className="space-y-1">
-                  {dayEvents.slice(0, 3).map((evt) => {
-                    const cat = CATEGORY_COLORS[evt.category || "other"];
+
+                {/* Desktop: event pills (max 2) */}
+                <div className="hidden sm:flex flex-col gap-0.5">
+                  {dayEvents.slice(0, 2).map((evt) => {
+                    const cat = CATEGORY_COLORS[evt.category || "other"]!;
                     return (
                       <button
                         key={evt.id}
                         onClick={(e) => { e.stopPropagation(); openEdit(evt); }}
-                        className={`w-full text-left text-[11px] font-medium px-1.5 py-0.5 rounded-md border truncate ${cat.pill} hover:opacity-80 transition-opacity`}
+                        className={`w-full text-left text-[10px] font-medium px-1.5 py-0.5 rounded border truncate ${cat.pill} hover:opacity-75 transition-opacity`}
                       >
-                        <span className={`inline-block w-1.5 h-1.5 rounded-full ${cat.dot} mr-1 flex-shrink-0`} />
+                        <span className={`inline-block w-1.5 h-1.5 rounded-full ${cat.dot} mr-1 align-middle flex-shrink-0`} />
                         {evt.title}
                       </button>
                     );
                   })}
-                  {dayEvents.length > 3 && (
-                    <p className="text-[10px] text-muted-foreground pl-1">+{dayEvents.length - 3} {isEn ? "more" : "más"}</p>
-                  )}
                 </div>
+
+                {/* Mobile: colored dots only */}
+                {dayEvents.length > 0 && (
+                  <div className="sm:hidden flex gap-0.5 mt-0.5 flex-wrap">
+                    {dayEvents.slice(0, 3).map((evt) => {
+                      const cat = CATEGORY_COLORS[evt.category || "other"]!;
+                      return <span key={evt.id} className={`w-1.5 h-1.5 rounded-full ${cat.dot} flex-shrink-0`} />;
+                    })}
+                    {dayEvents.length > 3 && <span className="text-[8px] text-muted-foreground">+{dayEvents.length - 3}</span>}
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+      </Card>
+
+      {/* ── Day detail panel (Apple Calendar style) ── */}
+      <Card className="rounded-2xl shadow-sm border-border/40 overflow-hidden">
+        {/* Day header */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border/40 bg-card">
+          <div>
+            <p className="text-sm font-semibold text-foreground capitalize">{selectedDateLabel}</p>
+            {isToday(selectedDate) && (
+              <p className="text-xs text-primary font-medium mt-0.5">{isEn ? "Today" : "Hoy"}</p>
+            )}
+          </div>
+          <Button
+            size="sm"
+            onClick={() => openCreate(format(selectedDate, "yyyy-MM-dd"))}
+            className="rounded-xl bg-primary hover:bg-primary/90 gap-1.5 h-8 px-3 text-xs"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {isEn ? "Add" : "Agregar"}
+          </Button>
+        </div>
+
+        {/* Events list */}
+        <div className="divide-y divide-border/30">
+          {selectedDayEvents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
+              <CalendarX className="h-8 w-8 opacity-30" />
+              <p className="text-sm font-medium">{isEn ? "No events" : "Sin eventos"}</p>
+              <p className="text-xs opacity-70">
+                {isEn ? "Tap + to schedule something" : "Toca + para agendar algo"}
+              </p>
+            </div>
+          ) : (
+            selectedDayEvents.map((evt) => {
+              const cat = CATEGORY_COLORS[evt.category || "other"]!;
+              return (
+                <button
+                  key={evt.id}
+                  onClick={() => openEdit(evt)}
+                  className="w-full text-left flex items-stretch gap-0 hover:bg-primary/[0.04] transition-colors group"
+                >
+                  {/* Category color bar */}
+                  <div className={`w-1 flex-shrink-0 ${cat.bar} rounded-none first:rounded-tl-none`} />
+                  <div className="flex-1 px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-foreground leading-snug">{evt.title}</p>
+                        {evt.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{evt.description}</p>
+                        )}
+                        {evt.assignedTo && (
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <User className="h-3 w-3 flex-shrink-0" />
+                            {evt.assignedTo}
+                          </p>
+                        )}
+                        {evt.endDate && evt.endDate !== evt.startDate && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {isEn ? "Until" : "Hasta"} {format(parseISO(evt.endDate), isEn ? "MMM d" : "d MMM", { locale: isEn ? undefined : es })}
+                          </p>
+                        )}
+                      </div>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 mt-0.5 ${cat.pill}`}>
+                        {catLabel(evt.category)}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </Card>
 
@@ -276,7 +397,7 @@ export function Calendar() {
       <div className="flex flex-wrap gap-3">
         {Object.entries(CATEGORY_COLORS).map(([key, val]) => (
           <div key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className={`w-2.5 h-2.5 rounded-full ${val.dot}`} />
+            <span className={`w-2 h-2 rounded-full ${val.dot}`} />
             {isEn ? val.label : val.labelEs}
           </div>
         ))}
@@ -297,7 +418,9 @@ export function Calendar() {
               <FormField control={form.control} name="title" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-medium">{isEn ? "Title" : "Título"} *</FormLabel>
-                  <FormControl><Input placeholder={isEn ? "e.g. Cattle vaccination" : "ej. Vacunación ganado"} className="rounded-xl" {...field} /></FormControl>
+                  <FormControl>
+                    <Input placeholder={isEn ? "e.g. Cattle vaccination" : "ej. Vacunación ganado"} className="rounded-xl" {...field} />
+                  </FormControl>
                 </FormItem>
               )} />
 
@@ -310,7 +433,10 @@ export function Calendar() {
                 )} />
                 <FormField control={form.control} name="endDate" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium">{isEn ? "End date" : "Fecha fin"} <span className="text-muted-foreground font-normal">({isEn ? "opt." : "opc."})</span></FormLabel>
+                    <FormLabel className="text-sm font-medium">
+                      {isEn ? "End date" : "Fecha fin"}
+                      <span className="text-muted-foreground font-normal"> ({isEn ? "opt." : "opc."})</span>
+                    </FormLabel>
                     <FormControl><Input type="date" className="rounded-xl" {...field} /></FormControl>
                   </FormItem>
                 )} />
@@ -320,7 +446,10 @@ export function Calendar() {
                 <FormItem>
                   <FormLabel className="text-sm font-medium">{isEn ? "Category" : "Categoría"}</FormLabel>
                   <FormControl>
-                    <select {...field} className="w-full border border-input bg-background rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <select
+                      {...field}
+                      className="w-full border border-input bg-background rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
                       {Object.entries(CATEGORY_COLORS).map(([key, val]) => (
                         <option key={key} value={key}>{isEn ? val.label : val.labelEs}</option>
                       ))}
@@ -331,14 +460,22 @@ export function Calendar() {
 
               <FormField control={form.control} name="assignedTo" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium">{isEn ? "Assigned to" : "Asignado a"} <span className="text-muted-foreground font-normal">({isEn ? "opt." : "opc."})</span></FormLabel>
-                  <FormControl><Input placeholder={isEn ? "e.g. Carlos, all staff" : "ej. Carlos, todos"} className="rounded-xl" {...field} /></FormControl>
+                  <FormLabel className="text-sm font-medium">
+                    {isEn ? "Assigned to" : "Asignado a"}
+                    <span className="text-muted-foreground font-normal"> ({isEn ? "opt." : "opc."})</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder={isEn ? "e.g. Carlos, all staff" : "ej. Carlos, todos"} className="rounded-xl" {...field} />
+                  </FormControl>
                 </FormItem>
               )} />
 
               <FormField control={form.control} name="description" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium">{isEn ? "Notes" : "Notas"} <span className="text-muted-foreground font-normal">({isEn ? "opt." : "opc."})</span></FormLabel>
+                  <FormLabel className="text-sm font-medium">
+                    {isEn ? "Notes" : "Notas"}
+                    <span className="text-muted-foreground font-normal"> ({isEn ? "opt." : "opc."})</span>
+                  </FormLabel>
                   <FormControl>
                     <textarea
                       className="w-full border border-input bg-background rounded-xl px-3 py-2 text-sm min-h-[72px] resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

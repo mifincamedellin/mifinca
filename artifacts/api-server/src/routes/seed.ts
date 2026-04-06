@@ -359,23 +359,53 @@ export async function seedDemoFarmData(farmId: string) {
     await db.insert(milkRecordsTable).values(milkRows);
   }
 
-  // ── FARM EVENTS (past + upcoming calendar) ───────────────────────────────
+  // ── FARM EVENTS — current month (relative) + Mar/May/Jun 2026 (absolute) ─
   await db.insert(farmEventsTable).values([
-    { farmId, title: "Desparasitación hato completo",    category: "health",       startDate: daysFromNow(3),  description: "Ivermectina + Fenbendazol. Dr. Medina presente.",             assignedTo: "Ana Lucía Torres" },
-    { farmId, title: "Vacuna Aftosa semestral",          category: "health",       startDate: daysFromNow(12), description: "Dosis semestral para todo el hato bovino.",                    assignedTo: "Dr. Carlos Medina" },
-    { farmId, title: "Entrega leche — Cooperativa",     category: "other",        startDate: daysFromNow(2),  description: "Recogida quincenal Cooperativa Lácteos del Río." },
-    { farmId, title: "Entrega leche — Cooperativa",     category: "other",        startDate: daysFromNow(16), description: "Recogida quincenal Cooperativa Lácteos del Río." },
-    { farmId, title: "Reunión con comprador novillos",  category: "meeting",      startDate: daysFromNow(5),  description: "Frigorífico El Palmar — cotización 5 novillos gordo.",         assignedTo: "Carmen Rosa Jiménez" },
-    { farmId, title: "Mantenimiento cerca eléctrica",   category: "maintenance",  startDate: daysFromNow(7),  description: "Revisión y reparación potrero 2 y 3.",                         assignedTo: "Sebastián Morales" },
-    { farmId, title: "Cosecha café parcela norte",      category: "harvest",      startDate: daysFromNow(20), endDate: daysFromNow(22), description: "Recolección manual café maduro parcela norte — 3 días." },
-    { farmId, title: "Pago nómina mensual",             category: "meeting",      startDate: daysFromNow(27), description: "Transferencia salarios 6 empleados.",                          assignedTo: "Carmen Rosa Jiménez" },
-    { farmId, title: "Suministro concentrado bovino",   category: "feeding",      startDate: daysFromNow(1),  description: "Recepción 20 bultos AgroSantos S.A.S.",                        assignedTo: "Juan Carlos Pérez" },
-    { farmId, title: "Revisión prenatal Luna",          category: "health",       startDate: daysFromNow(9),  description: "Confirmación preñez mes 7 — Dr. Medina.",                      assignedTo: "Dr. Carlos Medina" },
-    { farmId, title: "Desparasitación externa — cerdos",category: "health",      startDate: daysAgo(3),      description: "Fenbendazol preventivo piara completa." },
-    { farmId, title: "Vacuna Brucelosis terneras",      category: "health",       startDate: daysAgo(8),      description: "Cepa RB51 terneras BOV-030, BOV-052.",                         assignedTo: "Dr. Carlos Medina" },
-    { farmId, title: "Aplicación sal mineralizada",     category: "feeding",      startDate: daysAgo(5),      description: "Distribución semanal saladeros potreros 1–4.",                 assignedTo: "Luis Alberto García" },
-    { farmId, title: "Fumigación potreros 1 y 2",      category: "maintenance",  startDate: daysAgo(10),     description: "Control de maleza y chapeo anual.",                            assignedTo: "Sebastián Morales" },
-    { farmId, title: "Visita ICA — certificación",      category: "meeting",      startDate: daysAgo(15),     description: "Inspección sanitaria reglamentaria. Certificado renovado." },
+    // ── Today & near future (relative to seed date) ───────────────────────
+    { farmId, title: "Revisión semanal hato",            category: "health",       startDate: daysFromNow(0),  description: "Control visual estado general — peso visual y condición corporal.",  assignedTo: "Juan Carlos Pérez" },
+    { farmId, title: "Suministro concentrado bovino",    category: "feeding",      startDate: daysFromNow(1),  description: "Recepción 20 bultos AgroSantos S.A.S.",                             assignedTo: "Juan Carlos Pérez" },
+    { farmId, title: "Entrega leche — Cooperativa",      category: "other",        startDate: daysFromNow(2),  description: "Recogida quincenal Cooperativa Lácteos del Río — aprox. 400 L." },
+    { farmId, title: "Desparasitación hato completo",    category: "health",       startDate: daysFromNow(3),  description: "Ivermectina + Fenbendazol. Dr. Medina presente.",                   assignedTo: "Ana Lucía Torres" },
+    { farmId, title: "Reunión con comprador novillos",   category: "meeting",      startDate: daysFromNow(5),  description: "Frigorífico El Palmar — cotización 5 novillos gordo.",              assignedTo: "Carmen Rosa Jiménez" },
+    { farmId, title: "Mantenimiento cerca eléctrica",    category: "maintenance",  startDate: daysFromNow(7),  description: "Revisión y reparación potrero 2 y 3.",                             assignedTo: "Sebastián Morales" },
+    { farmId, title: "Revisión prenatal Luna",           category: "health",       startDate: daysFromNow(9),  description: "Confirmación preñez mes 7 — Dr. Medina.",                          assignedTo: "Dr. Carlos Medina" },
+    { farmId, title: "Vacuna Aftosa semestral",          category: "health",       startDate: daysFromNow(12), description: "Dosis semestral para todo el hato bovino.",                         assignedTo: "Dr. Carlos Medina" },
+    { farmId, title: "Entrega leche — Cooperativa",      category: "other",        startDate: daysFromNow(16), description: "Recogida quincenal Cooperativa Lácteos del Río." },
+    { farmId, title: "Cosecha café parcela norte",       category: "harvest",      startDate: daysFromNow(20), endDate: daysFromNow(22), description: "Recolección manual café maduro parcela norte — 3 días." },
+    { farmId, title: "Siembra maíz parcela 2",           category: "harvest",      startDate: daysFromNow(24), endDate: daysFromNow(25), description: "Siembra manual maíz ICA V-109 — 2 jornadas.", assignedTo: "Luis Alberto García" },
+    { farmId, title: "Pago nómina mensual",              category: "meeting",      startDate: daysFromNow(27), description: "Transferencia salarios 6 empleados.",                               assignedTo: "Carmen Rosa Jiménez" },
+    // ── Recent past (relative) ────────────────────────────────────────────
+    { farmId, title: "Desparasitación externa — cerdos", category: "health",       startDate: daysAgo(3),      description: "Fenbendazol preventivo piara completa." },
+    { farmId, title: "Aplicación sal mineralizada",      category: "feeding",      startDate: daysAgo(5),      description: "Distribución semanal saladeros potreros 1–4.",                    assignedTo: "Luis Alberto García" },
+    { farmId, title: "Vacuna Brucelosis terneras",       category: "health",       startDate: daysAgo(8),      description: "Cepa RB51 terneras BOV-030, BOV-052.",                             assignedTo: "Dr. Carlos Medina" },
+    { farmId, title: "Fumigación potreros 1 y 2",        category: "maintenance",  startDate: daysAgo(10),     description: "Control de maleza y chapeo anual.",                                assignedTo: "Sebastián Morales" },
+    { farmId, title: "Visita ICA — certificación",       category: "meeting",      startDate: daysAgo(15),     description: "Inspección sanitaria reglamentaria. Certificado renovado." },
+    // ── March 2026 (absolute) ─────────────────────────────────────────────
+    { farmId, title: "Análisis de suelo — parcela norte",category: "maintenance",  startDate: "2026-03-05",    description: "Toma de muestras para análisis NPK y pH.",                         assignedTo: "Sebastián Morales" },
+    { farmId, title: "Capacitación empleados SENA",      category: "meeting",      startDate: "2026-03-12",    description: "Taller manejo bovinos y bioseguridad en finca.",                   assignedTo: "Carmen Rosa Jiménez" },
+    { farmId, title: "Entrega leche — Cooperativa",      category: "other",        startDate: "2026-03-14",    description: "Recogida quincenal — 380 litros." },
+    { farmId, title: "Siembra frijol parcela norte",     category: "harvest",      startDate: "2026-03-18",    endDate: "2026-03-19", description: "Siembra manual frijol ICA Cerinza — 2 jornadas." },
+    { farmId, title: "Mantenimiento bomba de agua",      category: "maintenance",  startDate: "2026-03-24",    description: "Revisión y cambio de filtros tanque principal.",                   assignedTo: "Sebastián Morales" },
+    { farmId, title: "Entrega leche — Cooperativa",      category: "other",        startDate: "2026-03-28",    description: "Recogida quincenal — 395 litros." },
+    // ── May 2026 (absolute) ───────────────────────────────────────────────
+    { farmId, title: "Pago nómina mensual",              category: "meeting",      startDate: "2026-05-03",    description: "Transferencia salarios 6 empleados.",                               assignedTo: "Carmen Rosa Jiménez" },
+    { farmId, title: "Revisión semestral hato",          category: "health",       startDate: "2026-05-07",    description: "Revisión condición corporal hato completo.",                       assignedTo: "Dr. Carlos Medina" },
+    { farmId, title: "Entrega leche — Cooperativa",      category: "other",        startDate: "2026-05-09",    description: "Recogida quincenal Cooperativa Lácteos del Río." },
+    { farmId, title: "Suministro concentrado bovino",    category: "feeding",      startDate: "2026-05-13",    description: "Recepción 20 bultos AgroSantos S.A.S.",                             assignedTo: "Juan Carlos Pérez" },
+    { farmId, title: "Fumigación potreros 3 y 4",        category: "maintenance",  startDate: "2026-05-16",    description: "Control de maleza — chapeo semestral.",                            assignedTo: "Sebastián Morales" },
+    { farmId, title: "Desparasitación hato completo",    category: "health",       startDate: "2026-05-20",    description: "Ivermectina + Fenbendazol — ciclo trimestral.",                     assignedTo: "Ana Lucía Torres" },
+    { farmId, title: "Entrega leche — Cooperativa",      category: "other",        startDate: "2026-05-23",    description: "Recogida quincenal Cooperativa Lácteos del Río." },
+    { farmId, title: "Reunión proveedores",              category: "meeting",      startDate: "2026-05-26",    description: "Cotización insumos y medicamentos segundo semestre.",               assignedTo: "Carmen Rosa Jiménez" },
+    { farmId, title: "Pago nómina mensual",              category: "meeting",      startDate: "2026-05-29",    description: "Transferencia salarios 6 empleados.",                               assignedTo: "Carmen Rosa Jiménez" },
+    // ── June 2026 (absolute) ──────────────────────────────────────────────
+    { farmId, title: "Entrega leche — Cooperativa",      category: "other",        startDate: "2026-06-06",    description: "Recogida quincenal Cooperativa Lácteos del Río." },
+    { farmId, title: "Vacuna Aftosa semestral",          category: "health",       startDate: "2026-06-10",    description: "Dosis semestral todo el hato bovino — reglamentaria ICA.",         assignedTo: "Dr. Carlos Medina" },
+    { farmId, title: "Cosecha maíz parcela 2",           category: "harvest",      startDate: "2026-06-12",    endDate: "2026-06-14", description: "Recolección maíz ICA V-109 — 3 jornadas." },
+    { farmId, title: "Reunión Cámara Agropecuaria",      category: "meeting",      startDate: "2026-06-17",    description: "Cotización insumos y análisis precios ganado segundo semestre.",   assignedTo: "Carmen Rosa Jiménez" },
+    { farmId, title: "Suministro concentrado bovino",    category: "feeding",      startDate: "2026-06-19",    description: "Recepción 20 bultos AgroSantos S.A.S.",                             assignedTo: "Juan Carlos Pérez" },
+    { farmId, title: "Entrega leche — Cooperativa",      category: "other",        startDate: "2026-06-20",    description: "Recogida quincenal Cooperativa Lácteos del Río." },
+    { farmId, title: "Desparasitación hato completo",    category: "health",       startDate: "2026-06-24",    description: "Ivermectina + Fenbendazol — ciclo trimestral.",                     assignedTo: "Ana Lucía Torres" },
+    { farmId, title: "Pago nómina mensual",              category: "meeting",      startDate: "2026-06-29",    description: "Transferencia salarios 6 empleados.",                               assignedTo: "Carmen Rosa Jiménez" },
   ]);
 }
 
