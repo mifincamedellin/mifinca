@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, Loader2, Sprout, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 interface Message {
   role: "user" | "assistant";
@@ -51,8 +50,15 @@ export function FarmAdvisor() {
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [loading, setLoading]           = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef  = useRef<HTMLInputElement>(null);
+  const bottomRef  = useRef<HTMLDivElement>(null);
+  const inputRef   = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
 
   const greeting: Message = {
     role: "assistant",
@@ -118,6 +124,7 @@ export function FarmAdvisor() {
     if (!text || loading) return;
 
     setInput("");
+    if (inputRef.current) inputRef.current.style.height = "auto";
     setMessages(prev => [...prev, { role: "user", content: text }]);
     setLoading(true);
 
@@ -288,27 +295,36 @@ export function FarmAdvisor() {
 
             {/* Input */}
             <div className="px-3 py-3 border-t border-border/30 bg-card shrink-0">
-              <form
-                className="flex gap-2 items-center"
-                onSubmit={e => { e.preventDefault(); sendMessage(); }}
-              >
-                <Input
+              <div className="flex gap-2 items-end">
+                <textarea
                   ref={inputRef}
                   value={input}
-                  onChange={e => setInput(e.target.value)}
+                  rows={1}
+                  onChange={e => { setInput(e.target.value); autoResize(); }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
                   placeholder={isEn ? "Ask about your farm..." : "Pregunta sobre tu finca..."}
-                  className="rounded-xl border-border/40 bg-background text-sm h-10 flex-1"
                   disabled={loading || historyLoading}
+                  className="flex-1 resize-none rounded-xl border border-border/40 bg-background text-sm px-3 py-2.5 leading-relaxed placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary/30 disabled:opacity-50 min-h-[40px] overflow-hidden"
+                  style={{ height: "40px" }}
                 />
                 <Button
-                  type="submit"
+                  type="button"
                   size="icon"
+                  onClick={sendMessage}
                   disabled={!input.trim() || loading || historyLoading}
-                  className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/90 shrink-0"
+                  className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/90 shrink-0 mb-0"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
-              </form>
+              </div>
+              <p className="text-[10px] text-muted-foreground/50 mt-1.5 pl-1">
+                {isEn ? "Enter to send · Shift+Enter for new line" : "Enter para enviar · Shift+Enter para nueva línea"}
+              </p>
             </div>
           </motion.div>
         )}
