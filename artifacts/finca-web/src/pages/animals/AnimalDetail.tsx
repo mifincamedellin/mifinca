@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useParams, Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
-import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord } from "@workspace/api-client-react";
+import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,19 @@ const SPECIES_EMOJI: Record<string, string> = {
   goat: "🐐", sheep: "🐑", chicken: "🐔", other: "🐾",
 };
 const ALL_SPECIES = ["cattle", "pig", "horse", "goat", "sheep", "chicken", "other"];
+
+const RECORD_TYPES = ["vaccination", "treatment", "checkup", "surgery", "deworming", "other"] as const;
+
+const medicalSchema = z.object({
+  recordType: z.enum(RECORD_TYPES),
+  title: z.string().min(1),
+  recordDate: z.string().min(1),
+  description: z.string().optional(),
+  vetName: z.string().optional(),
+  costCop: z.coerce.number().nonnegative().optional().or(z.literal("")),
+  nextDueDate: z.string().optional(),
+});
+type MedicalForm = z.infer<typeof medicalSchema>;
 
 const weightSchema = z.object({
   weightKg: z.coerce.number().positive(),
@@ -56,6 +69,7 @@ export function AnimalDetail() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
+  const [medicalOpen, setMedicalOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +83,7 @@ export function AnimalDetail() {
 
   const updateAnimal = useUpdateAnimal();
   const createWeightRecord = useCreateWeightRecord();
+  const createMedicalRecord = useCreateMedicalRecord();
 
   const weightForm = useForm<WeightForm>({
     resolver: zodResolver(weightSchema),
@@ -85,6 +100,25 @@ export function AnimalDetail() {
           weightForm.reset({ weightKg: undefined as any, recordedAt: new Date().toISOString().split("T")[0], notes: "" });
           refetch();
           qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/animals/${id}/weights`] });
+        }
+      }
+    );
+  };
+
+  const medicalForm = useForm<MedicalForm>({
+    resolver: zodResolver(medicalSchema),
+    defaultValues: { recordType: "checkup", title: "", recordDate: new Date().toISOString().split("T")[0], description: "", vetName: "", costCop: "", nextDueDate: "" },
+  });
+
+  const onMedicalSubmit = (data: MedicalForm) => {
+    if (!activeFarmId || !id) return;
+    createMedicalRecord.mutate(
+      { farmId: activeFarmId, animalId: id, data: { ...data, costCop: data.costCop !== "" && data.costCop != null ? Number(data.costCop) : undefined } as any },
+      {
+        onSuccess: () => {
+          setMedicalOpen(false);
+          medicalForm.reset({ recordType: "checkup", title: "", recordDate: new Date().toISOString().split("T")[0], description: "", vetName: "", costCop: "", nextDueDate: "" });
+          refetch();
         }
       }
     );
@@ -415,6 +449,122 @@ export function AnimalDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Medical record dialog */}
+      <Dialog open={medicalOpen} onOpenChange={setMedicalOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl text-primary flex items-center gap-2">
+              <Syringe className="h-5 w-5" /> {t('animals.addMedical')}
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...medicalForm}>
+            <form onSubmit={medicalForm.handleSubmit(onMedicalSubmit)} className="space-y-4 pt-1">
+
+              {/* Record type */}
+              <FormField control={medicalForm.control} name="recordType" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">{isEn ? "Type" : "Tipo"}</FormLabel>
+                  <FormControl>
+                    <div className="grid grid-cols-3 gap-2">
+                      {RECORD_TYPES.map(rt => {
+                        const labels: Record<string, [string, string]> = {
+                          vaccination: ["💉", isEn ? "Vaccination" : "Vacunación"],
+                          treatment: ["💊", isEn ? "Treatment" : "Tratamiento"],
+                          checkup: ["🩺", isEn ? "Checkup" : "Revisión"],
+                          surgery: ["🏥", isEn ? "Surgery" : "Cirugía"],
+                          deworming: ["🐛", isEn ? "Deworming" : "Desparasitación"],
+                          other: ["📋", isEn ? "Other" : "Otro"],
+                        };
+                        const [icon, label] = labels[rt];
+                        return (
+                          <button
+                            key={rt}
+                            type="button"
+                            onClick={() => field.onChange(rt)}
+                            className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border text-xs font-medium transition-all ${
+                              field.value === rt
+                                ? "bg-primary/10 border-primary text-primary shadow-sm"
+                                : "bg-muted/30 border-border/40 text-muted-foreground hover:border-primary/40"
+                            }`}
+                          >
+                            <span className="text-xl">{icon}</span>
+                            <span className="text-center leading-tight">{label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </FormControl>
+                </FormItem>
+              )} />
+
+              {/* Title */}
+              <FormField control={medicalForm.control} name="title" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">{isEn ? "Title" : "Título"}</FormLabel>
+                  <FormControl><Input {...field} className="rounded-xl" placeholder={isEn ? "e.g. Aftosa vaccine" : "Ej: Vacuna aftosa"} /></FormControl>
+                </FormItem>
+              )} />
+
+              {/* Date + Next due */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={medicalForm.control} name="recordDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">{isEn ? "Date" : "Fecha"}</FormLabel>
+                    <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={medicalForm.control} name="nextDueDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">{isEn ? "Next due" : "Próxima"} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Vet + Cost */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={medicalForm.control} name="vetName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">{isEn ? "Vet name" : "Veterinario"} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl><Input {...field} className="rounded-xl" placeholder="Dr. López" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={medicalForm.control} name="costCop" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">{isEn ? "Cost" : "Costo"} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input type="number" min="0" step="1000" {...field} value={field.value ?? ""} className="rounded-xl pr-14" placeholder="0" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">COP</span>
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Description */}
+              <FormField control={medicalForm.control} name="description" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">{isEn ? "Notes" : "Notas"} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                  <FormControl>
+                    <textarea
+                      {...field}
+                      rows={2}
+                      className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      placeholder={isEn ? "Additional observations..." : "Observaciones adicionales..."}
+                    />
+                  </FormControl>
+                </FormItem>
+              )} />
+
+              <Button type="submit" disabled={createMedicalRecord.isPending} className="w-full rounded-xl py-6 bg-primary hover:bg-primary/90">
+                {createMedicalRecord.isPending ? t('common.saving') : t('common.save')}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-1 space-y-6">
           <Card className="overflow-hidden rounded-2xl border-none shadow-md bg-card">
@@ -556,8 +706,8 @@ export function AnimalDetail() {
               <Card className="p-6 rounded-2xl border-border/50 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-xl font-serif text-primary">{t('animals.tab.medical')}</h3>
-                  <Button size="sm" className="rounded-xl bg-accent hover:bg-accent/90 hover-elevate text-accent-foreground">
-                    {t('animals.addMedical')}
+                  <Button size="sm" onClick={() => setMedicalOpen(true)} className="rounded-xl bg-primary hover:bg-primary/90 hover-elevate">
+                    <Syringe className="h-3.5 w-3.5 mr-1.5" /> {t('animals.addMedical')}
                   </Button>
                 </div>
                 {animal.medicalRecords && animal.medicalRecords.length > 0 ? (
