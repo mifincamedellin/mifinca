@@ -17,3 +17,4 @@ export * from "./employees";
 export * from "./employeeAttachments";
 export * from "./milkRecords";
 export * from "./farmEvents";
+export * from "./farmInvitations";

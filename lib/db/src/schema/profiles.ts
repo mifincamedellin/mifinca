@@ -4,6 +4,8 @@ import { z } from "zod/v4";
 
 export const profilesTable = pgTable("profiles", {
   id: uuid("id").primaryKey(),
+  clerkId: text("clerk_id").unique(),
+  email: text("email"),
   fullName: text("full_name"),
   role: text("role", { enum: ["owner", "worker"] }).default("owner"),
   preferredLanguage: text("preferred_language").default("es"),

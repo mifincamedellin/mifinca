@@ -6,6 +6,7 @@ import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useGetMe, useListFarms } from "@workspace/api-client-react";
+import { useAuth, useClerk } from "@clerk/react";
 import { 
   Home, 
   PawPrint, 
@@ -44,21 +45,27 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { t, i18n } = useTranslation();
   const [location, setLocation] = useLocation();
   const { token, logout, activeFarmId, setActiveFarmId, sidebarTheme } = useStore();
+  const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
+  const { signOut } = useClerk();
+
+  // Consider authenticated if: demo JWT present, or Clerk session active
+  const isAuthenticated = !!token || !!isSignedIn;
 
   const { data: user, isError: authFailed } = useGetMe({
-    query: { enabled: !!token, retry: false }
+    query: { enabled: isAuthenticated, retry: false }
   });
 
   const { data: farms } = useListFarms({
-    query: { enabled: !!token && !authFailed }
+    query: { enabled: isAuthenticated && !authFailed }
   });
 
-  // Redirect if not authenticated or token expired
+  // Redirect if not authenticated
   useEffect(() => {
-    if (!token && location !== '/login' && location !== '/register') {
+    if (!clerkLoaded) return; // wait for Clerk to initialise
+    if (!isAuthenticated && location !== '/login') {
       setLocation('/login');
     }
-  }, [token, location, setLocation]);
+  }, [isAuthenticated, clerkLoaded, location, setLocation]);
 
   useEffect(() => {
     if (authFailed && token) {
@@ -74,7 +81,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
     }
   }, [farms, activeFarmId, setActiveFarmId]);
 
-  if (!token) return null;
+  // Not yet ready
+  if (!clerkLoaded || !isAuthenticated) return null;
 
   const style = {
     "--sidebar-width": "16rem",
@@ -93,8 +101,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { title: t('nav.settings'), url: "/settings", icon: Settings },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    if (isSignedIn) {
+      await signOut();
+    }
+    logout(); // clear Zustand store (token, activeFarmId)
     setLocation('/login');
   };
 

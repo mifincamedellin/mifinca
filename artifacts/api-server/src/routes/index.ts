@@ -13,6 +13,7 @@ import contactsRouter from "./contacts.js";
 import employeesRouter from "./employees.js";
 import seedRouter from "./seed.js";
 import eventsRouter from "./events.js";
+import invitationsRouter from "./invitations.js";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(contactsRouter);
 router.use(employeesRouter);
 router.use(seedRouter);
 router.use(eventsRouter);
+router.use(invitationsRouter);
 
 export default router;

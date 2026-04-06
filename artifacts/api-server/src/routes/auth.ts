@@ -1,26 +1,16 @@
 import { Router } from "express";
 import { db, pool } from "@workspace/db";
-import { profilesTable, farmsTable, farmMembersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { profilesTable, farmsTable, farmMembersTable, farmInvitationsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import { getAuth, clerkClient } from "@clerk/express";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
 const JWT_SECRET = process.env["SESSION_SECRET"] || "finca-secret-key";
-
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  fullName: z.string().min(1),
-  farmName: z.string().min(1),
-});
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
 
 async function ensureAuthTable() {
   await pool.query(`
@@ -33,188 +23,199 @@ async function ensureAuthTable() {
   `);
 }
 
-router.post("/auth/register", async (req, res) => {
+// ── Demo login (kept for demo mode only) ────────────────────────────────────
+router.post("/auth/demo", async (req, res) => {
   try {
-    const parsed = registerSchema.parse(req.body);
-    const { email, password, fullName, farmName } = parsed;
-
     await ensureAuthTable();
-
-    const existing = await pool.query("SELECT id FROM auth_users WHERE email = $1", [email]);
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ error: "conflict", message: "Email already registered" });
-    }
-
-    const id = crypto.randomUUID();
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    await pool.query(
-      "INSERT INTO auth_users (id, email, password_hash) VALUES ($1, $2, $3)",
-      [id, email, passwordHash]
-    );
-
-    await db.insert(profilesTable).values({
-      id,
-      fullName,
-      role: "owner",
-      preferredLanguage: "es",
-    });
-
-    const farm = await db.insert(farmsTable).values({
-      ownerId: id,
-      name: farmName,
-    }).returning();
-
-    await db.insert(farmMembersTable).values({
-      farmId: farm[0]!.id,
-      userId: id,
-      role: "owner",
-      permissions: { can_edit: true, can_add_animals: true, can_log_inventory: true },
-    });
-
-    const token = jwt.sign({ userId: id }, JWT_SECRET, { expiresIn: "7d" });
-
-    return res.status(201).json({
-      token,
-      user: { id, email, fullName, role: "owner" },
-      defaultFarmId: farm[0]!.id,
-    });
-  } catch (err: unknown) {
-    req.log.error({ err }, "Register error");
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: "validation", message: err.message });
-    }
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return res.status(500).json({ error: "internal", message });
-  }
-});
-
-router.post("/auth/login", async (req, res) => {
-  try {
-    const parsed = loginSchema.parse(req.body);
-    const { email, password } = parsed;
-
-    await ensureAuthTable();
-
     const result = await pool.query(
-      "SELECT id, email, password_hash FROM auth_users WHERE email = $1",
-      [email]
+      "SELECT id FROM auth_users WHERE email = $1",
+      ["demo@fincacolombia.com"]
     );
-
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: "unauthorized", message: "Invalid credentials" });
+      return res.status(404).json({ error: "not_found", message: "Demo user not found" });
     }
-
-    const user = result.rows[0] as { id: string; email: string; password_hash: string };
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ error: "unauthorized", message: "Invalid credentials" });
-    }
-
-    const profile = await db.select().from(profilesTable).where(eq(profilesTable.id, user.id)).limit(1);
-
+    const user = result.rows[0] as { id: string };
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
     const farms = await db.select({ id: farmsTable.id }).from(farmMembersTable)
       .innerJoin(farmsTable, eq(farmMembersTable.farmId, farmsTable.id))
       .where(eq(farmMembersTable.userId, user.id))
       .limit(1);
+    return res.json({ token, defaultFarmId: farms[0]?.id ?? null });
+  } catch (err) {
+    req.log.error({ err }, "Demo login error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+// ── Legacy email/password login (only for demo fallback) ─────────────────────
+router.post("/auth/login", async (req, res) => {
+  try {
+    const parsed = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(req.body);
+    await ensureAuthTable();
+    const result = await pool.query(
+      "SELECT id, email, password_hash FROM auth_users WHERE email = $1",
+      [parsed.email]
+    );
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: "unauthorized", message: "Invalid credentials" });
+    }
+    const user = result.rows[0] as { id: string; email: string; password_hash: string };
+    const valid = await bcrypt.compare(parsed.password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: "unauthorized", message: "Invalid credentials" });
+
+    const profile = await db.select().from(profilesTable).where(eq(profilesTable.id, user.id)).limit(1);
+    const farms = await db.select({ id: farmsTable.id }).from(farmMembersTable)
+      .innerJoin(farmsTable, eq(farmMembersTable.farmId, farmsTable.id))
+      .where(eq(farmMembersTable.userId, user.id)).limit(1);
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-
     return res.json({
       token,
       user: { id: user.id, email: user.email, fullName: profile[0]?.fullName, role: profile[0]?.role },
       defaultFarmId: farms[0]?.id ?? null,
     });
-  } catch (err: unknown) {
+  } catch (err) {
     req.log.error({ err }, "Login error");
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: "validation", message: err.message });
-    }
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return res.status(500).json({ error: "internal", message });
+    return res.status(500).json({ error: "internal" });
   }
 });
 
-router.get("/auth/me", async (req, res) => {
+// ── Clerk sync — call once after Google sign-in ──────────────────────────────
+// Creates a profile for new Clerk users, checks invitations, returns farmId
+router.post("/auth/clerk-sync", async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "unauthorized", message: "No token" });
+    const auth = getAuth(req);
+    if (!auth?.userId) {
+      return res.status(401).json({ error: "unauthorized", message: "No Clerk session" });
     }
 
-    const token = authHeader.slice(7);
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const clerkUser = await clerkClient.users.getUser(auth.userId);
+    const email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
+    const fullName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || email;
 
-    const profile = await db.select().from(profilesTable).where(eq(profilesTable.id, payload.userId)).limit(1);
-    if (!profile[0]) {
-      return res.status(404).json({ error: "not_found", message: "Profile not found" });
+    // Check if profile already exists
+    let profile = await db.select().from(profilesTable)
+      .where(eq(profilesTable.clerkId, auth.userId))
+      .limit(1);
+
+    if (profile.length === 0) {
+      // New user — create profile
+      const id = crypto.randomUUID();
+      await db.insert(profilesTable).values({
+        id,
+        clerkId: auth.userId,
+        email,
+        fullName,
+        role: "owner",
+        preferredLanguage: "es",
+      });
+      profile = await db.select().from(profilesTable).where(eq(profilesTable.clerkId, auth.userId)).limit(1);
     }
 
-    const authUser = await pool.query<{ email: string }>(
-      "SELECT email FROM auth_users WHERE id = $1",
-      [payload.userId]
-    );
+    const profileId = profile[0]!.id;
 
-    return res.json({
-      id: profile[0].id,
-      fullName: profile[0].fullName,
-      role: profile[0].role,
-      preferredLanguage: profile[0].preferredLanguage,
-      createdAt: profile[0].createdAt,
-      email: authUser.rows[0]?.email ?? null,
+    // Check existing farm membership
+    const existingFarm = await db.select({ id: farmsTable.id }).from(farmMembersTable)
+      .innerJoin(farmsTable, eq(farmMembersTable.farmId, farmsTable.id))
+      .where(eq(farmMembersTable.userId, profileId))
+      .limit(1);
+
+    if (existingFarm.length > 0) {
+      return res.json({ defaultFarmId: existingFarm[0]!.id, profile: profile[0] });
+    }
+
+    // Check for pending invitation by email
+    const invitation = await db.select().from(farmInvitationsTable)
+      .where(and(
+        eq(farmInvitationsTable.invitedEmail, email.toLowerCase()),
+        eq(farmInvitationsTable.status, "pending")
+      ))
+      .limit(1);
+
+    if (invitation.length > 0) {
+      // Accept the invitation — add to the farm
+      await db.insert(farmMembersTable).values({
+        farmId: invitation[0]!.farmId,
+        userId: profileId,
+        role: invitation[0]!.role ?? "worker",
+        permissions: { can_edit: false, can_add_animals: true, can_log_inventory: true },
+      });
+      await db.update(farmInvitationsTable)
+        .set({ status: "accepted" })
+        .where(eq(farmInvitationsTable.id, invitation[0]!.id));
+      return res.json({ defaultFarmId: invitation[0]!.farmId, profile: profile[0] });
+    }
+
+    // No invitation — create a new farm for this user
+    const [newFarm] = await db.insert(farmsTable).values({
+      ownerId: profileId,
+      name: `Finca de ${fullName.split(" ")[0]}`,
+    }).returning();
+
+    await db.insert(farmMembersTable).values({
+      farmId: newFarm!.id,
+      userId: profileId,
+      role: "owner",
+      permissions: { can_edit: true, can_add_animals: true, can_log_inventory: true },
     });
-  } catch (err: unknown) {
-    req.log.error({ err }, "Auth me error");
-    return res.status(401).json({ error: "unauthorized", message: "Invalid token" });
+
+    return res.json({ defaultFarmId: newFarm!.id, profile: profile[0] });
+  } catch (err) {
+    req.log.error({ err }, "Clerk sync error");
+    return res.status(500).json({ error: "internal", message: String(err) });
   }
 });
 
-router.patch("/auth/email", async (req, res) => {
+// ── Current user profile ─────────────────────────────────────────────────────
+router.get("/auth/me", requireAuth, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "unauthorized", message: "No token" });
-    }
-    const token = authHeader.slice(7);
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const userId = (req as Request & { userId: string }).userId;
+    const profile = await db.select().from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    if (!profile[0]) return res.status(404).json({ error: "not_found" });
 
+    let email = profile[0].email;
+    // Fallback to auth_users table for legacy/demo users
+    if (!email) {
+      try {
+        const authUser = await pool.query<{ email: string }>(
+          "SELECT email FROM auth_users WHERE id = $1", [userId]
+        );
+        email = authUser.rows[0]?.email ?? null;
+      } catch { /* table may not exist */ }
+    }
+
+    return res.json({ ...profile[0], email });
+  } catch (err) {
+    req.log.error({ err }, "Auth me error");
+    return res.status(401).json({ error: "unauthorized" });
+  }
+});
+
+router.patch("/auth/email", requireAuth, async (req, res) => {
+  try {
+    const userId = (req as Request & { userId: string }).userId;
     const { email } = req.body;
     if (!email || typeof email !== "string" || !email.includes("@")) {
-      return res.status(400).json({ error: "bad_request", message: "Invalid email" });
+      return res.status(400).json({ error: "bad_request" });
     }
-
-    const existing = await pool.query("SELECT id FROM auth_users WHERE email = $1 AND id != $2", [email, payload.userId]);
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ error: "conflict", message: "Email already in use" });
-    }
-
-    await pool.query("UPDATE auth_users SET email = $1 WHERE id = $2", [email, payload.userId]);
+    await db.update(profilesTable).set({ email, updatedAt: new Date() }).where(eq(profilesTable.id, userId));
     return res.json({ email });
-  } catch (err: unknown) {
-    req.log.error({ err }, "Update email error");
-    return res.status(500).json({ error: "internal", message: "Update failed" });
+  } catch (err) {
+    return res.status(500).json({ error: "internal" });
   }
 });
 
-router.put("/auth/profile", async (req, res) => {
+router.put("/auth/profile", requireAuth, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "unauthorized", message: "No token" });
-    }
-    const token = authHeader.slice(7);
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
-
+    const userId = (req as Request & { userId: string }).userId;
     const { fullName, preferredLanguage } = req.body;
     const updated = await db.update(profilesTable)
       .set({ fullName, preferredLanguage, updatedAt: new Date() })
-      .where(eq(profilesTable.id, payload.userId))
+      .where(eq(profilesTable.id, userId))
       .returning();
-
     return res.json(updated[0]);
-  } catch (err: unknown) {
-    req.log.error({ err }, "Update profile error");
-    return res.status(500).json({ error: "internal", message: "Update failed" });
+  } catch (err) {
+    return res.status(500).json({ error: "internal" });
   }
 });
 
