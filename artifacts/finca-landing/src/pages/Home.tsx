@@ -412,7 +412,7 @@ export default function Home() {
               <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000 delay-200">
                 <div className="relative rounded-[2rem] overflow-hidden shadow-2xl aspect-[4/3] lg:aspect-[4/5] xl:aspect-square transform lg:-rotate-2 transition-transform hover:rotate-0 duration-500 border-8 border-background">
                   <img
-                    src={`${getBaseUrl()}/images/hero-farm.png`}
+                    src={`${getBaseUrl()}/images/hero-farm-new.png`}
                     alt={t.footer.heroAlt}
                     className="object-cover w-full h-full"
                   />
