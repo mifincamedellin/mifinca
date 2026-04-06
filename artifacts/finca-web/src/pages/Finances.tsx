@@ -4,10 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 import {
-  TrendingUp, TrendingDown, DollarSign, Plus, X, Pencil, Trash2, Filter, Calendar
+  TrendingUp, TrendingDown, Sprout, Plus, X, Pencil, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,24 +24,26 @@ interface Transaction {
   notes?: string | null;
 }
 
+type Period = "all" | "year" | "6m" | "3m" | "last" | "month";
+
 const INCOME_CATEGORIES = ["venta_animales", "venta_leche", "venta_cosecha", "subsidio", "otro_ingreso"];
 const EXPENSE_CATEGORIES = ["alimentacion", "medicamentos", "mano_obra", "maquinaria", "servicios", "insumos", "transporte", "otro_gasto"];
 
 function catLabel(cat: string, t: (k: string) => string) {
   const map: Record<string, string> = {
     venta_animales: t("fin.cat.venta_animales"),
-    venta_leche: t("fin.cat.venta_leche"),
-    venta_cosecha: t("fin.cat.venta_cosecha"),
-    subsidio: t("fin.cat.subsidio"),
-    otro_ingreso: t("fin.cat.otro_ingreso"),
-    alimentacion: t("fin.cat.alimentacion"),
-    medicamentos: t("fin.cat.medicamentos"),
-    mano_obra: t("fin.cat.mano_obra"),
-    maquinaria: t("fin.cat.maquinaria"),
-    servicios: t("fin.cat.servicios"),
-    insumos: t("fin.cat.insumos"),
-    transporte: t("fin.cat.transporte"),
-    otro_gasto: t("fin.cat.otro_gasto"),
+    venta_leche:    t("fin.cat.venta_leche"),
+    venta_cosecha:  t("fin.cat.venta_cosecha"),
+    subsidio:       t("fin.cat.subsidio"),
+    otro_ingreso:   t("fin.cat.otro_ingreso"),
+    alimentacion:   t("fin.cat.alimentacion"),
+    medicamentos:   t("fin.cat.medicamentos"),
+    mano_obra:      t("fin.cat.mano_obra"),
+    maquinaria:     t("fin.cat.maquinaria"),
+    servicios:      t("fin.cat.servicios"),
+    insumos:        t("fin.cat.insumos"),
+    transporte:     t("fin.cat.transporte"),
+    otro_gasto:     t("fin.cat.otro_gasto"),
   };
   return map[cat] ?? cat;
 }
@@ -50,18 +52,53 @@ function formatCOP(n: number) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
 }
 
-const EMPTY_FORM = { type: "expense" as "income" | "expense", category: "", amount: "", description: "", date: new Date().toISOString().split("T")[0]!, notes: "" };
+function getDateRange(period: Period): { from: Date | null; to: Date | null } {
+  const now = new Date();
+  switch (period) {
+    case "all":
+      return { from: null, to: null };
+    case "year":
+      return { from: new Date(now.getFullYear(), 0, 1), to: new Date(now.getFullYear(), 11, 31) };
+    case "6m": {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 6);
+      return { from: d, to: null };
+    }
+    case "3m": {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 3);
+      return { from: d, to: null };
+    }
+    case "last":
+      return {
+        from: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+        to:   new Date(now.getFullYear(), now.getMonth(), 0),
+      };
+    case "month":
+      return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: null };
+  }
+}
+
+const EMPTY_FORM = {
+  type: "expense" as "income" | "expense",
+  category: "",
+  amount: "",
+  description: "",
+  date: new Date().toISOString().split("T")[0]!,
+  notes: "",
+};
 
 export function Finances() {
   const { t, i18n } = useTranslation();
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
+  const isEn = i18n.language === "en";
 
-  const [showForm, setShowForm] = useState(false);
-  const [editRow, setEditRow] = useState<Transaction | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [showForm, setShowForm]   = useState(false);
+  const [editRow, setEditRow]     = useState<Transaction | null>(null);
+  const [form, setForm]           = useState(EMPTY_FORM);
   const [filterType, setFilterType] = useState("all");
-  const [filterMonth, setFilterMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [period, setPeriod]       = useState<Period>("month");
 
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ["finances", activeFarmId],
@@ -97,7 +134,7 @@ export function Finances() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["finances", activeFarmId] }),
   });
 
-  const openNew = () => { setEditRow(null); setForm(EMPTY_FORM); setShowForm(true); };
+  const openNew  = () => { setEditRow(null); setForm(EMPTY_FORM); setShowForm(true); };
   const openEdit = (row: Transaction) => {
     setEditRow(row);
     setForm({ type: row.type, category: row.category, amount: row.amount, description: row.description, date: row.date, notes: row.notes ?? "" });
@@ -105,54 +142,75 @@ export function Finances() {
   };
   const closeForm = () => { setShowForm(false); setEditRow(null); };
 
-  // Filtered list
+  const { from, to } = getDateRange(period);
+
   const filtered = useMemo(() => {
     return transactions.filter(r => {
+      const d = new Date(r.date + "T12:00:00");
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
       if (filterType !== "all" && r.type !== filterType) return false;
-      if (filterMonth && !r.date.startsWith(filterMonth)) return false;
       return true;
     });
-  }, [transactions, filterType, filterMonth]);
+  }, [transactions, from, to, filterType]);
 
-  // Summary
-  const totalIncome = filtered.filter(r => r.type === "income").reduce((s, r) => s + parseFloat(r.amount), 0);
+  const totalIncome  = filtered.filter(r => r.type === "income").reduce((s, r) => s + parseFloat(r.amount), 0);
   const totalExpense = filtered.filter(r => r.type === "expense").reduce((s, r) => s + parseFloat(r.amount), 0);
-  const balance = totalIncome - totalExpense;
+  const profit       = totalIncome - totalExpense;
 
-  // Monthly chart data (last 6 months)
-  const monthlyData = useMemo(() => {
+  const chartData = useMemo(() => {
+    const locale = isEn ? "en-US" : "es-CO";
     const months: Record<string, { month: string; income: number; expense: number }> = {};
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const key = d.toISOString().slice(0, 7);
-      const locale = i18n.language === "en" ? "en-US" : "es-CO";
-      const label = d.toLocaleDateString(locale, { month: "short", year: "2-digit" });
-      months[key] = { month: label, income: 0, expense: 0 };
-    }
-    transactions.forEach(r => {
-      const key = r.date.slice(0, 7);
-      if (months[key]) {
+
+    if (period === "all") {
+      transactions.forEach(r => {
+        const key = r.date.slice(0, 7);
+        if (!months[key]) {
+          const d = new Date(r.date + "T12:00:00");
+          months[key] = {
+            month: d.toLocaleDateString(locale, { month: "short", year: "2-digit" }),
+            income: 0, expense: 0,
+          };
+        }
         if (r.type === "income") months[key]!.income += parseFloat(r.amount);
         else months[key]!.expense += parseFloat(r.amount);
+      });
+    } else {
+      const start = from ?? new Date();
+      const end   = to ?? new Date();
+      const d = new Date(start.getFullYear(), start.getMonth(), 1);
+      while (d.getFullYear() < end.getFullYear() || (d.getFullYear() === end.getFullYear() && d.getMonth() <= end.getMonth())) {
+        const key = d.toISOString().slice(0, 7);
+        months[key] = {
+          month: d.toLocaleDateString(locale, { month: "short", year: "2-digit" }),
+          income: 0, expense: 0,
+        };
+        d.setMonth(d.getMonth() + 1);
       }
-    });
-    return Object.values(months);
-  }, [transactions]);
+      transactions.forEach(r => {
+        const key = r.date.slice(0, 7);
+        if (months[key]) {
+          if (r.type === "income") months[key]!.income += parseFloat(r.amount);
+          else months[key]!.expense += parseFloat(r.amount);
+        }
+      });
+    }
 
-  // Category breakdown for the selected period
-  const categoryData = useMemo(() => {
-    const map: Record<string, number> = {};
-    filtered.forEach(r => {
-      map[r.category] = (map[r.category] ?? 0) + parseFloat(r.amount);
-    });
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([cat, value]) => ({ name: catLabel(cat, t), value }));
-  }, [filtered, t]);
+    return Object.entries(months)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, v]) => v);
+  }, [transactions, period, from, to, isEn]);
 
   const categories = form.type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+
+  const PERIODS: { key: Period; label: string }[] = [
+    { key: "all",   label: t("fin.period.all")   },
+    { key: "year",  label: t("fin.period.year")  },
+    { key: "6m",    label: t("fin.period.6m")    },
+    { key: "3m",    label: t("fin.period.3m")    },
+    { key: "last",  label: t("fin.period.last")  },
+    { key: "month", label: t("fin.period.month") },
+  ];
 
   return (
     <div className="space-y-6">
@@ -167,86 +225,101 @@ export function Finances() {
         </Button>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: t("fin.income"), value: totalIncome, icon: TrendingUp, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 border-green-100 dark:bg-green-950/40 dark:border-green-800/30" },
-          { label: t("fin.expense"), value: totalExpense, icon: TrendingDown, color: "text-red-500 dark:text-red-400", bg: "bg-red-50 border-red-100 dark:bg-red-950/40 dark:border-red-800/30" },
-          { label: t("fin.balance"), value: balance, icon: DollarSign, color: balance >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-500 dark:text-red-400", bg: "bg-blue-50 border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/30" },
-        ].map(card => (
-          <div key={card.label} className={`${card.bg} border rounded-2xl p-5 flex items-center gap-4`}>
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white dark:bg-white/10 shadow-sm`}>
-              <card.icon className={`h-6 w-6 ${card.color}`} />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground font-medium">{card.label}</p>
-              <p className={`text-xl font-bold font-mono ${card.color}`}>{formatCOP(card.value)}</p>
-            </div>
-          </div>
+      {/* Period selector */}
+      <div className="flex gap-2 flex-wrap">
+        {PERIODS.map(p => (
+          <button
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
+              period === p.key
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-card/60 text-muted-foreground border-border/50 hover:bg-muted/50 hover:text-foreground"
+            }`}
+          >
+            {p.label}
+          </button>
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-green-50 border border-green-100 dark:bg-green-950/40 dark:border-green-800/30 rounded-2xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white dark:bg-white/10 shadow-sm flex-shrink-0">
+            <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground font-medium">{t("fin.income")}</p>
+            <p className="text-xl font-bold font-mono text-green-600 dark:text-green-400">{formatCOP(totalIncome)}</p>
+          </div>
+        </div>
+
+        <div className="bg-red-50 border border-red-100 dark:bg-red-950/40 dark:border-red-800/30 rounded-2xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white dark:bg-white/10 shadow-sm flex-shrink-0">
+            <TrendingDown className="h-6 w-6 text-red-500 dark:text-red-400" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground font-medium">{t("fin.expense")}</p>
+            <p className="text-xl font-bold font-mono text-red-500 dark:text-red-400">{formatCOP(totalExpense)}</p>
+          </div>
+        </div>
+
+        <div className={`border rounded-2xl p-5 flex items-center gap-4 ${
+          profit >= 0
+            ? "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800/30"
+            : "bg-red-50 border-red-100 dark:bg-red-950/40 dark:border-red-800/30"
+        }`}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white dark:bg-white/10 shadow-sm flex-shrink-0">
+            <Sprout className={`h-6 w-6 ${profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`} />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground font-medium">{t("fin.profit")}</p>
+            <p className={`text-xl font-bold font-mono ${profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+              {profit >= 0 ? "+" : ""}{formatCOP(profit)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly chart */}
+      {chartData.length > 0 && (
         <div className="bg-card border border-border/40 rounded-2xl p-6 shadow-sm">
           <h3 className="font-semibold text-foreground mb-4">{t("fin.chart.monthly")}</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyData} barSize={14} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => formatCOP(v)} />
+            <BarChart data={chartData} barSize={chartData.length === 1 ? 48 : 14} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.5)" />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1_000_000).toFixed(1)}M`} axisLine={false} tickLine={false} />
+              <Tooltip formatter={(v: number) => formatCOP(v)} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} />
               <Legend />
-              <Bar dataKey="income" name={t("fin.income")} fill="#4A6741" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="income"  name={t("fin.income")}  fill="#4A6741" radius={[6, 6, 0, 0]} />
               <Bar dataKey="expense" name={t("fin.expense")} fill="#C4956A" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
+      )}
 
-        <div className="bg-card border border-border/40 rounded-2xl p-6 shadow-sm">
-          <h3 className="font-semibold text-foreground mb-4">{t("fin.chart.balance")}</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => formatCOP(v)} />
-              <Line type="monotone" dataKey="income" name={t("fin.income")} stroke="#4A6741" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="expense" name={t("fin.expense")} stroke="#C4956A" strokeWidth={2} dot={{ r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Filters + Table */}
+      {/* Transactions table */}
       <div className="bg-card border border-border/40 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-border/30 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           <h3 className="font-semibold text-foreground flex-1">{t("fin.transactions")}</h3>
-          <div className="flex gap-2 flex-wrap">
-            <Input
-              type="month"
-              value={filterMonth}
-              onChange={e => setFilterMonth(e.target.value)}
-              className="h-9 w-40 rounded-xl text-sm"
-            />
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="h-9 w-36 rounded-xl text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("fin.filter.all")}</SelectItem>
-                <SelectItem value="income">{t("fin.income")}</SelectItem>
-                <SelectItem value="expense">{t("fin.expense")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="h-9 w-36 rounded-xl text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("fin.filter.all")}</SelectItem>
+              <SelectItem value="income">{t("fin.income")}</SelectItem>
+              <SelectItem value="expense">{t("fin.expense")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">{t("fin.loading")}</div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
-            <DollarSign className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+            <Sprout className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-muted-foreground">{t("fin.empty")}</p>
             <Button variant="outline" onClick={openNew} className="mt-4 rounded-xl gap-2">
               <Plus className="h-4 w-4" /> {t("fin.add")}
@@ -267,16 +340,18 @@ export function Finances() {
               </thead>
               <tbody>
                 {filtered.map((row, i) => (
-                  <tr key={row.id} className={`border-t border-border/20 hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
-                    <td className="px-6 py-3 text-muted-foreground">{new Date(row.date + "T12:00:00").toLocaleDateString(i18n.language === "en" ? "en-US" : "es-CO")}</td>
+                  <tr key={row.id} className={`border-t border-border/20 hover:bg-muted/20 transition-colors ${i % 2 !== 0 ? "bg-muted/10" : ""}`}>
+                    <td className="px-6 py-3 text-muted-foreground">
+                      {new Date(row.date + "T12:00:00").toLocaleDateString(isEn ? "en-US" : "es-CO")}
+                    </td>
                     <td className="px-6 py-3 font-medium">{row.description}</td>
                     <td className="px-6 py-3 text-muted-foreground">{catLabel(row.category, t)}</td>
                     <td className="px-6 py-3">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${row.type === "income" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${row.type === "income" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" : "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"}`}>
                         {row.type === "income" ? t("fin.income") : t("fin.expense")}
                       </span>
                     </td>
-                    <td className={`px-6 py-3 text-right font-mono font-semibold ${row.type === "income" ? "text-green-700" : "text-red-600"}`}>
+                    <td className={`px-6 py-3 text-right font-mono font-semibold ${row.type === "income" ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                       {row.type === "income" ? "+" : "-"}{formatCOP(parseFloat(row.amount))}
                     </td>
                     <td className="px-4 py-3">
@@ -284,7 +359,7 @@ export function Finances() {
                         <button onClick={() => openEdit(row)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => deleteMut.mutate(row.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-muted-foreground hover:text-red-600">
+                        <button onClick={() => deleteMut.mutate(row.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-muted-foreground hover:text-red-600">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -311,8 +386,12 @@ export function Finances() {
               className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-md border border-border/30"
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-serif font-bold text-primary">{editRow ? t("fin.form.edit") : t("fin.form.new")}</h2>
-                <button onClick={closeForm} className="p-2 rounded-lg hover:bg-muted transition-colors"><X className="h-4 w-4" /></button>
+                <h2 className="text-xl font-serif font-bold text-primary">
+                  {editRow ? t("fin.form.edit") : t("fin.form.new")}
+                </h2>
+                <button onClick={closeForm} className="p-2 rounded-lg hover:bg-muted transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -334,7 +413,9 @@ export function Finances() {
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">{t("fin.col.category")}</label>
                   <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                    <SelectTrigger className="rounded-xl"><SelectValue placeholder={t("fin.form.selectCategory")} /></SelectTrigger>
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder={t("fin.form.selectCategory")} />
+                    </SelectTrigger>
                     <SelectContent>
                       {categories.map(c => <SelectItem key={c} value={c}>{catLabel(c, t)}</SelectItem>)}
                     </SelectContent>
