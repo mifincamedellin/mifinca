@@ -182,15 +182,6 @@ export function Dashboard() {
       href:    "/contacts",
       tooltip: isEn ? "Suppliers, vets, buyers, and other contacts." : "Proveedores, veterinarios, compradores y otros contactos.",
     },
-    {
-      title:   t("dashboard.recentActivity"),
-      value:   stats?.recentActivityCount || activity?.length || 0,
-      icon:    Activity,
-      color:   "text-primary",
-      bg:      "bg-primary/10",
-      href:    "",
-      tooltip: isEn ? "Actions logged on this farm in the last 7 days." : "Acciones registradas en esta finca en los últimos 7 días.",
-    },
   ];
 
   return (
@@ -201,9 +192,6 @@ export function Dashboard() {
           <h1 className="text-3xl md:text-4xl font-serif text-primary mb-1">
             {t("dashboard.welcome")}<span className="text-accent">{firstName}</span>
           </h1>
-          {activeFarm && (
-            <p className="text-sm text-muted-foreground/70 mb-0.5">{activeFarm.name}</p>
-          )}
           <p className="text-muted-foreground capitalize text-sm">{today}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -233,11 +221,11 @@ export function Dashboard() {
 
       {/* ── Stat cards ──────────────────────────────────────── */}
       {statsLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[...Array(6)].map((_, i) => <Card key={i} className="h-24 animate-pulse bg-black/5 border-none" />)}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => <Card key={i} className="h-24 animate-pulse bg-black/5 border-none" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {statCards.map((stat, index) => (
             <motion.div
               key={stat.title}
@@ -460,13 +448,21 @@ export function Dashboard() {
 
       {/* ── Recent Activity ──────────────────────────────────── */}
       <Card className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40">
-        <h3 className="text-xl font-serif text-primary mb-6 flex items-center">
-          {t("dashboard.recentActivity")}
-          <InfoTooltip text={isEn
-            ? "Latest actions on your farm: animal updates, inventory changes, and more."
-            : "Últimas acciones en tu finca: animales, inventario, y más."
-          } />
-        </h3>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-serif text-primary flex items-center">
+            <Activity className="h-4 w-4 text-primary mr-2" />
+            {t("dashboard.recentActivity")}
+            <InfoTooltip text={isEn
+              ? "Latest actions on your farm: animal updates, inventory changes, and more."
+              : "Últimas acciones en tu finca: animales, inventario, y más."
+            } />
+          </h3>
+          {(stats?.recentActivityCount ?? 0) > 0 && (
+            <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium tabular-nums">
+              {stats?.recentActivityCount}
+            </span>
+          )}
+        </div>
         <div className="space-y-5">
           {activity && activity.length > 0 ? activity.map((item, i) => (
             <div key={item.id} className="relative pl-6">
