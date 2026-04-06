@@ -1,26 +1,251 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { 
-  Map, 
-  BarChart3, 
-  Users, 
-  Package, 
-  Sprout, 
-  ChevronRight, 
-  CheckCircle2, 
-  Menu, 
+import {
+  Map,
+  BarChart3,
+  Users,
+  Package,
+  Sprout,
+  CheckCircle2,
+  Menu,
   X,
   Globe,
-  MessageSquare
+  MessageSquare,
 } from "lucide-react";
+
+type Lang = "es" | "en";
+
+const translations = {
+  es: {
+    nav: {
+      features: "Características",
+      advisor: "Asesor IA",
+      pricing: "Planes",
+      cta: "Empezar Gratis",
+    },
+    hero: {
+      badge: "Hecho para el campo colombiano",
+      h1a: "La claridad que",
+      h1b: "su finca",
+      h1c: "necesita.",
+      sub: "El software de gestión para ganaderos que valoran su tiempo. Sin complicaciones. Sin enredos. Solo control total de sus animales, inventario y finanzas.",
+      ctaPrimary: "Crear cuenta gratis",
+      ctaSecondary: "Ver demostración",
+      social: "Más de 500 fincas ya lo usan",
+      stat: "Ganancia mensual",
+    },
+    features: {
+      heading: "Todo bajo control, desde cualquier lugar.",
+      sub: "Reemplazamos las libretas y las hojas de cálculo confusas con herramientas diseñadas para la realidad del campo.",
+      items: [
+        {
+          title: "Control de Animales",
+          desc: "Lleve el historial de peso, registros médicos, vacunas y linaje completo. Sepa exactamente el estado de cada animal.",
+        },
+        {
+          title: "Inventario Inteligente",
+          desc: "Controle insumos, reciba alertas de stock bajo y registre el uso diario. Nunca se quede sin lo necesario.",
+        },
+        {
+          title: "Finanzas Claras",
+          desc: "Registre ingresos y gastos fácilmente. Visualice la rentabilidad de su finca con gráficos claros y directos.",
+        },
+        {
+          title: "Mapa Interactivo",
+          desc: "Mapee sus potreros y zonas. Controle la rotación, el estado de los pastos y el uso de la tierra visualmente.",
+        },
+        {
+          title: "Gestión de Personal",
+          desc: "Administre sus empleados, asigne tareas, guarde documentos importantes y mantenga la comunicación clara.",
+        },
+        {
+          title: "Soporte Multi-finca",
+          desc: "¿Tiene varias propiedades? Adminístrelas todas desde una sola cuenta, manteniendo la información separada y organizada.",
+        },
+      ],
+    },
+    advisor: {
+      badge: "Inteligencia Artificial",
+      heading: "El primer asesor inteligente para el campo.",
+      sub: "Tome decisiones informadas. Pregunte a su Asesor IA sobre enfermedades, precios de mercado o técnicas de pastoreo, en español o inglés, y obtenga respuestas precisas con datos de la web en tiempo real.",
+      bullets: [
+        "Consultas de mercado y clima en tiempo real",
+        "Consejos sobre salud animal y nutrición",
+        "Asistencia bilingüe inmediata",
+      ],
+      cta: "Conocer al Asesor",
+      chatOnline: "En línea",
+      chatName: "Asesor Finca",
+      chatQ: "¿Cuál es el precio actual del ganado en pie en subastas de Antioquia?",
+      chatA: "Según los últimos reportes de hoy, el precio promedio del ganado gordo en pie en Antioquia es de $8.200 a $8.500 COP por kilo...",
+    },
+    pricing: {
+      heading: "Precios simples y justos.",
+      sub: "Invierta en tranquilidad. Cancele en cualquier momento.",
+      monthly: "Mensual",
+      annual: "Anual",
+      save: "Ahorre 20%",
+      popular: "Más popular",
+      perMonth: "/mes",
+      tiers: [
+        {
+          name: "Semilla",
+          desc: "Para empezar a organizarse.",
+          features: ["1 finca", "Hasta 15 animales", "Control básico", "Sin asesor IA"],
+          cta: "Empezar gratis",
+        },
+        {
+          name: "Finca",
+          desc: "Todo lo que necesita un ganadero.",
+          features: ["1 finca", "Animales ilimitados", "Todas las funciones", "Asesor IA integrado", "Soporte estándar"],
+          cta: "Probar por 14 días",
+        },
+        {
+          name: "Hacienda",
+          desc: "Para grandes operaciones.",
+          features: ["Hasta 5 fincas", "Animales ilimitados", "Todas las funciones", "Reportes personalizados", "Soporte prioritario"],
+          cta: "Contactar ventas",
+        },
+      ],
+    },
+    lifestyle: {
+      heading: "Menos tiempo administrando.",
+      headingLine2: "Más tiempo en lo importante.",
+      cta: "Unirse a Finca Hoy",
+    },
+    footer: {
+      tagline: "Software de gestión diseñado específicamente para la realidad del campo colombiano. Simple, claro y potente.",
+      product: "Producto",
+      productLinks: ["Características", "Asesor IA", "Precios", "Actualizaciones"],
+      company: "Compañía",
+      companyLinks: ["Sobre nosotros", "Blog", "Contacto"],
+      legal: "Legal",
+      legalLinks: ["Términos de servicio", "Privacidad"],
+      copyright: "Todos los derechos reservados.",
+      imgAlt: "Ganadero usando tecnología Finca",
+      heroAlt: "Paisaje de finca colombiana",
+    },
+  },
+  en: {
+    nav: {
+      features: "Features",
+      advisor: "AI Advisor",
+      pricing: "Pricing",
+      cta: "Get Started Free",
+    },
+    hero: {
+      badge: "Built for the Colombian countryside",
+      h1a: "The clarity your",
+      h1b: "farm",
+      h1c: "needs.",
+      sub: "Farm management software for ranchers who value their time. No complications. No clutter. Just total control of your animals, inventory, and finances.",
+      ctaPrimary: "Create free account",
+      ctaSecondary: "View demo",
+      social: "Over 500 farms already using it",
+      stat: "Monthly profit",
+    },
+    features: {
+      heading: "Everything under control, from anywhere.",
+      sub: "We replace confusing notebooks and spreadsheets with tools designed for the reality of farm life.",
+      items: [
+        {
+          title: "Animal Tracking",
+          desc: "Keep weight history, medical records, vaccinations, and full lineage. Know the exact status of every animal.",
+        },
+        {
+          title: "Smart Inventory",
+          desc: "Track supplies, receive low-stock alerts, and log daily usage. Never run out of what you need.",
+        },
+        {
+          title: "Clear Finances",
+          desc: "Easily record income and expenses. Visualize your farm's profitability with clear, straightforward charts.",
+        },
+        {
+          title: "Interactive Map",
+          desc: "Map your paddocks and zones. Visually manage rotation, pasture condition, and land usage.",
+        },
+        {
+          title: "Staff Management",
+          desc: "Manage your employees, assign tasks, store important documents, and keep communication clear.",
+        },
+        {
+          title: "Multi-farm Support",
+          desc: "Have multiple properties? Manage them all from one account, keeping each farm's data separate and organized.",
+        },
+      ],
+    },
+    advisor: {
+      badge: "Artificial Intelligence",
+      heading: "The first intelligent advisor for the farm.",
+      sub: "Make informed decisions. Ask your AI Advisor about diseases, market prices, or grazing techniques — in Spanish or English — and get precise answers with real-time web data.",
+      bullets: [
+        "Real-time market and weather queries",
+        "Animal health and nutrition advice",
+        "Immediate bilingual assistance",
+      ],
+      cta: "Meet the Advisor",
+      chatOnline: "Online",
+      chatName: "Finca Advisor",
+      chatQ: "What is the current live cattle price at Antioquia auctions?",
+      chatA: "According to today's latest reports, the average price for live cattle in Antioquia is $8,200 to $8,500 COP per kilo...",
+    },
+    pricing: {
+      heading: "Simple, honest pricing.",
+      sub: "Invest in peace of mind. Cancel anytime.",
+      monthly: "Monthly",
+      annual: "Annual",
+      save: "Save 20%",
+      popular: "Most popular",
+      perMonth: "/mo",
+      tiers: [
+        {
+          name: "Seed",
+          desc: "To start getting organized.",
+          features: ["1 farm", "Up to 15 animals", "Basic tracking", "No AI Advisor"],
+          cta: "Start for free",
+        },
+        {
+          name: "Farm",
+          desc: "Everything a rancher needs.",
+          features: ["1 farm", "Unlimited animals", "All features", "AI Advisor included", "Standard support"],
+          cta: "Try free for 14 days",
+        },
+        {
+          name: "Hacienda",
+          desc: "For large-scale operations.",
+          features: ["Up to 5 farms", "Unlimited animals", "All features", "Custom reports", "Priority support"],
+          cta: "Contact sales",
+        },
+      ],
+    },
+    lifestyle: {
+      heading: "Less time managing.",
+      headingLine2: "More time where it matters.",
+      cta: "Join Finca Today",
+    },
+    footer: {
+      tagline: "Farm management software designed specifically for the reality of the Colombian countryside. Simple, clear, and powerful.",
+      product: "Product",
+      productLinks: ["Features", "AI Advisor", "Pricing", "Updates"],
+      company: "Company",
+      companyLinks: ["About us", "Blog", "Contact"],
+      legal: "Legal",
+      legalLinks: ["Terms of service", "Privacy"],
+      copyright: "All rights reserved.",
+      imgAlt: "Farmer using Finca technology",
+      heroAlt: "Colombian farm landscape",
+    },
+  },
+};
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [annualBilling, setAnnualBilling] = useState(true);
+  const [lang, setLang] = useState<Lang>("es");
+
+  const t = translations[lang];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -40,12 +265,16 @@ export default function Home() {
 
   const getBaseUrl = () => import.meta.env.BASE_URL.replace(/\/$/, "");
 
+  const toggleLang = () => setLang((l) => (l === "es" ? "en" : "es"));
+
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-secondary selection:text-secondary-foreground overflow-x-hidden">
       {/* Navigation */}
-      <header 
+      <header
         className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${
-          isScrolled ? "bg-background/90 backdrop-blur-md border-border/50 py-3 shadow-sm" : "bg-transparent border-transparent py-5"
+          isScrolled
+            ? "bg-background/90 backdrop-blur-md border-border/50 py-3 shadow-sm"
+            : "bg-transparent border-transparent py-5"
         }`}
       >
         <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
@@ -53,21 +282,40 @@ export default function Home() {
             <Sprout className="h-8 w-8 text-primary" />
             <span className="font-serif text-2xl font-bold tracking-tight text-primary">Finca</span>
           </div>
-          
+
           <nav className="hidden md:flex items-center gap-8">
-            <button onClick={() => scrollTo("caracteristicas")} className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors">Características</button>
-            <button onClick={() => scrollTo("asesor")} className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors">Asesor IA</button>
-            <button onClick={() => scrollTo("planes")} className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors">Planes</button>
+            <button
+              onClick={() => scrollTo("caracteristicas")}
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+            >
+              {t.nav.features}
+            </button>
+            <button
+              onClick={() => scrollTo("asesor")}
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+            >
+              {t.nav.advisor}
+            </button>
+            <button
+              onClick={() => scrollTo("planes")}
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+            >
+              {t.nav.pricing}
+            </button>
             <div className="w-px h-5 bg-border mx-2"></div>
-            <button className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-primary transition-colors">
-              <Globe className="h-4 w-4" /> ES
+            <button
+              onClick={toggleLang}
+              className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-3 py-1.5 rounded-full border border-border hover:border-primary/40 hover:bg-primary/5"
+            >
+              <Globe className="h-4 w-4" />
+              {lang === "es" ? "ES" : "EN"}
             </button>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90 hover-elevate rounded-full px-6">
-              Empezar Gratis
+              {t.nav.cta}
             </Button>
           </nav>
 
-          <button 
+          <button
             className="md:hidden text-foreground"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
@@ -79,11 +327,33 @@ export default function Home() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-background/95 backdrop-blur-sm pt-24 px-6 md:hidden flex flex-col gap-6 animate-in slide-in-from-top-4">
-          <button onClick={() => scrollTo("caracteristicas")} className="text-xl font-serif text-left border-b border-border pb-4">Características</button>
-          <button onClick={() => scrollTo("asesor")} className="text-xl font-serif text-left border-b border-border pb-4">Asesor IA</button>
-          <button onClick={() => scrollTo("planes")} className="text-xl font-serif text-left border-b border-border pb-4">Planes</button>
+          <button
+            onClick={() => scrollTo("caracteristicas")}
+            className="text-xl font-serif text-left border-b border-border pb-4"
+          >
+            {t.nav.features}
+          </button>
+          <button
+            onClick={() => scrollTo("asesor")}
+            className="text-xl font-serif text-left border-b border-border pb-4"
+          >
+            {t.nav.advisor}
+          </button>
+          <button
+            onClick={() => scrollTo("planes")}
+            className="text-xl font-serif text-left border-b border-border pb-4"
+          >
+            {t.nav.pricing}
+          </button>
+          <button
+            onClick={() => { toggleLang(); setMobileMenuOpen(false); }}
+            className="flex items-center gap-2 text-xl font-serif text-left border-b border-border pb-4"
+          >
+            <Globe className="h-5 w-5" />
+            {lang === "es" ? "Switch to English" : "Cambiar a Español"}
+          </button>
           <Button className="bg-primary text-primary-foreground w-full py-6 text-lg mt-4 rounded-xl">
-            Empezar Gratis
+            {t.nav.cta}
           </Button>
         </div>
       )}
@@ -92,7 +362,7 @@ export default function Home() {
         {/* Hero Section */}
         <section className="relative pt-40 pb-20 md:pt-52 md:pb-32 px-6 overflow-hidden">
           <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[800px] h-[800px] bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
-          
+
           <div className="container mx-auto max-w-6xl">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
               <div className="max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -101,47 +371,53 @@ export default function Home() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
                   </span>
-                  Hecho para el campo colombiano
+                  {t.hero.badge}
                 </div>
                 <h1 className="text-5xl md:text-7xl font-serif font-medium leading-[1.1] tracking-tight text-foreground mb-6">
-                  La claridad que <span className="text-primary italic">su finca</span> necesita.
+                  {t.hero.h1a} <span className="text-primary italic">{t.hero.h1b}</span> {t.hero.h1c}
                 </h1>
                 <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-lg">
-                  El software de gestión para ganaderos que valoran su tiempo. Sin complicaciones. Sin enredos. Solo control total de sus animales, inventario y finanzas.
+                  {t.hero.sub}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate">
-                    Crear cuenta gratis
+                    {t.hero.ctaPrimary}
                   </Button>
-                  <Button variant="outline" className="h-14 px-8 rounded-full text-base font-medium border-border hover:bg-muted hover-elevate">
-                    Ver demostración
+                  <Button
+                    variant="outline"
+                    className="h-14 px-8 rounded-full text-base font-medium border-border hover:bg-muted hover-elevate"
+                  >
+                    {t.hero.ctaSecondary}
                   </Button>
                 </div>
                 <div className="mt-10 flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex -space-x-2">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-card flex items-center justify-center text-xs font-medium">
+                      <div
+                        key={i}
+                        className="w-8 h-8 rounded-full border-2 border-background bg-card flex items-center justify-center text-xs font-medium"
+                      >
                         {String.fromCharCode(64 + i)}
                       </div>
                     ))}
                   </div>
-                  <p>Más de 500 fincas ya lo usan</p>
+                  <p>{t.hero.social}</p>
                 </div>
               </div>
 
               <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000 delay-200">
                 <div className="relative rounded-[2rem] overflow-hidden shadow-2xl aspect-[4/3] lg:aspect-[4/5] xl:aspect-square transform lg:-rotate-2 transition-transform hover:rotate-0 duration-500 border-8 border-background">
-                  <img 
-                    src={`${getBaseUrl()}/images/hero-farm.png`} 
-                    alt="Paisaje de finca colombiana" 
+                  <img
+                    src={`${getBaseUrl()}/images/hero-farm.png`}
+                    alt={t.footer.heroAlt}
                     className="object-cover w-full h-full"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent"></div>
-                  
-                  {/* Floating UI Elements */}
+
+                  {/* Floating UI Element */}
                   <div className="absolute bottom-8 left-8 right-8 glass-panel rounded-xl p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-white/80 font-medium">Ganancia mensual</p>
+                      <p className="text-sm text-white/80 font-medium">{t.hero.stat}</p>
                       <p className="text-2xl font-serif text-white font-bold">+24%</p>
                     </div>
                     <div className="h-10 w-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
@@ -158,76 +434,37 @@ export default function Home() {
         <section id="caracteristicas" className="py-24 bg-card border-y border-border">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto mb-20">
-              <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6">Todo bajo control, desde cualquier lugar.</h2>
-              <p className="text-lg text-muted-foreground">Reemplazamos las libretas y las hojas de cálculo confusas con herramientas diseñadas para la realidad del campo.</p>
+              <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6">{t.features.heading}</h2>
+              <p className="text-lg text-muted-foreground">{t.features.sub}</p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Feature 1 */}
-              <div className="bg-background rounded-2xl p-8 shadow-sm border border-border/50 hover-elevate group">
-                <div className="h-12 w-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Sprout className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-serif font-medium mb-3">Control de Animales</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Lleve el historial de peso, registros médicos, vacunas y linaje completo. Sepa exactamente el estado de cada animal.
-                </p>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="bg-background rounded-2xl p-8 shadow-sm border border-border/50 hover-elevate group">
-                <div className="h-12 w-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Package className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-serif font-medium mb-3">Inventario Inteligente</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Controle insumos, reciba alertas de stock bajo y registre el uso diario. Nunca se quede sin lo necesario.
-                </p>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="bg-background rounded-2xl p-8 shadow-sm border border-border/50 hover-elevate group">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <BarChart3 className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-serif font-medium mb-3">Finanzas Claras</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Registre ingresos y gastos fácilmente. Visualice la rentabilidad de su finca con gráficos claros y directos.
-                </p>
-              </div>
-
-              {/* Feature 4 */}
-              <div className="bg-background rounded-2xl p-8 shadow-sm border border-border/50 hover-elevate group">
-                <div className="h-12 w-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Map className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-serif font-medium mb-3">Mapa Interactivo</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Mapee sus potreros y zonas. Controle la rotación, el estado de los pastos y el uso de la tierra visualmente.
-                </p>
-              </div>
-
-              {/* Feature 5 */}
-              <div className="bg-background rounded-2xl p-8 shadow-sm border border-border/50 hover-elevate group">
-                <div className="h-12 w-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Users className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-serif font-medium mb-3">Gestión de Personal</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Administre sus empleados, asigne tareas, guarde documentos importantes y mantenga la comunicación clara.
-                </p>
-              </div>
-
-              {/* Feature 6 */}
-              <div className="bg-background rounded-2xl p-8 shadow-sm border border-border/50 hover-elevate group">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Map className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-serif font-medium mb-3">Soporte Multi-finca</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  ¿Tiene varias propiedades? Adminístrelas todas desde una sola cuenta, manteniendo la información separada y organizada.
-                </p>
-              </div>
+              {t.features.items.map((item, idx) => {
+                const icons = [Sprout, Package, BarChart3, Map, Users, Map];
+                const colorClasses = [
+                  "bg-accent/10 text-accent",
+                  "bg-secondary/10 text-secondary",
+                  "bg-primary/10 text-primary",
+                  "bg-accent/10 text-accent",
+                  "bg-secondary/10 text-secondary",
+                  "bg-primary/10 text-primary",
+                ];
+                const Icon = icons[idx];
+                return (
+                  <div
+                    key={idx}
+                    className="bg-background rounded-2xl p-8 shadow-sm border border-border/50 hover-elevate group"
+                  >
+                    <div
+                      className={`h-12 w-12 rounded-xl ${colorClasses[idx]} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
+                    >
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-xl font-serif font-medium mb-3">{item.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -235,24 +472,18 @@ export default function Home() {
         {/* AI Advisor Section */}
         <section id="asesor" className="py-24 bg-primary text-primary-foreground overflow-hidden relative">
           <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-accent/20 rounded-full blur-3xl pointer-events-none"></div>
-          
+
           <div className="container mx-auto px-6 relative z-10">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/90 font-medium text-sm mb-6 border border-white/20">
                   <MessageSquare className="h-4 w-4" />
-                  Inteligencia Artificial
+                  {t.advisor.badge}
                 </div>
-                <h2 className="text-4xl md:text-5xl font-serif font-medium mb-6">El primer asesor inteligente para el campo.</h2>
-                <p className="text-lg text-primary-foreground/80 mb-8 leading-relaxed">
-                  Tome decisiones informadas. Pregunte a su Asesor IA sobre enfermedades, precios de mercado o técnicas de pastoreo, en español o inglés, y obtenga respuestas precisas con datos de la web en tiempo real.
-                </p>
+                <h2 className="text-4xl md:text-5xl font-serif font-medium mb-6">{t.advisor.heading}</h2>
+                <p className="text-lg text-primary-foreground/80 mb-8 leading-relaxed">{t.advisor.sub}</p>
                 <ul className="space-y-4 mb-8">
-                  {[
-                    "Consultas de mercado y clima en tiempo real",
-                    "Consejos sobre salud animal y nutrición",
-                    "Asistencia bilingüe inmediata",
-                  ].map((item, i) => (
+                  {t.advisor.bullets.map((item, i) => (
                     <li key={i} className="flex items-center gap-3">
                       <CheckCircle2 className="h-5 w-5 text-secondary" />
                       <span className="text-primary-foreground/90">{item}</span>
@@ -260,10 +491,10 @@ export default function Home() {
                   ))}
                 </ul>
                 <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-12 px-8 rounded-full hover-elevate">
-                  Conocer al Asesor
+                  {t.advisor.cta}
                 </Button>
               </div>
-              
+
               <div className="relative">
                 <div className="bg-background rounded-2xl p-6 shadow-2xl border border-white/10 transform lg:rotate-2">
                   <div className="flex items-center gap-4 border-b pb-4 mb-4">
@@ -271,16 +502,16 @@ export default function Home() {
                       <Sprout className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Asesor Finca</p>
-                      <p className="text-xs text-secondary font-medium">En línea</p>
+                      <p className="font-medium text-foreground">{t.advisor.chatName}</p>
+                      <p className="text-xs text-secondary font-medium">{t.advisor.chatOnline}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="flex gap-3">
                       <div className="h-8 w-8 rounded-full bg-muted flex-shrink-0"></div>
                       <div className="bg-muted p-3 rounded-2xl rounded-tl-none text-sm text-foreground">
-                        ¿Cuál es el precio actual del ganado en pie en subastas de Antioquia?
+                        {t.advisor.chatQ}
                       </div>
                     </div>
                     <div className="flex gap-3 flex-row-reverse">
@@ -288,7 +519,7 @@ export default function Home() {
                         <Sprout className="h-4 w-4 text-primary" />
                       </div>
                       <div className="bg-card border p-3 rounded-2xl rounded-tr-none text-sm text-foreground">
-                        Según los últimos reportes de hoy, el precio promedio del ganado gordo en pie en Antioquia es de $8.200 a $8.500 COP por kilo...
+                        {t.advisor.chatA}
                       </div>
                     </div>
                   </div>
@@ -302,18 +533,23 @@ export default function Home() {
         <section id="planes" className="py-24">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6">Precios simples y justos.</h2>
-              <p className="text-lg text-muted-foreground mb-8">Invierta en tranquilidad. Cancele en cualquier momento.</p>
-              
+              <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6">{t.pricing.heading}</h2>
+              <p className="text-lg text-muted-foreground mb-8">{t.pricing.sub}</p>
+
               <div className="flex items-center justify-center gap-4">
-                <span className={`text-sm font-medium ${!annualBilling ? 'text-foreground' : 'text-muted-foreground'}`}>Mensual</span>
-                <Switch 
-                  checked={annualBilling} 
+                <span className={`text-sm font-medium ${!annualBilling ? "text-foreground" : "text-muted-foreground"}`}>
+                  {t.pricing.monthly}
+                </span>
+                <Switch
+                  checked={annualBilling}
                   onCheckedChange={setAnnualBilling}
                   className="data-[state=checked]:bg-primary"
                 />
-                <span className={`text-sm font-medium ${annualBilling ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  Anual <span className="ml-1 text-xs text-secondary font-bold px-2 py-0.5 rounded-full bg-secondary/10">Ahorre 20%</span>
+                <span className={`text-sm font-medium ${annualBilling ? "text-foreground" : "text-muted-foreground"}`}>
+                  {t.pricing.annual}{" "}
+                  <span className="ml-1 text-xs text-secondary font-bold px-2 py-0.5 rounded-full bg-secondary/10">
+                    {t.pricing.save}
+                  </span>
                 </span>
               </div>
             </div>
@@ -321,89 +557,94 @@ export default function Home() {
             <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {/* Tier 1 */}
               <div className="bg-card rounded-3xl p-8 border border-border shadow-sm flex flex-col">
-                <h3 className="text-2xl font-serif font-medium mb-2">Semilla</h3>
-                <p className="text-muted-foreground text-sm mb-6">Para empezar a organizarse.</p>
+                <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[0].name}</h3>
+                <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[0].desc}</p>
                 <div className="mb-6">
                   <span className="text-4xl font-bold font-serif">$0</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
-                  {["1 finca", "Hasta 15 animales", "Control básico", "Sin asesor IA"].map((feature, i) => (
+                  {t.pricing.tiers[0].features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                       <span className="text-foreground/80">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Button variant="outline" className="w-full rounded-full h-12">Empezar gratis</Button>
+                <Button variant="outline" className="w-full rounded-full h-12">
+                  {t.pricing.tiers[0].cta}
+                </Button>
               </div>
 
               {/* Tier 2 */}
               <div className="bg-primary text-primary-foreground rounded-3xl p-8 shadow-xl relative transform md:-translate-y-4 flex flex-col border-4 border-primary/20">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-accent text-accent-foreground text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide">
-                  Más popular
+                  {t.pricing.popular}
                 </div>
-                <h3 className="text-2xl font-serif font-medium mb-2">Finca</h3>
-                <p className="text-primary-foreground/80 text-sm mb-6">Todo lo que necesita un ganadero.</p>
+                <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[1].name}</h3>
+                <p className="text-primary-foreground/80 text-sm mb-6">{t.pricing.tiers[1].desc}</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold font-serif">${annualBilling ? '24' : '29'}</span>
-                  <span className="text-primary-foreground/60">/mes</span>
+                  <span className="text-4xl font-bold font-serif">${annualBilling ? "24" : "29"}</span>
+                  <span className="text-primary-foreground/60">{t.pricing.perMonth}</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
-                  {["1 finca", "Animales ilimitados", "Todas las funciones", "Asesor IA integrado", "Soporte estándar"].map((feature, i) => (
+                  {t.pricing.tiers[1].features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2 className="h-5 w-5 text-secondary shrink-0" />
                       <span className="text-primary-foreground/90">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full rounded-full h-12">Probar por 14 días</Button>
+                <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full rounded-full h-12">
+                  {t.pricing.tiers[1].cta}
+                </Button>
               </div>
 
               {/* Tier 3 */}
               <div className="bg-card rounded-3xl p-8 border border-border shadow-sm flex flex-col">
-                <h3 className="text-2xl font-serif font-medium mb-2">Hacienda</h3>
-                <p className="text-muted-foreground text-sm mb-6">Para grandes operaciones.</p>
+                <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[2].name}</h3>
+                <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[2].desc}</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold font-serif">${annualBilling ? '64' : '79'}</span>
-                  <span className="text-muted-foreground">/mes</span>
+                  <span className="text-4xl font-bold font-serif">${annualBilling ? "64" : "79"}</span>
+                  <span className="text-muted-foreground">{t.pricing.perMonth}</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
-                  {["Hasta 5 fincas", "Animales ilimitados", "Todas las funciones", "Reportes personalizados", "Soporte prioritario"].map((feature, i) => (
+                  {t.pricing.tiers[2].features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                       <span className="text-foreground/80">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Button variant="outline" className="w-full rounded-full h-12">Contactar ventas</Button>
+                <Button variant="outline" className="w-full rounded-full h-12">
+                  {t.pricing.tiers[2].cta}
+                </Button>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Image / Lifestyle Section */}
+        {/* Lifestyle Section */}
         <section className="py-20 bg-muted/50 border-t border-border">
           <div className="container mx-auto px-6">
             <div className="rounded-[2rem] overflow-hidden relative shadow-lg h-[500px]">
-              <img 
-                src={`${getBaseUrl()}/images/farmer-tech.png`} 
-                alt="Ganadero usando tecnología Finca" 
+              <img
+                src={`${getBaseUrl()}/images/farmer-tech.png`}
+                alt={t.footer.imgAlt}
                 className="object-cover w-full h-full"
               />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-center p-6">
                 <div className="max-w-3xl">
                   <h2 className="text-3xl md:text-5xl font-serif font-medium text-white mb-6">
-                    Menos tiempo administrando. <br /> Más tiempo en lo importante.
+                    {t.lifestyle.heading} <br /> {t.lifestyle.headingLine2}
                   </h2>
                   <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate border-none">
-                    Unirse a Finca Hoy
+                    {t.lifestyle.cta}
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         </section>
-
       </main>
 
       {/* Footer */}
@@ -415,47 +656,65 @@ export default function Home() {
                 <Sprout className="h-8 w-8 text-primary" />
                 <span className="font-serif text-2xl font-bold tracking-tight text-primary">Finca</span>
               </div>
-              <p className="text-muted-foreground mb-6 max-w-sm">
-                Software de gestión diseñado específicamente para la realidad del campo colombiano. Simple, claro y potente.
-              </p>
+              <p className="text-muted-foreground mb-6 max-w-sm">{t.footer.tagline}</p>
             </div>
-            
+
             <div>
-              <h4 className="font-medium mb-4">Producto</h4>
+              <h4 className="font-medium mb-4">{t.footer.product}</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Características</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Asesor IA</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Precios</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Actualizaciones</a></li>
+                {t.footer.productLinks.map((link, i) => (
+                  <li key={i}>
+                    <a href="#" className="hover:text-primary transition-colors">{link}</a>
+                  </li>
+                ))}
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-medium mb-4">Compañía</h4>
+              <h4 className="font-medium mb-4">{t.footer.company}</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Sobre nosotros</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Contacto</a></li>
+                {t.footer.companyLinks.map((link, i) => (
+                  <li key={i}>
+                    <a href="#" className="hover:text-primary transition-colors">{link}</a>
+                  </li>
+                ))}
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-medium mb-4">Legal</h4>
+              <h4 className="font-medium mb-4">{t.footer.legal}</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Términos de servicio</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Privacidad</a></li>
+                {t.footer.legalLinks.map((link, i) => (
+                  <li key={i}>
+                    <a href="#" className="hover:text-primary transition-colors">{link}</a>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
-          
+
           <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Finca Colombia. Todos los derechos reservados.
+              © {new Date().getFullYear()} Finca Colombia. {t.footer.copyright}
             </p>
-            <div className="flex gap-4">
-               <button className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors">Español</button>
-               <span className="text-border">|</span>
-               <button className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors">English</button>
+            <div className="flex gap-4 items-center">
+              <button
+                onClick={() => setLang("es")}
+                className={`text-sm font-medium transition-colors ${
+                  lang === "es" ? "text-primary font-semibold" : "text-foreground/60 hover:text-primary"
+                }`}
+              >
+                Español
+              </button>
+              <span className="text-border">|</span>
+              <button
+                onClick={() => setLang("en")}
+                className={`text-sm font-medium transition-colors ${
+                  lang === "en" ? "text-primary font-semibold" : "text-foreground/60 hover:text-primary"
+                }`}
+              >
+                English
+              </button>
             </div>
           </div>
         </div>
