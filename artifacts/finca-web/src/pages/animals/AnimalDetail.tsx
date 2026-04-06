@@ -382,10 +382,15 @@ export function AnimalDetail() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full h-28 rounded-xl border-2 border-dashed border-border/50 hover:border-secondary/50 bg-muted/20 hover:bg-secondary/5 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-secondary transition-all"
+                    className="w-full h-36 rounded-xl border-2 border-dashed border-border/50 hover:border-secondary/50 bg-primary/5 hover:bg-primary/10 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-secondary transition-all group"
                   >
-                    <Upload className="h-6 w-6" />
-                    <span className="text-sm">{t('animals.photoUpload')}</span>
+                    <span className="text-5xl opacity-50 group-hover:opacity-75 transition-opacity select-none">
+                      {SPECIES_EMOJI[animal.species] ?? "🐾"}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs font-medium">
+                      <Upload className="h-3.5 w-3.5" />
+                      {t('animals.photoUpload')}
+                    </span>
                   </button>
                 )}
               </div>
