@@ -37,14 +37,28 @@ const emailSchema = z.object({
   email: z.string().email(),
 });
 
-const PRO_PLAN = {
-  key: "pro",
-  labelEs: "Pro",
-  labelEn: "Pro",
-  price: "400.000 COP/mes",
-  features: ["Fincas ilimitadas", "Animales ilimitados", "IA Asistente avanzada", "Finanzas y reportes", "Soporte prioritario"],
-  featuresEn: ["Unlimited farms", "Unlimited animals", "Advanced AI Assistant", "Finances & reports", "Priority support"],
-};
+const PLANS = [
+  {
+    key: "farm",
+    labelEs: "Farm",
+    labelEn: "Farm",
+    priceEs: "400.000 COP/mes",
+    priceEn: "400,000 COP/mo",
+    features: ["1 finca", "Animales ilimitados", "Todas las funciones", "Asesor IA incluido", "Soporte estándar"],
+    featuresEn: ["1 farm", "Unlimited animals", "All features", "AI Advisor included", "Standard support"],
+    current: true,
+  },
+  {
+    key: "pro",
+    labelEs: "Pro",
+    labelEn: "Pro",
+    priceEs: "4.000.000 COP/año",
+    priceEn: "4,000,000 COP/yr",
+    features: ["Fincas ilimitadas", "Animales ilimitados", "Todas las funciones", "Reportes personalizados", "Soporte prioritario"],
+    featuresEn: ["Unlimited farms", "Unlimited animals", "All features", "Custom reports", "Priority support"],
+    current: false,
+  },
+];
 
 type PaymentMethod = {
   id: string;
@@ -328,24 +342,45 @@ export function Settings() {
           <h2 className="text-2xl font-serif text-primary">{t("settings.plan")}</h2>
         </div>
 
-        <div className="max-w-sm">
-          <div className="relative rounded-2xl border-2 border-secondary/40 bg-secondary/5 p-6">
-            <Badge className="absolute top-4 right-4 bg-primary/10 text-primary border-primary/20 text-xs">
-              {t("settings.currentPlan")}
-            </Badge>
-            <p className="text-lg font-bold text-foreground mb-1">
-              {lang === "en" ? PRO_PLAN.labelEn : PRO_PLAN.labelEs}
-            </p>
-            <p className="text-2xl font-serif text-primary mb-4">{PRO_PLAN.price}</p>
-            <ul className="space-y-2">
-              {(lang === "en" ? PRO_PLAN.featuresEn : PRO_PLAN.features).map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check className="h-4 w-4 text-secondary flex-shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+          {PLANS.map((plan) => (
+            <div
+              key={plan.key}
+              className={`relative rounded-2xl border-2 p-6 flex flex-col transition-all ${
+                plan.current
+                  ? "border-secondary/50 bg-secondary/5"
+                  : "border-primary bg-primary text-primary-foreground"
+              }`}
+            >
+              {plan.current && (
+                <Badge className="absolute top-4 right-4 bg-primary/10 text-primary border-primary/20 text-xs">
+                  {t("settings.currentPlan")}
+                </Badge>
+              )}
+              <p className={`text-lg font-bold mb-1 ${plan.current ? "text-foreground" : "text-primary-foreground"}`}>
+                {lang === "en" ? plan.labelEn : plan.labelEs}
+              </p>
+              <p className={`text-2xl font-serif mb-4 ${plan.current ? "text-primary" : "text-primary-foreground"}`}>
+                {lang === "en" ? plan.priceEn : plan.priceEs}
+              </p>
+              <ul className="space-y-2 flex-1">
+                {(lang === "en" ? plan.featuresEn : plan.features).map((f) => (
+                  <li key={f} className={`flex items-center gap-2 text-sm ${plan.current ? "text-muted-foreground" : "text-primary-foreground/80"}`}>
+                    <Check className={`h-4 w-4 flex-shrink-0 ${plan.current ? "text-secondary" : "text-primary-foreground"}`} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              {!plan.current && (
+                <Button
+                  className="mt-5 w-full rounded-xl bg-white text-primary hover:bg-white/90 font-medium"
+                  onClick={() => {}}
+                >
+                  {lang === "en" ? "Upgrade to Pro" : "Actualizar a Pro"}
+                </Button>
+              )}
+            </div>
+          ))}
         </div>
       </Card>
 
