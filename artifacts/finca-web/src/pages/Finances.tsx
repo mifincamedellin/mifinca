@@ -220,7 +220,7 @@ export function Finances() {
           <h1 className="text-3xl font-serif font-bold text-primary">{t("fin.title")}</h1>
           <p className="text-muted-foreground mt-1">{t("fin.subtitle")}</p>
         </div>
-        <Button onClick={openNew} className="bg-secondary hover:bg-secondary/90 text-white rounded-xl gap-2">
+        <Button onClick={openNew} className="rounded-xl gap-2">
           <Plus className="h-4 w-4" /> {t("fin.add")}
         </Button>
       </div>
@@ -438,7 +438,7 @@ export function Finances() {
                   <Button
                     onClick={() => saveMut.mutate(form)}
                     disabled={saveMut.isPending || !form.description || !form.amount || !form.category || !form.date}
-                    className="flex-1 rounded-xl bg-secondary hover:bg-secondary/90 text-white"
+                    className="flex-1 rounded-xl"
                   >
                     {saveMut.isPending ? t("common.saving") : t("common.save")}
                   </Button>

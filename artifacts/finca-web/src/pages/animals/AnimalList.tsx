@@ -138,7 +138,7 @@ export function AnimalList() {
           if (!open) { setPhotoPreview(null); form.reset(); }
         }}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl px-6 bg-secondary hover:bg-secondary/90 hover-elevate shadow-md">
+            <Button className="rounded-xl px-6 hover-elevate shadow-md">
               <Plus className="mr-2 h-4 w-4" /> {t('animals.add')}
             </Button>
           </DialogTrigger>
