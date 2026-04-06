@@ -480,7 +480,7 @@ export default function Home() {
                   <MessageSquare className="h-4 w-4" />
                   {t.advisor.badge}
                 </div>
-                <h2 className="text-4xl md:text-5xl font-serif font-medium mb-6">{t.advisor.heading}</h2>
+                <h2 className="text-4xl md:text-5xl font-serif font-medium mb-6 text-white">{t.advisor.heading}</h2>
                 <p className="text-lg text-primary-foreground/80 mb-8 leading-relaxed">{t.advisor.sub}</p>
                 <ul className="space-y-4 mb-8">
                   {t.advisor.bullets.map((item, i) => (
