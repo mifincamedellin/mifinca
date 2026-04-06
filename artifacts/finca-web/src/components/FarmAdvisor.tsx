@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, Loader2, Sprout, RotateCcw } from "lucide-react";
@@ -9,6 +9,21 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   streaming?: boolean;
+}
+
+const LS_KEY = "finca_advisor_conv_id";
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/`{1,3}[^`]*`{1,3}/g, (m) => m.replace(/`/g, ""))
+    .replace(/^[-*+]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, (m) => m)
+    .replace(/_{1,2}(.+?)_{1,2}/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .trim();
 }
 
 function TypingDots() {
@@ -30,26 +45,52 @@ export function FarmAdvisor() {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
 
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [open, setOpen]                 = useState(false);
+  const [messages, setMessages]         = useState<Message[]>([]);
+  const [input, setInput]               = useState("");
   const [conversationId, setConversationId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
 
   const greeting: Message = {
     role: "assistant",
     content: isEn
-      ? "Hello! I'm your Finca Advisor 🌿 Ask me anything about your animals' health, farm management, inventory, or any farming topic. I'm here to help!"
-      : "¡Hola! Soy tu Asesor Finca 🌿 Pregúntame sobre la salud de tus animales, manejo de la finca, inventario o cualquier tema agrícola. ¡Estoy aquí para ayudarte!",
+      ? "Hello! I'm your Finca Advisor. Ask me anything about your animals, pasture, inventory, or finances."
+      : "¡Hola! Soy tu Asesor Finca. Pregúntame sobre tus animales, potreros, inventario o finanzas.",
   };
 
-  useEffect(() => {
-    if (open && messages.length === 0) {
+  const loadHistory = useCallback(async (cid: number) => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/chat/conversations/${cid}/messages`);
+      if (!res.ok) throw new Error("failed");
+      const rows: Array<{ role: string; content: string }> = await res.json();
+      if (rows.length === 0) {
+        setMessages([greeting]);
+      } else {
+        setMessages(rows.map(r => ({ role: r.role as "user" | "assistant", content: r.content })));
+      }
+    } catch {
       setMessages([greeting]);
+    } finally {
+      setHistoryLoading(false);
     }
-  }, [open]);
+  }, [isEn]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) {
+      const cid = parseInt(saved, 10);
+      if (!isNaN(cid)) {
+        setConversationId(cid);
+        loadHistory(cid);
+        return;
+      }
+    }
+    setMessages([greeting]);
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,6 +109,7 @@ export function FarmAdvisor() {
     });
     const data = await res.json();
     setConversationId(data.id);
+    localStorage.setItem(LS_KEY, String(data.id));
     return data.id;
   };
 
@@ -92,7 +134,7 @@ export function FarmAdvisor() {
 
       if (!res.body) throw new Error("No stream");
 
-      const reader = res.body.getReader();
+      const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
 
@@ -123,7 +165,7 @@ export function FarmAdvisor() {
                 const next = [...prev];
                 const last = next[next.length - 1];
                 if (last?.streaming) {
-                  next[next.length - 1] = { ...last, streaming: false };
+                  next[next.length - 1] = { ...last, content: stripMarkdown(last.content), streaming: false };
                 }
                 return next;
               });
@@ -152,6 +194,7 @@ export function FarmAdvisor() {
   const reset = () => {
     setMessages([greeting]);
     setConversationId(null);
+    localStorage.removeItem(LS_KEY);
   };
 
   return (
@@ -194,7 +237,11 @@ export function FarmAdvisor() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={reset} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title={isEn ? "New chat" : "Nueva conversación"}>
+                <button
+                  onClick={reset}
+                  className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                  title={isEn ? "New chat" : "Nueva conversación"}
+                >
                   <RotateCcw className="h-4 w-4 text-white/80" />
                 </button>
                 <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
@@ -205,31 +252,37 @@ export function FarmAdvisor() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-sand/30">
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  {msg.role === "assistant" && (
-                    <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-1 mr-2">
-                      <Sprout className="h-3.5 w-3.5 text-secondary" />
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-sm"
-                        : "bg-card border border-border/40 text-foreground rounded-bl-sm shadow-sm"
-                    }`}
-                  >
-                    {msg.streaming && msg.content === "" ? (
-                      <TypingDots />
-                    ) : (
-                      <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
-                    )}
-                    {msg.streaming && msg.content !== "" && (
-                      <span className="inline-block w-0.5 h-4 bg-secondary/70 ml-0.5 animate-pulse align-middle" />
-                    )}
-                  </div>
+              {historyLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
-              ))}
+              ) : (
+                messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    {msg.role === "assistant" && (
+                      <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-1 mr-2">
+                        <Sprout className="h-3.5 w-3.5 text-secondary" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-br-sm"
+                          : "bg-card border border-border/40 text-foreground rounded-bl-sm shadow-sm"
+                      }`}
+                    >
+                      {msg.streaming && msg.content === "" ? (
+                        <TypingDots />
+                      ) : (
+                        <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
+                      )}
+                      {msg.streaming && msg.content !== "" && (
+                        <span className="inline-block w-0.5 h-4 bg-secondary/70 ml-0.5 animate-pulse align-middle" />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
               <div ref={bottomRef} />
             </div>
 
@@ -245,12 +298,12 @@ export function FarmAdvisor() {
                   onChange={e => setInput(e.target.value)}
                   placeholder={isEn ? "Ask about your farm..." : "Pregunta sobre tu finca..."}
                   className="rounded-xl border-border/40 bg-background text-sm h-10 flex-1"
-                  disabled={loading}
+                  disabled={loading || historyLoading}
                 />
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!input.trim() || loading}
+                  disabled={!input.trim() || loading || historyLoading}
                   className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/90 shrink-0"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
