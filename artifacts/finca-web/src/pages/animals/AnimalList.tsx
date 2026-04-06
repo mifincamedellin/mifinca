@@ -131,8 +131,8 @@ export function AnimalList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-serif text-primary font-bold">{t('nav.animals')}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-3xl font-serif font-bold text-primary">{t('nav.animals')}</h1>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) { setPhotoPreview(null); form.reset(); }

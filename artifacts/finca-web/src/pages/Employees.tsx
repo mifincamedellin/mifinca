@@ -620,15 +620,15 @@ export function Employees() {
 
   return (
     <div className="space-y-8 pb-10">
-      <header className="flex items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-serif text-primary mb-1">{t("emp.title")}</h1>
-          <p className="text-muted-foreground">{t("emp.subtitle")}</p>
+          <h1 className="text-3xl font-serif font-bold text-primary">{t("emp.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("emp.subtitle")}</p>
         </div>
-        <Button onClick={openAdd} className="rounded-xl bg-primary hover:bg-primary/90 shadow-sm hover-elevate">
-          <Plus className="h-4 w-4 mr-2" /> {t("emp.addEmployee")}
+        <Button onClick={openAdd} className="rounded-xl gap-2">
+          <Plus className="h-4 w-4" /> {t("emp.addEmployee")}
         </Button>
-      </header>
+      </div>
 
       {/* Top summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
