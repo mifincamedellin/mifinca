@@ -115,35 +115,48 @@ router.post("/farms/:farmId/seed", requireAuth, requireFarmAccess, async (req, r
       { farmId, name: "Carmen Rosa Jiménez",  phone: "+57 310 558 9976", email: "crjimenez@outlook.com",   startDate: "2018-05-14", monthlySalary: "2500000", bankName: "Bancolombia", bankAccount: "404-112233-44", notes: "Administradora de finca",       pension: "300000", salud: "212500", arl: "13000", primas: "1250000", cesantias: "2500000" },
     ]);
 
-    // ── FINANCES (28 transactions) ────────────────────────────────────────────
+    // ── FINANCES (36 transactions) ────────────────────────────────────────────
     await db.insert(financeTransactionsTable).values([
+      // Income — milk (8 fortnightly payments ~4 months)
       { farmId, type: "income",  category: "venta_leche",    amount: "2050000",  description: "Venta leche quincenal — 410 litros",              date: daysAgo(1),        notes: "Cooperativa Lácteos del Río" },
-      { farmId, type: "income",  category: "venta_leche",    amount: "1850000",  description: "Venta leche quincenal — 370 litros",              date: daysAgo(2),        notes: "Cooperativa Lácteos del Río" },
-      { farmId, type: "income",  category: "venta_animales", amount: "5200000",  description: "Venta novillo Palomo — 480 kg en pie",            date: daysAgo(4),        notes: "Frigorífico El Palmar" },
-      { farmId, type: "income",  category: "venta_leche",    amount: "1990000",  description: "Venta leche quincenal — 398 litros",              date: daysAgo(35),       notes: null },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1850000",  description: "Venta leche quincenal — 370 litros",              date: daysAgo(16),       notes: "Cooperativa Lácteos del Río" },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1990000",  description: "Venta leche quincenal — 398 litros",              date: daysAgo(32),       notes: null },
       { farmId, type: "income",  category: "venta_leche",    amount: "1920000",  description: "Venta leche quincenal — 384 litros",              date: monthsAgo(1, 15), notes: null },
-      { farmId, type: "income",  category: "venta_animales", amount: "3800000",  description: "Venta 2 cerdos Duroc en pie",                     date: monthsAgo(1, 8),  notes: "Frigorífico El Palmar" },
-      { farmId, type: "income",  category: "otros",           amount: "850000",   description: "Alquiler potrero norte — 3 meses",                date: daysAgo(45),       notes: "Vecino Eduardo Salcedo" },
-      { farmId, type: "income",  category: "venta_cosecha",  amount: "3100000",  description: "Venta fríjol cosecha principal — 620 kg",         date: daysAgo(55),       notes: "Mercado Fusagasugá" },
-      { farmId, type: "income",  category: "venta_leche",    amount: "1780000",  description: "Venta leche quincenal — 356 litros",              date: monthsAgo(2, 15), notes: null },
-      { farmId, type: "income",  category: "venta_cosecha",  amount: "2400000",  description: "Venta maíz cosecha — 450 kg",                     date: monthsAgo(2, 5),  notes: "Mercado local" },
-      { farmId, type: "income",  category: "subsidio",       amount: "1200000",  description: "Subsidio FEDEGAN apoyo ganadero",                 date: monthsAgo(3, 20), notes: null },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1870000",  description: "Venta leche quincenal — 374 litros",              date: daysAgo(52),       notes: "Cooperativa Lácteos del Río" },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1830000",  description: "Venta leche quincenal — 366 litros",              date: daysAgo(67),       notes: null },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1760000",  description: "Venta leche quincenal — 352 litros",              date: daysAgo(82),       notes: null },
       { farmId, type: "income",  category: "venta_leche",    amount: "1650000",  description: "Venta leche quincenal — 330 litros",              date: monthsAgo(3, 1),  notes: null },
+      // Income — cattle & livestock sales
+      { farmId, type: "income",  category: "venta_animales", amount: "16400000", description: "Venta 2 novillos Brahman engorde — 2.000 kg en pie", date: daysAgo(10),    notes: "Frigorífico El Palmar — 8.200 COP/kg" },
+      { farmId, type: "income",  category: "venta_animales", amount: "6900000",  description: "Venta 3 terneros destetados",                     date: daysAgo(18),       notes: "Subasta ganadera Fusagasugá" },
+      { farmId, type: "income",  category: "venta_animales", amount: "5200000",  description: "Venta novillo Palomo — 480 kg en pie",            date: daysAgo(4),        notes: "Frigorífico El Palmar" },
+      { farmId, type: "income",  category: "venta_animales", amount: "5100000",  description: "Venta 3 cerdos cebados (Yorkshire + Pietrain)",    date: monthsAgo(1, 8),  notes: "Frigorífico El Palmar" },
+      { farmId, type: "income",  category: "venta_animales", amount: "3800000",  description: "Venta 2 cerdos Duroc en pie",                     date: monthsAgo(2, 18), notes: "Frigorífico El Palmar" },
+      // Income — crops & other
+      { farmId, type: "income",  category: "venta_cosecha",  amount: "3100000",  description: "Venta fríjol cosecha principal — 620 kg",         date: daysAgo(55),       notes: "Mercado Fusagasugá" },
+      { farmId, type: "income",  category: "venta_cosecha",  amount: "2400000",  description: "Venta maíz cosecha — 450 kg",                     date: monthsAgo(2, 5),  notes: "Mercado local" },
+      { farmId, type: "income",  category: "otros",           amount: "850000",   description: "Alquiler potrero norte — 3 meses",                date: daysAgo(45),       notes: "Vecino Eduardo Salcedo" },
+      { farmId, type: "income",  category: "subsidio",       amount: "1800000",  description: "Subsidio Colombia Agro — apoyo producción bovina", date: daysAgo(75),      notes: "MADR — Ministerio de Agricultura" },
+      { farmId, type: "income",  category: "subsidio",       amount: "1200000",  description: "Subsidio FEDEGAN apoyo ganadero",                 date: monthsAgo(3, 20), notes: null },
+      // Expenses — payroll (4 months)
       { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: daysAgo(3),        notes: "Juan C., María J., Luis A., Ana L., Sebastián M., Carmen R." },
       { farmId, type: "expense", category: "prestaciones",   amount: "1231620",  description: "Pensión + Salud + ARL mensual empleados",         date: daysAgo(4),        notes: "Pago parafiscales mes anterior" },
-      { farmId, type: "expense", category: "alimentacion",   amount: "1350000",  description: "Concentrado bovino Ganaplus — 15 bultos",         date: daysAgo(12),       notes: "AgroSantos S.A.S" },
       { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: monthsAgo(1, 28), notes: null },
-      { farmId, type: "expense", category: "medicamentos",   amount: "166000",   description: "Ivermectina y Oxitetraciclina",                   date: monthsAgo(1, 12), notes: "VetFarma Colombia" },
-      { farmId, type: "expense", category: "servicios",      amount: "280000",   description: "Visita veterinario — 4 animales",                 date: monthsAgo(1, 20), notes: "Dr. Carlos Medina" },
-      { farmId, type: "expense", category: "alimentacion",   amount: "1080000",  description: "Sal mineralizada y concentrado",                  date: monthsAgo(2, 10), notes: null },
       { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: monthsAgo(2, 28), notes: null },
+      { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: monthsAgo(3, 28), notes: null },
+      // Expenses — feed & supplies
+      { farmId, type: "expense", category: "alimentacion",   amount: "1350000",  description: "Concentrado bovino Ganaplus — 15 bultos",         date: daysAgo(12),       notes: "AgroSantos S.A.S" },
+      { farmId, type: "expense", category: "alimentacion",   amount: "1080000",  description: "Sal mineralizada y concentrado",                  date: monthsAgo(2, 10), notes: null },
+      { farmId, type: "expense", category: "alimentacion",   amount: "1140000",  description: "Concentrado bovino — 12 bultos",                  date: monthsAgo(1, 8),  notes: "AgroSantos S.A.S" },
+      { farmId, type: "expense", category: "insumos",        amount: "320000",   description: "Sal mineralizada — 5 bultos extra temporada seca",date: monthsAgo(2, 20), notes: null },
+      { farmId, type: "expense", category: "insumos",        amount: "84000",    description: "Aretes de identificación y jeringas",             date: monthsAgo(3, 10), notes: null },
+      // Expenses — vet & medicine
+      { farmId, type: "expense", category: "medicamentos",   amount: "166000",   description: "Ivermectina y Oxitetraciclina",                   date: monthsAgo(1, 12), notes: "VetFarma Colombia" },
+      { farmId, type: "expense", category: "medicamentos",   amount: "210000",   description: "Vitaminas ADE y antibiótico terneros",            date: daysAgo(40),       notes: "VetFarma Colombia" },
+      { farmId, type: "expense", category: "servicios",      amount: "280000",   description: "Visita veterinario — 4 animales",                 date: monthsAgo(1, 20), notes: "Dr. Carlos Medina" },
+      // Expenses — transport & maintenance
       { farmId, type: "expense", category: "transporte",     amount: "450000",   description: "Flete 4 novillos a Bogotá",                       date: daysAgo(22),       notes: "Transportes Hernández" },
       { farmId, type: "expense", category: "servicios",      amount: "185000",   description: "Mantenimiento cerca eléctrica potrero 2",         date: daysAgo(28),       notes: "Sebastián Morales + materiales" },
-      { farmId, type: "expense", category: "insumos",        amount: "84000",    description: "Aretes de identificación y jeringas",             date: monthsAgo(3, 10), notes: null },
-      { farmId, type: "expense", category: "medicamentos",   amount: "210000",   description: "Vitaminas ADE y antibiótico terneros",            date: daysAgo(40),       notes: "VetFarma Colombia" },
-      { farmId, type: "expense", category: "alimentacion",   amount: "1140000",  description: "Concentrado bovino — 12 bultos",                  date: monthsAgo(1, 8),  notes: "AgroSantos S.A.S" },
-      { farmId, type: "expense", category: "nomina",         amount: "10260000", description: "Nómina mensual — 6 empleados",                    date: monthsAgo(3, 28), notes: null },
-      { farmId, type: "expense", category: "insumos",        amount: "320000",   description: "Sal mineralizada — 5 bultos extra temporada seca",date: monthsAgo(2, 20), notes: null },
       { farmId, type: "expense", category: "servicios",      amount: "650000",   description: "Instalación bebederos automáticos potrero 3",     date: monthsAgo(3, 5),  notes: "Herrería El Cóndor" },
     ]);
 
