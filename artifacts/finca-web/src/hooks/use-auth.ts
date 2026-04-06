@@ -48,7 +48,6 @@ export function useAuth() {
     onSuccess: (data) => {
       setToken(data.token);
       queryClient.invalidateQueries();
-      toast({ title: "Bienvenido", description: "Sesión iniciada correctamente." });
       setLocation('/dashboard');
     },
     onError: () => {
