@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { ensureDemoAuthUser } from "./routes/seed.js";
 
 const rawPort = process.env["PORT"];
 
@@ -14,6 +15,10 @@ const port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+
+ensureDemoAuthUser()
+  .then(() => logger.info("Demo user ready"))
+  .catch((err) => logger.warn({ err }, "Could not seed demo user"));
 
 app.listen(port, (err) => {
   if (err) {

@@ -13,7 +13,7 @@ const DEMO_USER_ID    = "00000000-0000-0000-0000-000000000001";
 const DEMO_USER_EMAIL = "demo@fincacolombia.com";
 const DEMO_USER_PASS  = "demo1234";
 
-async function ensureDemoAuthUser() {
+export async function ensureDemoAuthUser() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS auth_users (
       id UUID PRIMARY KEY,
