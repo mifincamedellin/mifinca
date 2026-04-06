@@ -16,10 +16,16 @@ const THEMES: {
   { id: "vaca",   labelKey: "theme.vaca",   swatch: "#111111", emoji: "🌙" },
 ];
 
-export function SidebarThemePicker() {
+interface SidebarThemePickerProps {
+  placement?: "sidebar" | "header";
+}
+
+export function SidebarThemePicker({ placement = "sidebar" }: SidebarThemePickerProps) {
   const { t } = useTranslation();
   const { sidebarTheme, setSidebarTheme } = useStore();
   const [open, setOpen] = useState(false);
+
+  const isHeader = placement === "header";
 
   return (
     <div className="relative">
@@ -28,11 +34,11 @@ export function SidebarThemePicker() {
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
             <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              initial={{ opacity: 0, y: isHeader ? -8 : 8, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              exit={{ opacity: 0, y: isHeader ? -8 : 8, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute bottom-full left-0 mb-2 z-50 bg-card border border-border/40 rounded-2xl shadow-2xl p-4 w-56"
+              className={`absolute ${isHeader ? "top-full right-0 mt-2" : "bottom-full left-0 mb-2"} z-50 bg-card border border-border/40 rounded-2xl shadow-2xl p-4 w-56`}
             >
               <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
                 {t("sidebar.theme")}
@@ -68,18 +74,28 @@ export function SidebarThemePicker() {
         )}
       </AnimatePresence>
 
-      <button
-        onClick={() => setOpen(o => !o)}
-        title={t("sidebar.theme")}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold shadow-md transition-all border border-white/10 ${
-          open
-            ? "bg-sidebar-primary text-sidebar-primary-foreground"
-            : "bg-sidebar-accent/80 hover:bg-sidebar-accent text-sidebar-foreground/80 hover:text-sidebar-foreground"
-        }`}
-      >
-        <Palette className="h-3.5 w-3.5" />
-        {t("sidebar.theme")}
-      </button>
+      {isHeader ? (
+        <button
+          onClick={() => setOpen(o => !o)}
+          title={t("sidebar.theme")}
+          className={`flex items-center justify-center w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 border border-black/8 transition-all ${open ? "bg-black/10 text-primary" : "text-foreground/70 hover:text-foreground"}`}
+        >
+          <Palette className="h-4 w-4" />
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(o => !o)}
+          title={t("sidebar.theme")}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold shadow-md transition-all border border-white/10 ${
+            open
+              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+              : "bg-sidebar-accent/80 hover:bg-sidebar-accent text-sidebar-foreground/80 hover:text-sidebar-foreground"
+          }`}
+        >
+          <Palette className="h-3.5 w-3.5" />
+          {t("sidebar.theme")}
+        </button>
+      )}
     </div>
   );
 }

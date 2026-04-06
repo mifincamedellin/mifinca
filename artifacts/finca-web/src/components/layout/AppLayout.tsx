@@ -139,7 +139,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="px-4 pt-2 pb-4">
-            <SidebarThemePicker />
             <div className="flex items-center gap-3 mt-1 pt-2 border-t border-sidebar-border">
               <Avatar className="h-10 w-10 border-2 border-accent/20">
                 <AvatarFallback className="bg-primary text-primary-foreground font-serif">
@@ -183,6 +182,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="flex items-center gap-2">
               <SeedButton />
+              <SidebarThemePicker placement="header" />
               <button
                 onClick={toggleLanguage}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/5 hover:bg-black/10 border border-black/8 text-sm font-medium text-foreground/70 hover:text-foreground transition-all"
