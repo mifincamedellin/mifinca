@@ -14,6 +14,8 @@ import {
   MessageSquare,
 } from "lucide-react";
 
+const APP_URL: string = (import.meta as any).env?.VITE_APP_URL ?? "https://app.mifinca.co";
+
 type Lang = "es" | "en";
 
 const translations = {
@@ -314,8 +316,8 @@ export default function Home() {
               <Globe className="h-4 w-4" />
               {lang === "es" ? "ES" : "EN"}
             </button>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 hover-elevate rounded-full px-6">
-              {t.nav.cta}
+            <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 hover-elevate rounded-full px-6">
+              <a href={`${APP_URL}/register`}>{t.nav.cta}</a>
             </Button>
           </nav>
 
@@ -356,8 +358,8 @@ export default function Home() {
             <Globe className="h-5 w-5" />
             {lang === "es" ? "Switch to English" : "Cambiar a Español"}
           </button>
-          <Button className="bg-primary text-primary-foreground w-full py-6 text-lg mt-4 rounded-xl">
-            {t.nav.cta}
+          <Button asChild className="bg-primary text-primary-foreground w-full py-6 text-lg mt-4 rounded-xl">
+            <a href={`${APP_URL}/register`}>{t.nav.cta}</a>
           </Button>
         </div>
       )}
@@ -384,14 +386,11 @@ export default function Home() {
                   {t.hero.sub}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate">
-                    {t.hero.ctaPrimary}
+                  <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate">
+                    <a href={`${APP_URL}/register`}>{t.hero.ctaPrimary}</a>
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="h-14 px-8 rounded-full text-base font-medium border-border hover:bg-muted hover-elevate"
-                  >
-                    {t.hero.ctaSecondary}
+                  <Button asChild variant="outline" className="h-14 px-8 rounded-full text-base font-medium border-border hover:bg-muted hover-elevate">
+                    <a href={`${APP_URL}/login?demo=true`}>{t.hero.ctaSecondary}</a>
                   </Button>
                 </div>
                 <div className="mt-10 flex items-center gap-4 text-sm text-muted-foreground">
@@ -494,8 +493,8 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-12 px-8 rounded-full hover-elevate">
-                  {t.advisor.cta}
+                <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-12 px-8 rounded-full hover-elevate">
+                  <a href={`${APP_URL}/login?demo=true`}>{t.advisor.cta}</a>
                 </Button>
               </div>
 
@@ -575,8 +574,8 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Button variant="outline" className="w-full rounded-full h-12">
-                  {t.pricing.tiers[0].cta}
+                <Button asChild variant="outline" className="w-full rounded-full h-12">
+                  <a href={`${APP_URL}/register`}>{t.pricing.tiers[0].cta}</a>
                 </Button>
               </div>
 
@@ -603,8 +602,8 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full rounded-full h-12">
-                  {t.pricing.tiers[1].cta}
+                <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full rounded-full h-12">
+                  <a href={`${APP_URL}/register`}>{t.pricing.tiers[1].cta}</a>
                 </Button>
               </div>
 
@@ -623,8 +622,8 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Button variant="outline" className="w-full rounded-full h-12">
-                  {t.pricing.tiers[2].cta}
+                <Button asChild variant="outline" className="w-full rounded-full h-12">
+                  <a href={`${APP_URL}/register`}>{t.pricing.tiers[2].cta}</a>
                 </Button>
               </div>
             </div>
@@ -645,8 +644,8 @@ export default function Home() {
                   <h2 className="text-3xl md:text-5xl font-serif font-medium text-white mb-6">
                     {t.lifestyle.heading} <br /> {t.lifestyle.headingLine2}
                   </h2>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate border-none">
-                    {t.lifestyle.cta}
+                  <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate border-none">
+                    <a href={`${APP_URL}/register`}>{t.lifestyle.cta}</a>
                   </Button>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -30,6 +31,13 @@ export function Login() {
   const handleDemoLogin = () => {
     login.mutate({ email: "demo@fincacolombia.com", password: "demo1234" });
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("demo") === "true") {
+      handleDemoLogin();
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
