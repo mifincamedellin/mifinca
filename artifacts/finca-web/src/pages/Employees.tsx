@@ -363,6 +363,27 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
       <Separator />
       <div className="px-5 py-5 bg-muted/15 space-y-6">
 
+        {/* Benefits section */}
+        {hasBenefits && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("emp.benefitsSection")}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {benefitRows.map(b => (
+                <div key={b.label} className="bg-card/70 rounded-xl px-3 py-2.5 border border-border/30 flex items-start gap-2">
+                  <div className={`p-1.5 rounded-lg ${b.bg} mt-0.5 flex-shrink-0`}>
+                    <b.icon className={`h-3.5 w-3.5 ${b.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{b.label}</p>
+                    <p className="text-sm font-semibold text-foreground">{formatCOP(b.value)}</p>
+                    <p className="text-xs text-muted-foreground/60">{b.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Notes section */}
         <div>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
@@ -454,26 +475,6 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
           )}
         </div>
 
-        {/* Benefits section */}
-        {hasBenefits && (
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("emp.benefitsSection")}</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {benefitRows.map(b => (
-                <div key={b.label} className="bg-card/70 rounded-xl px-3 py-2.5 border border-border/30 flex items-start gap-2">
-                  <div className={`p-1.5 rounded-lg ${b.bg} mt-0.5 flex-shrink-0`}>
-                    <b.icon className={`h-3.5 w-3.5 ${b.color}`} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{b.label}</p>
-                    <p className="text-sm font-semibold text-foreground">{formatCOP(b.value)}</p>
-                    <p className="text-xs text-muted-foreground/60">{b.sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Lightbox */}
