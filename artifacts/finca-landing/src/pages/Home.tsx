@@ -14,7 +14,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-const APP_URL: string = (import.meta as any).env?.VITE_APP_URL ?? "https://app.mifinca.co";
+const APP_URL: string = (import.meta as any).env?.VITE_APP_URL ?? "/app";
 
 type Lang = "es" | "en";
 

@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/finca-landing/"
+previewPath = "/"
 title = "Finca Landing Page"
 version = "1.0.0"
 id = "artifacts/finca-landing"
@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/finca-landing/" ]
+paths = [ "/" ]
 localPort = 21715
 
 [services.development]
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "21715"
-BASE_PATH = "/finca-landing/"
+BASE_PATH = "/"
