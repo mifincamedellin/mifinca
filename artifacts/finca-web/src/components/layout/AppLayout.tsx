@@ -16,6 +16,7 @@ import {
   DollarSign,
   Users,
   UserCheck,
+  CalendarDays,
 } from "lucide-react";
 import {
   Sidebar,
@@ -87,6 +88,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { title: t('nav.finances'), url: "/finances", icon: DollarSign },
     { title: t('nav.contacts'), url: "/contacts", icon: Users },
     { title: t('nav.employees'), url: "/employees", icon: UserCheck },
+    { title: t('nav.calendar'), url: "/calendar", icon: CalendarDays },
     { title: t('nav.land'), url: "/land", icon: MapIcon },
     { title: t('nav.settings'), url: "/settings", icon: Settings },
   ];

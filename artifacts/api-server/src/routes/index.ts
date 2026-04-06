@@ -12,6 +12,7 @@ import financesRouter from "./finances.js";
 import contactsRouter from "./contacts.js";
 import employeesRouter from "./employees.js";
 import seedRouter from "./seed.js";
+import eventsRouter from "./events.js";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(financesRouter);
 router.use(contactsRouter);
 router.use(employeesRouter);
 router.use(seedRouter);
+router.use(eventsRouter);
 
 export default router;
