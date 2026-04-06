@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import {
   farmsTable, farmMembersTable, profilesTable,
   animalsTable, inventoryItemsTable, medicalRecordsTable, activityLogTable,
+  employeesTable, contactsTable,
 } from "@workspace/db";
 import { eq, and, count, lt, lte } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
@@ -221,12 +222,20 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
     const recentActivity = await db.select({ count: count() }).from(activityLogTable)
       .where(eq(activityLogTable.farmId, farmId));
 
+    const [employeeCountResult] = await db.select({ count: count() }).from(employeesTable)
+      .where(eq(employeesTable.farmId, farmId));
+
+    const [contactCountResult] = await db.select({ count: count() }).from(contactsTable)
+      .where(eq(contactsTable.farmId, farmId));
+
     return res.json({
       totalAnimals: animalCountResult?.count ?? 0,
       animalsBySpecies,
       lowStockCount: lowStockItems.length + expiredItems.length,
       upcomingMedicalCount: upcomingMedical.length,
       recentActivityCount: recentActivity[0]?.count ?? 0,
+      employeeCount: employeeCountResult?.count ?? 0,
+      contactCount: contactCountResult?.count ?? 0,
       upcomingMedical: upcomingMedical.slice(0, 5).map(r => ({
         ...r.medical_records,
         animalName: r.animals.name,
