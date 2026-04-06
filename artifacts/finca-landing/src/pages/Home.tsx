@@ -284,7 +284,7 @@ export default function Home() {
         <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sprout className="h-8 w-8 text-primary" />
-            <span className="font-serif text-2xl font-bold tracking-tight text-primary">Finca</span>
+            <span className="font-serif text-2xl tracking-tight text-primary"><span className="font-medium">mi</span><span className="font-bold">Finca</span></span>
           </div>
 
           <nav className="hidden md:flex items-center gap-8">
@@ -662,7 +662,7 @@ export default function Home() {
             <div className="col-span-2 lg:col-span-2">
               <div className="flex items-center gap-2 mb-6">
                 <Sprout className="h-8 w-8 text-primary" />
-                <span className="font-serif text-2xl font-bold tracking-tight text-primary">Finca</span>
+                <span className="font-serif text-2xl tracking-tight text-primary"><span className="font-medium">mi</span><span className="font-bold">Finca</span></span>
               </div>
               <p className="text-muted-foreground mb-6 max-w-sm">{t.footer.tagline}</p>
             </div>
