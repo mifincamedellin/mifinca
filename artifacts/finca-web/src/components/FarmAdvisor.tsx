@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, Loader2, Sprout, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
+import { useStore } from "@/lib/store";
 
 interface Message {
   role: "user" | "assistant";
@@ -31,15 +32,18 @@ function TypingDots() {
 export function FarmAdvisor() {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
+  const { activeFarmId } = useStore();
 
-  const [open, setOpen]                 = useState(false);
-  const [messages, setMessages]         = useState<Message[]>([]);
-  const [input, setInput]               = useState("");
+  const [open, setOpen]                     = useState(false);
+  const [messages, setMessages]             = useState<Message[]>([]);
+  const [input, setInput]                   = useState("");
   const [conversationId, setConversationId] = useState<number | null>(null);
-  const [loading, setLoading]           = useState(false);
+  const [loading, setLoading]               = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const bottomRef  = useRef<HTMLDivElement>(null);
-  const inputRef   = useRef<HTMLTextAreaElement>(null);
+  const [remaining, setRemaining]           = useState<number | null>(null);
+  const [limitHit, setLimitHit]             = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef  = useRef<HTMLTextAreaElement>(null);
 
   const autoResize = () => {
     const el = inputRef.current;
@@ -59,6 +63,13 @@ export function FarmAdvisor() {
     setHistoryLoading(true);
     try {
       const res = await fetch(`/api/chat/conversations/${cid}/messages`);
+      if (res.status === 403) {
+        // Conversation doesn't belong to this user — reset
+        localStorage.removeItem(LS_KEY);
+        setMessages([greeting]);
+        setConversationId(null);
+        return;
+      }
       if (!res.ok) throw new Error("failed");
       const rows: Array<{ role: string; content: string }> = await res.json();
       if (rows.length === 0) {
@@ -72,6 +83,18 @@ export function FarmAdvisor() {
       setHistoryLoading(false);
     }
   }, [isEn]);
+
+  // Load usage on open
+  const loadUsage = useCallback(async () => {
+    try {
+      const res = await fetch("/api/chat/usage");
+      if (res.ok) {
+        const data = await res.json();
+        setRemaining(data.remaining);
+        setLimitHit(data.remaining <= 0);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem(LS_KEY);
@@ -87,19 +110,25 @@ export function FarmAdvisor() {
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (open) {
+      loadUsage();
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [open]);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 300);
-  }, [open]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const getOrCreateConversation = async (): Promise<number> => {
     if (conversationId) return conversationId;
     const res = await fetch("/api/chat/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: isEn ? "Farm Consultation" : "Consulta de Finca" }),
+      body: JSON.stringify({
+        title: isEn ? "Farm Consultation" : "Consulta de Finca",
+        farmId: activeFarmId ?? undefined,
+      }),
     });
     const data = await res.json();
     setConversationId(data.id);
@@ -109,7 +138,7 @@ export function FarmAdvisor() {
 
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || limitHit) return;
 
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
@@ -126,6 +155,27 @@ export function FarmAdvisor() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: text }),
       });
+
+      // Rate limit hit
+      if (res.status === 429) {
+        setLimitHit(true);
+        setRemaining(0);
+        setMessages(prev => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last?.streaming) {
+            next[next.length - 1] = {
+              role: "assistant",
+              content: isEn
+                ? `You've reached your daily limit of 20 messages. Come back tomorrow to continue chatting!`
+                : `Has alcanzado el límite diario de 20 mensajes. ¡Vuelve mañana para continuar!`,
+              streaming: false,
+            };
+          }
+          return next;
+        });
+        return;
+      }
 
       if (!res.body) throw new Error("No stream");
 
@@ -145,6 +195,10 @@ export function FarmAdvisor() {
           if (!line.startsWith("data: ")) continue;
           try {
             const data = JSON.parse(line.slice(6));
+            if (typeof data.remaining === "number") {
+              setRemaining(data.remaining);
+              if (data.remaining <= 0) setLimitHit(true);
+            }
             if (data.content) {
               setMessages(prev => {
                 const next = [...prev];
@@ -189,8 +243,12 @@ export function FarmAdvisor() {
   const reset = () => {
     setMessages([greeting]);
     setConversationId(null);
+    setLimitHit(false);
     localStorage.removeItem(LS_KEY);
+    loadUsage();
   };
+
+  const atLimit = limitHit || (remaining !== null && remaining <= 0);
 
   return (
     <>
@@ -303,36 +361,53 @@ export function FarmAdvisor() {
 
             {/* Input */}
             <div className="px-3 py-3 border-t border-border/30 bg-card shrink-0">
-              <div className="flex gap-2 items-end">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  rows={1}
-                  onChange={e => { setInput(e.target.value); autoResize(); }}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  placeholder={isEn ? "Ask about your farm..." : "Pregunta sobre tu finca..."}
-                  disabled={loading || historyLoading}
-                  className="flex-1 resize-none rounded-xl border border-border/40 bg-background text-sm px-3 py-2.5 leading-relaxed placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary/30 disabled:opacity-50 min-h-[40px] overflow-hidden"
-                  style={{ height: "40px" }}
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  onClick={sendMessage}
-                  disabled={!input.trim() || loading || historyLoading}
-                  className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/90 shrink-0 mb-0"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground/50 mt-1.5 pl-1">
-                {isEn ? "Enter to send · Shift+Enter for new line" : "Enter para enviar · Shift+Enter para nueva línea"}
-              </p>
+              {atLimit ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 text-center leading-snug">
+                  {isEn
+                    ? "Daily limit of 20 messages reached. Come back tomorrow!"
+                    : "Límite diario de 20 mensajes alcanzado. ¡Vuelve mañana!"}
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2 items-end">
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      rows={1}
+                      onChange={e => { setInput(e.target.value); autoResize(); }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
+                      placeholder={isEn ? "Ask about your farm..." : "Pregunta sobre tu finca..."}
+                      disabled={loading || historyLoading}
+                      className="flex-1 resize-none rounded-xl border border-border/40 bg-background text-sm px-3 py-2.5 leading-relaxed placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary/30 disabled:opacity-50 min-h-[40px] overflow-hidden"
+                      style={{ height: "40px" }}
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      onClick={sendMessage}
+                      disabled={!input.trim() || loading || historyLoading}
+                      className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/90 shrink-0 mb-0"
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5 pl-1">
+                    <p className="text-[10px] text-muted-foreground/50">
+                      {isEn ? "Enter to send · Shift+Enter for new line" : "Enter para enviar · Shift+Enter para nueva línea"}
+                    </p>
+                    {remaining !== null && (
+                      <p className={`text-[10px] ${remaining <= 5 ? "text-amber-500" : "text-muted-foreground/40"}`}>
+                        {remaining}/{20} {isEn ? "left today" : "restantes hoy"}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         )}
