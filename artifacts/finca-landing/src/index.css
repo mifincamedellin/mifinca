@@ -1,0 +1,183 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400..700;1,400..700&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+
+  --font-sans: var(--app-font-sans);
+  --font-serif: var(--app-font-serif);
+  --font-mono: var(--app-font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .05);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .08);
+
+  /* Cream: #FDFAF5 */
+  --background: 40 57% 97%;
+  /* Ink: #1A1A1A */
+  --foreground: 0 0% 10%;
+  /* Border: #E0D8CE */
+  --border: 33 24% 84%;
+  
+  /* Sand: #F5F0E8 */
+  --card: 38 41% 94%;
+  --card-foreground: 0 0% 10%;
+  --card-border: 33 24% 84%;
+
+  --popover: 40 57% 97%;
+  --popover-foreground: 0 0% 10%;
+  --popover-border: 33 24% 84%;
+
+  /* Deep earth brown: #351008 */
+  --primary: 15 60% 13%;
+  --primary-foreground: 40 57% 97%;
+
+  /* Sage green: #4A6741 */
+  --secondary: 113 22% 33%;
+  --secondary-foreground: 40 57% 97%;
+
+  /* Sand (Muted) */
+  --muted: 38 41% 94%;
+  --muted-foreground: 27 5% 40%;
+
+  /* Clay / Accent */
+  --accent: 28 44% 59%;
+  --accent-foreground: 40 57% 97%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 40 57% 97%;
+
+  --input: 33 24% 84%;
+  --ring: 113 22% 33%;
+
+  --sidebar: 40 57% 97%;
+  --sidebar-foreground: 0 0% 10%;
+  --sidebar-border: 33 24% 84%;
+  --sidebar-primary: 15 60% 13%;
+  --sidebar-primary-foreground: 40 57% 97%;
+  --sidebar-accent: 38 41% 94%;
+  --sidebar-accent-foreground: 0 0% 10%;
+
+  --app-font-sans: 'DM Sans', sans-serif;
+  --app-font-serif: 'Fraunces', serif;
+  --app-font-mono: Menlo, monospace;
+  
+  --radius: 0.75rem;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+.dark {
+  /* We default to light mode, dark mode not explicitly supported, using earth palette everywhere */
+  --background: 0 0% 10%;
+  --foreground: 40 57% 97%;
+  --border: 15 40% 20%;
+  
+  --card: 15 60% 13%;
+  --card-foreground: 40 57% 97%;
+  --card-border: 15 40% 20%;
+
+  --popover: 15 60% 13%;
+  --popover-foreground: 40 57% 97%;
+  --popover-border: 15 40% 20%;
+
+  --primary: 38 41% 94%;
+  --primary-foreground: 15 60% 13%;
+
+  --secondary: 113 22% 48%;
+  --secondary-foreground: 0 0% 10%;
+
+  --muted: 15 40% 20%;
+  --muted-foreground: 33 24% 84%;
+
+  --accent: 28 44% 59%;
+  --accent-foreground: 0 0% 10%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 10%;
+
+  --input: 15 40% 20%;
+  --ring: 38 41% 94%;
+
+  --sidebar: 0 0% 10%;
+  --sidebar-foreground: 40 57% 97%;
+  --sidebar-border: 15 40% 20%;
+  --sidebar-primary: 38 41% 94%;
+  --sidebar-primary-foreground: 15 60% 13%;
+  --sidebar-accent: 15 40% 20%;
+  --sidebar-accent-foreground: 40 57% 97%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif tracking-tight text-primary;
+  }
+}

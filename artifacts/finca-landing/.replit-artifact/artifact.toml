@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/finca-landing/"
+title = "Finca Landing Page"
+version = "1.0.0"
+id = "artifacts/finca-landing"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/finca-landing/" ]
+localPort = 21715
+
+[services.development]
+run = "pnpm --filter @workspace/finca-landing run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/finca-landing", "run", "build" ]
+publicDir = "artifacts/finca-landing/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21715"
+BASE_PATH = "/finca-landing/"

@@ -78,3 +78,15 @@ id = "rcHfJBs_poSxOHn-z2mWH"
 uri = "file://artifacts/finca-web/public/animals/boer.png"
 type = "image"
 title = "generated_image"
+
+[[generated]]
+id = "H9wbpNNjHfbJOcwkSeRoA"
+uri = "file://artifacts/finca-landing/public/images/hero-farm.png"
+type = "image"
+title = "Hero farm landscape"
+
+[[generated]]
+id = "D-H13TpYXNJi3f4fKTR74"
+uri = "file://artifacts/finca-landing/public/images/farmer-tech.png"
+type = "image"
+title = "Farmer using tablet"
