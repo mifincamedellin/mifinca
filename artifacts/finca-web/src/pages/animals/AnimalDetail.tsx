@@ -741,9 +741,20 @@ export function AnimalDetail() {
           <Card className="overflow-hidden rounded-2xl border-none shadow-md bg-card">
             <div className="h-48 bg-primary/10 flex items-center justify-center">
               {animal.photoUrl ? (
-                <img src={animal.photoUrl} alt="Animal" className="w-full h-full object-cover" />
+                <>
+                  <img
+                    src={animal.photoUrl}
+                    alt="Animal"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      (e.currentTarget.nextElementSibling as HTMLElement)?.removeAttribute("hidden");
+                    }}
+                  />
+                  <span className="text-6xl" hidden>{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
+                </>
               ) : (
-                <span className="text-4xl text-primary/30 font-serif">{t('animals.noPhoto')}</span>
+                <span className="text-6xl">{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
               )}
             </div>
             <div className="p-5 space-y-4">

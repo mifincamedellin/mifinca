@@ -34,77 +34,144 @@ function daysFromNow(n: number) {
 
 export async function seedDemoFarmData(farmId: string) {
   const animalRows = await db.insert(animalsTable).values([
-    { farmId, customTag: "BOV-001", species: "cattle", breed: "Brahman",           name: "Reina",      sex: "female", dateOfBirth: "2020-03-12", status: "active", notes: "Buena productora de leche", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-002", species: "cattle", breed: "Simmental",         name: "Luna",       sex: "female", dateOfBirth: "2021-07-05", status: "active", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-003", species: "cattle", breed: "Brahman",           name: "Toro Negro", sex: "male",   dateOfBirth: "2019-11-20", status: "active", notes: "Semental principal", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-004", species: "cattle", breed: "Cebú",              name: "Manchas",    sex: "female", dateOfBirth: "2022-01-08", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-005", species: "cattle", breed: "Gyr",               name: "Estrella",   sex: "female", dateOfBirth: "2021-04-18", status: "active", notes: "Alta producción láctea", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-006", species: "cattle", breed: "Brahman",           name: "Canela",     sex: "female", dateOfBirth: "2020-08-25", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-007", species: "cattle", breed: "Normando",          name: "Vendaval",   sex: "male",   dateOfBirth: "2018-12-10", status: "active", notes: "Toro reproductor reserva", photoUrl: "/animals/normando.png" },
-    { farmId, customTag: "BOV-008", species: "cattle", breed: "Cebú",              name: "Rosada",     sex: "female", dateOfBirth: "2022-05-03", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-009", species: "cattle", breed: "Simmental",         name: "Nube",       sex: "female", dateOfBirth: "2023-01-17", status: "active", notes: "Ternera en crecimiento", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-010", species: "cattle", breed: "Brahman",           name: "Palomo",     sex: "male",   dateOfBirth: "2022-09-29", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-011", species: "cattle", breed: "Holstein",          name: "Lechera",    sex: "female", dateOfBirth: "2020-02-11", status: "active", notes: "Mejor productora del hato", photoUrl: "/animals/holstein.png" },
-    { farmId, customTag: "BOV-012", species: "cattle", breed: "Gyr",               name: "Negrita",    sex: "female", dateOfBirth: "2021-11-06", status: "active", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "CER-001", species: "pig",    breed: "Landrace",          name: "Gordita",    sex: "female", dateOfBirth: "2023-02-14", status: "active", photoUrl: "/animals/landrace.png" },
-    { farmId, customTag: "CER-002", species: "pig",    breed: "Duroc",             name: "Duroc",      sex: "male",   dateOfBirth: "2023-03-22", status: "active", photoUrl: "/animals/duroc.png" },
-    { farmId, customTag: "CER-003", species: "pig",    breed: "Yorkshire",         name: "Rizada",     sex: "female", dateOfBirth: "2023-07-20", status: "active", photoUrl: "/animals/yorkshire.png" },
-    { farmId, customTag: "CER-004", species: "pig",    breed: "Pietrain",          name: "Mota",       sex: "male",   dateOfBirth: "2023-08-14", status: "active", photoUrl: "/animals/pietrain.png" },
-    { farmId, customTag: "CAB-001", species: "horse",  breed: "Criollo Colombiano",name: "Rayo",       sex: "male",   dateOfBirth: "2018-05-30", status: "active", notes: "Caballo de trabajo", photoUrl: "/animals/criollo.png" },
-    { farmId, customTag: "CAB-002", species: "horse",  breed: "Criollo Colombiano",name: "Trueno",     sex: "male",   dateOfBirth: "2017-03-05", status: "active", notes: "Caballo de paso fino", photoUrl: "/animals/criollo.png" },
-    { farmId, customTag: "CAP-001", species: "goat",   breed: "Nubian",            name: "Bella",      sex: "female", dateOfBirth: "2022-09-10", status: "active", photoUrl: "/animals/nubian.png" },
-    { farmId, customTag: "CAP-002", species: "goat",   breed: "Boer",              name: "Caramelo",   sex: "female", dateOfBirth: "2023-04-12", status: "active", photoUrl: "/animals/boer.png" },
-    { farmId, customTag: "BOV-013", species: "cattle", breed: "Brahman",           name: "Lucero",     sex: "female", dateOfBirth: "2021-02-14", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-014", species: "cattle", breed: "Cebú",              name: "Pintada",    sex: "female", dateOfBirth: "2020-09-03", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-015", species: "cattle", breed: "Gyr",               name: "Amanecer",   sex: "female", dateOfBirth: "2022-03-20", status: "active", notes: "Buena productora láctea", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-016", species: "cattle", breed: "Simmental",         name: "Violeta",    sex: "female", dateOfBirth: "2021-11-08", status: "active", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-017", species: "cattle", breed: "Normando",          name: "Blanca",     sex: "female", dateOfBirth: "2020-05-17", status: "active", photoUrl: "/animals/normando.png" },
-    { farmId, customTag: "BOV-018", species: "cattle", breed: "Holstein",          name: "Margarita",  sex: "female", dateOfBirth: "2019-12-01", status: "active", notes: "Producción 18L/día", photoUrl: "/animals/holstein.png" },
-    { farmId, customTag: "BOV-019", species: "cattle", breed: "Brahman",           name: "Tormenta",   sex: "male",   dateOfBirth: "2019-07-22", status: "active", notes: "Toro semental reserva", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-020", species: "cattle", breed: "Cebú",              name: "Rocío",      sex: "female", dateOfBirth: "2022-08-11", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-021", species: "cattle", breed: "Gyr",               name: "Sirena",     sex: "female", dateOfBirth: "2021-04-05", status: "active", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-022", species: "cattle", breed: "Brahman",           name: "Mariposa",   sex: "female", dateOfBirth: "2020-01-30", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-023", species: "cattle", breed: "Simmental",         name: "Perla",      sex: "female", dateOfBirth: "2022-06-15", status: "active", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-024", species: "cattle", breed: "Normando",          name: "Paloma",     sex: "female", dateOfBirth: "2021-09-09", status: "active", photoUrl: "/animals/normando.png" },
-    { farmId, customTag: "BOV-025", species: "cattle", breed: "Cebú",              name: "Flor",       sex: "female", dateOfBirth: "2020-03-25", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-026", species: "cattle", breed: "Holstein",          name: "Clarita",    sex: "female", dateOfBirth: "2021-07-14", status: "active", photoUrl: "/animals/holstein.png" },
-    { farmId, customTag: "BOV-027", species: "cattle", breed: "Brahman",           name: "Gaviota",    sex: "female", dateOfBirth: "2022-11-02", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-028", species: "cattle", breed: "Gyr",               name: "Lluvia",     sex: "female", dateOfBirth: "2020-10-18", status: "active", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-029", species: "cattle", breed: "Brahman",           name: "Costeño",    sex: "male",   dateOfBirth: "2020-06-07", status: "active", notes: "Novillo en engorde", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-030", species: "cattle", breed: "Cebú",              name: "Primavera",  sex: "female", dateOfBirth: "2023-01-20", status: "active", notes: "Ternera en crecimiento", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-031", species: "cattle", breed: "Simmental",         name: "Dorada",     sex: "female", dateOfBirth: "2021-03-12", status: "active", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-032", species: "cattle", breed: "Normando",          name: "Sierra",     sex: "female", dateOfBirth: "2020-12-05", status: "active", photoUrl: "/animals/normando.png" },
-    { farmId, customTag: "BOV-033", species: "cattle", breed: "Brahman",           name: "Esperanza",  sex: "female", dateOfBirth: "2019-08-28", status: "active", notes: "Vaca adulta experimentada", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-034", species: "cattle", breed: "Gyr",               name: "Nevada",     sex: "female", dateOfBirth: "2022-04-16", status: "active", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-035", species: "cattle", breed: "Holstein",          name: "Blanquita",  sex: "female", dateOfBirth: "2020-07-31", status: "active", photoUrl: "/animals/holstein.png" },
-    { farmId, customTag: "BOV-036", species: "cattle", breed: "Cebú",              name: "Ceniza",     sex: "female", dateOfBirth: "2021-10-03", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-037", species: "cattle", breed: "Brahman",           name: "Valeria",    sex: "female", dateOfBirth: "2022-09-19", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-038", species: "cattle", breed: "Simmental",         name: "Cristal",    sex: "female", dateOfBirth: "2021-05-27", status: "active", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-039", species: "cattle", breed: "Normando",          name: "Dulce",      sex: "female", dateOfBirth: "2020-11-14", status: "active", photoUrl: "/animals/normando.png" },
-    { farmId, customTag: "BOV-040", species: "cattle", breed: "Brahman",           name: "Relámpago",  sex: "male",   dateOfBirth: "2021-08-08", status: "active", notes: "Novillo engorde fase final", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-041", species: "cattle", breed: "Gyr",               name: "Penélope",   sex: "female", dateOfBirth: "2022-02-22", status: "active", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-042", species: "cattle", breed: "Cebú",              name: "Morena",     sex: "female", dateOfBirth: "2020-04-10", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-043", species: "cattle", breed: "Holstein",          name: "Patricia",   sex: "female", dateOfBirth: "2021-12-18", status: "active", notes: "Producción 16L/día", photoUrl: "/animals/holstein.png" },
-    { farmId, customTag: "BOV-044", species: "cattle", breed: "Brahman",           name: "Ventana",    sex: "female", dateOfBirth: "2019-09-05", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-045", species: "cattle", breed: "Simmental",         name: "Esmeralda",  sex: "female", dateOfBirth: "2022-07-01", status: "active", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-046", species: "cattle", breed: "Normando",          name: "Rocosa",     sex: "female", dateOfBirth: "2020-02-19", status: "active", photoUrl: "/animals/normando.png" },
-    { farmId, customTag: "BOV-047", species: "cattle", breed: "Gyr",               name: "Salomé",     sex: "female", dateOfBirth: "2021-06-24", status: "active", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-048", species: "cattle", breed: "Brahman",           name: "Huracán",    sex: "male",   dateOfBirth: "2021-01-15", status: "active", notes: "Toro joven", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-049", species: "cattle", breed: "Cebú",              name: "Trigueña",   sex: "female", dateOfBirth: "2022-10-07", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-050", species: "cattle", breed: "Holstein",          name: "Elisa",      sex: "female", dateOfBirth: "2020-08-23", status: "active", photoUrl: "/animals/holstein.png" },
-    { farmId, customTag: "BOV-051", species: "cattle", breed: "Brahman",           name: "Pampera",    sex: "female", dateOfBirth: "2021-03-30", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-052", species: "cattle", breed: "Simmental",         name: "Otoño",      sex: "female", dateOfBirth: "2023-02-11", status: "active", notes: "Ternera recién destetada", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-053", species: "cattle", breed: "Gyr",               name: "Catalina",   sex: "female", dateOfBirth: "2020-06-16", status: "active", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-054", species: "cattle", breed: "Normando",          name: "Serrana",    sex: "female", dateOfBirth: "2021-09-28", status: "active", photoUrl: "/animals/normando.png" },
-    { farmId, customTag: "BOV-055", species: "cattle", breed: "Brahman",           name: "Princesa",   sex: "female", dateOfBirth: "2022-01-05", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-056", species: "cattle", breed: "Cebú",              name: "Gitana",     sex: "female", dateOfBirth: "2019-11-11", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-057", species: "cattle", breed: "Holstein",          name: "Danesa",     sex: "female", dateOfBirth: "2021-07-20", status: "active", notes: "Producción 20L/día — mejor hato", photoUrl: "/animals/holstein.png" },
-    { farmId, customTag: "BOV-058", species: "cattle", breed: "Brahman",           name: "Potranca",   sex: "female", dateOfBirth: "2022-05-08", status: "active", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-059", species: "cattle", breed: "Simmental",         name: "Topacio",    sex: "female", dateOfBirth: "2020-09-14", status: "active", photoUrl: "/animals/simmental.png" },
-    { farmId, customTag: "BOV-060", species: "cattle", breed: "Gyr",               name: "Felicia",    sex: "female", dateOfBirth: "2021-11-25", status: "active", photoUrl: "/animals/gyr.png" },
-    { farmId, customTag: "BOV-061", species: "cattle", breed: "Brahman",           name: "Cimarrona",  sex: "male",   dateOfBirth: "2022-03-03", status: "active", notes: "Toro joven en desarrollo", photoUrl: "/animals/brahman.png" },
-    { farmId, customTag: "BOV-062", species: "cattle", breed: "Cebú",              name: "Rosalba",    sex: "female", dateOfBirth: "2020-07-07", status: "active", photoUrl: "/animals/cebu.png" },
-    { farmId, customTag: "BOV-063", species: "cattle", breed: "Normando",          name: "Verano",     sex: "female", dateOfBirth: "2021-04-22", status: "active", photoUrl: "/animals/normando.png" },
+    { farmId, customTag: "BOV-001", species: "cattle", breed: "Brahman",            name: "Reina",      sex: "female", dateOfBirth: "2020-03-12", status: "active", notes: "Buena productora de leche" },
+    { farmId, customTag: "BOV-002", species: "cattle", breed: "Simmental",          name: "Luna",       sex: "female", dateOfBirth: "2021-07-05", status: "active" },
+    { farmId, customTag: "BOV-003", species: "cattle", breed: "Brahman",            name: "Toro Negro", sex: "male",   dateOfBirth: "2019-11-20", status: "active", notes: "Semental principal" },
+    { farmId, customTag: "BOV-004", species: "cattle", breed: "Cebú",               name: "Manchas",    sex: "female", dateOfBirth: "2022-01-08", status: "active" },
+    { farmId, customTag: "BOV-005", species: "cattle", breed: "Gyr",                name: "Estrella",   sex: "female", dateOfBirth: "2021-04-18", status: "active", notes: "Alta producción láctea" },
+    { farmId, customTag: "BOV-006", species: "cattle", breed: "Brahman",            name: "Canela",     sex: "female", dateOfBirth: "2020-08-25", status: "active" },
+    { farmId, customTag: "BOV-007", species: "cattle", breed: "Normando",           name: "Vendaval",   sex: "male",   dateOfBirth: "2018-12-10", status: "active", notes: "Toro reproductor reserva" },
+    { farmId, customTag: "BOV-008", species: "cattle", breed: "Cebú",               name: "Rosada",     sex: "female", dateOfBirth: "2022-05-03", status: "active" },
+    { farmId, customTag: "BOV-009", species: "cattle", breed: "Simmental",          name: "Nube",       sex: "female", dateOfBirth: "2023-01-17", status: "active", notes: "Ternera en crecimiento" },
+    { farmId, customTag: "BOV-010", species: "cattle", breed: "Brahman",            name: "Palomo",     sex: "male",   dateOfBirth: "2022-09-29", status: "active" },
+    { farmId, customTag: "BOV-011", species: "cattle", breed: "Holstein",           name: "Lechera",    sex: "female", dateOfBirth: "2020-02-11", status: "active", notes: "Mejor productora del hato" },
+    { farmId, customTag: "BOV-012", species: "cattle", breed: "Gyr",                name: "Negrita",    sex: "female", dateOfBirth: "2021-11-06", status: "active" },
+    { farmId, customTag: "CER-001", species: "pig",    breed: "Landrace",           name: "Gordita",    sex: "female", dateOfBirth: "2023-02-14", status: "active" },
+    { farmId, customTag: "CER-002", species: "pig",    breed: "Duroc",              name: "Duroc",      sex: "male",   dateOfBirth: "2023-03-22", status: "active" },
+    { farmId, customTag: "CER-003", species: "pig",    breed: "Yorkshire",          name: "Rizada",     sex: "female", dateOfBirth: "2023-07-20", status: "active" },
+    { farmId, customTag: "CER-004", species: "pig",    breed: "Pietrain",           name: "Mota",       sex: "male",   dateOfBirth: "2023-08-14", status: "active" },
+    { farmId, customTag: "CAB-001", species: "horse",  breed: "Criollo Colombiano", name: "Rayo",       sex: "male",   dateOfBirth: "2018-05-30", status: "active", notes: "Caballo de trabajo" },
+    { farmId, customTag: "CAB-002", species: "horse",  breed: "Criollo Colombiano", name: "Trueno",     sex: "male",   dateOfBirth: "2017-03-05", status: "active", notes: "Caballo de paso fino" },
+    { farmId, customTag: "CAP-001", species: "goat",   breed: "Nubian",             name: "Bella",      sex: "female", dateOfBirth: "2022-09-10", status: "active" },
+    { farmId, customTag: "CAP-002", species: "goat",   breed: "Boer",               name: "Caramelo",   sex: "female", dateOfBirth: "2023-04-12", status: "active" },
+    { farmId, customTag: "BOV-013", species: "cattle", breed: "Brahman",            name: "Lucero",     sex: "female", dateOfBirth: "2021-02-14", status: "active" },
+    { farmId, customTag: "BOV-014", species: "cattle", breed: "Cebú",               name: "Pintada",    sex: "female", dateOfBirth: "2020-09-03", status: "active" },
+    { farmId, customTag: "BOV-015", species: "cattle", breed: "Gyr",                name: "Amanecer",   sex: "female", dateOfBirth: "2022-03-20", status: "active", notes: "Buena productora láctea" },
+    { farmId, customTag: "BOV-016", species: "cattle", breed: "Simmental",          name: "Violeta",    sex: "female", dateOfBirth: "2021-11-08", status: "active" },
+    { farmId, customTag: "BOV-017", species: "cattle", breed: "Normando",           name: "Blanca",     sex: "female", dateOfBirth: "2020-05-17", status: "active" },
+    { farmId, customTag: "BOV-018", species: "cattle", breed: "Holstein",           name: "Margarita",  sex: "female", dateOfBirth: "2019-12-01", status: "active", notes: "Producción 18L/día" },
+    { farmId, customTag: "BOV-019", species: "cattle", breed: "Brahman",            name: "Tormenta",   sex: "male",   dateOfBirth: "2019-07-22", status: "active", notes: "Toro semental reserva" },
+    { farmId, customTag: "BOV-020", species: "cattle", breed: "Cebú",               name: "Rocío",      sex: "female", dateOfBirth: "2022-08-11", status: "active" },
+    { farmId, customTag: "BOV-021", species: "cattle", breed: "Gyr",                name: "Sirena",     sex: "female", dateOfBirth: "2021-04-05", status: "active" },
+    { farmId, customTag: "BOV-022", species: "cattle", breed: "Brahman",            name: "Mariposa",   sex: "female", dateOfBirth: "2020-01-30", status: "active" },
+    { farmId, customTag: "BOV-023", species: "cattle", breed: "Simmental",          name: "Perla",      sex: "female", dateOfBirth: "2022-06-15", status: "active" },
+    { farmId, customTag: "BOV-024", species: "cattle", breed: "Normando",           name: "Paloma",     sex: "female", dateOfBirth: "2021-09-09", status: "active" },
+    { farmId, customTag: "BOV-025", species: "cattle", breed: "Cebú",               name: "Flor",       sex: "female", dateOfBirth: "2020-03-25", status: "active" },
+    { farmId, customTag: "BOV-026", species: "cattle", breed: "Holstein",           name: "Clarita",    sex: "female", dateOfBirth: "2021-07-14", status: "active" },
+    { farmId, customTag: "BOV-027", species: "cattle", breed: "Brahman",            name: "Gaviota",    sex: "female", dateOfBirth: "2022-11-02", status: "active" },
+    { farmId, customTag: "BOV-028", species: "cattle", breed: "Gyr",                name: "Lluvia",     sex: "female", dateOfBirth: "2020-10-18", status: "active" },
+    { farmId, customTag: "BOV-029", species: "cattle", breed: "Brahman",            name: "Costeño",    sex: "male",   dateOfBirth: "2020-06-07", status: "active", notes: "Novillo en engorde" },
+    { farmId, customTag: "BOV-030", species: "cattle", breed: "Cebú",               name: "Primavera",  sex: "female", dateOfBirth: "2023-01-20", status: "active", notes: "Ternera en crecimiento" },
+    { farmId, customTag: "BOV-031", species: "cattle", breed: "Simmental",          name: "Dorada",     sex: "female", dateOfBirth: "2021-03-12", status: "active" },
+    { farmId, customTag: "BOV-032", species: "cattle", breed: "Normando",           name: "Sierra",     sex: "female", dateOfBirth: "2020-12-05", status: "active" },
+    { farmId, customTag: "BOV-033", species: "cattle", breed: "Brahman",            name: "Esperanza",  sex: "female", dateOfBirth: "2019-08-28", status: "active", notes: "Vaca adulta experimentada" },
+    { farmId, customTag: "BOV-034", species: "cattle", breed: "Gyr",                name: "Nevada",     sex: "female", dateOfBirth: "2022-04-16", status: "active" },
+    { farmId, customTag: "BOV-035", species: "cattle", breed: "Holstein",           name: "Blanquita",  sex: "female", dateOfBirth: "2020-07-31", status: "active" },
+    { farmId, customTag: "BOV-036", species: "cattle", breed: "Cebú",               name: "Ceniza",     sex: "female", dateOfBirth: "2021-10-03", status: "active" },
+    { farmId, customTag: "BOV-037", species: "cattle", breed: "Brahman",            name: "Valeria",    sex: "female", dateOfBirth: "2022-09-19", status: "active" },
+    { farmId, customTag: "BOV-038", species: "cattle", breed: "Simmental",          name: "Cristal",    sex: "female", dateOfBirth: "2021-05-27", status: "active" },
+    { farmId, customTag: "BOV-039", species: "cattle", breed: "Normando",           name: "Dulce",      sex: "female", dateOfBirth: "2020-11-14", status: "active" },
+    { farmId, customTag: "BOV-040", species: "cattle", breed: "Brahman",            name: "Relámpago",  sex: "male",   dateOfBirth: "2021-08-08", status: "active", notes: "Novillo engorde fase final" },
+    { farmId, customTag: "BOV-041", species: "cattle", breed: "Gyr",                name: "Penélope",   sex: "female", dateOfBirth: "2022-02-22", status: "active" },
+    { farmId, customTag: "BOV-042", species: "cattle", breed: "Cebú",               name: "Morena",     sex: "female", dateOfBirth: "2020-04-10", status: "active" },
+    { farmId, customTag: "BOV-043", species: "cattle", breed: "Holstein",           name: "Patricia",   sex: "female", dateOfBirth: "2021-12-18", status: "active", notes: "Producción 16L/día" },
+    { farmId, customTag: "BOV-044", species: "cattle", breed: "Brahman",            name: "Ventana",    sex: "female", dateOfBirth: "2019-09-05", status: "active" },
+    { farmId, customTag: "BOV-045", species: "cattle", breed: "Simmental",          name: "Esmeralda",  sex: "female", dateOfBirth: "2022-07-01", status: "active" },
+    { farmId, customTag: "BOV-046", species: "cattle", breed: "Normando",           name: "Rocosa",     sex: "female", dateOfBirth: "2020-02-19", status: "active" },
+    { farmId, customTag: "BOV-047", species: "cattle", breed: "Gyr",                name: "Salomé",     sex: "female", dateOfBirth: "2021-06-24", status: "active" },
+    { farmId, customTag: "BOV-048", species: "cattle", breed: "Brahman",            name: "Huracán",    sex: "male",   dateOfBirth: "2021-01-15", status: "active", notes: "Toro joven" },
+    { farmId, customTag: "BOV-049", species: "cattle", breed: "Cebú",               name: "Trigueña",   sex: "female", dateOfBirth: "2022-10-07", status: "active" },
+    { farmId, customTag: "BOV-050", species: "cattle", breed: "Holstein",           name: "Elisa",      sex: "female", dateOfBirth: "2020-08-23", status: "active" },
+    { farmId, customTag: "BOV-051", species: "cattle", breed: "Brahman",            name: "Pampera",    sex: "female", dateOfBirth: "2021-03-30", status: "active" },
+    { farmId, customTag: "BOV-052", species: "cattle", breed: "Simmental",          name: "Otoño",      sex: "female", dateOfBirth: "2023-02-11", status: "active", notes: "Ternera recién destetada" },
+    { farmId, customTag: "BOV-053", species: "cattle", breed: "Gyr",                name: "Catalina",   sex: "female", dateOfBirth: "2020-06-16", status: "active" },
+    { farmId, customTag: "BOV-054", species: "cattle", breed: "Normando",           name: "Serrana",    sex: "female", dateOfBirth: "2021-09-28", status: "active" },
+    { farmId, customTag: "BOV-055", species: "cattle", breed: "Brahman",            name: "Princesa",   sex: "female", dateOfBirth: "2022-01-05", status: "active" },
+    { farmId, customTag: "BOV-056", species: "cattle", breed: "Cebú",               name: "Gitana",     sex: "female", dateOfBirth: "2019-11-11", status: "active" },
+    { farmId, customTag: "BOV-057", species: "cattle", breed: "Holstein",           name: "Danesa",     sex: "female", dateOfBirth: "2021-07-20", status: "active", notes: "Producción 20L/día — mejor hato" },
+    { farmId, customTag: "BOV-058", species: "cattle", breed: "Brahman",            name: "Potranca",   sex: "female", dateOfBirth: "2022-05-08", status: "active" },
+    { farmId, customTag: "BOV-059", species: "cattle", breed: "Simmental",          name: "Topacio",    sex: "female", dateOfBirth: "2020-09-14", status: "active" },
+    { farmId, customTag: "BOV-060", species: "cattle", breed: "Gyr",                name: "Felicia",    sex: "female", dateOfBirth: "2021-11-25", status: "active" },
+    { farmId, customTag: "BOV-061", species: "cattle", breed: "Brahman",            name: "Cimarrona",  sex: "male",   dateOfBirth: "2022-03-03", status: "active", notes: "Toro joven en desarrollo" },
+    { farmId, customTag: "BOV-062", species: "cattle", breed: "Cebú",               name: "Rosalba",    sex: "female", dateOfBirth: "2020-07-07", status: "active" },
+    { farmId, customTag: "BOV-063", species: "cattle", breed: "Normando",           name: "Verano",     sex: "female", dateOfBirth: "2021-04-22", status: "active" },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   ]).returning();
 
   const [reina, luna, toroNegro, manchas, estrella, canela, , , nube, , lechera, , gordita, , , , rayo, trueno, bella] = animalRows as typeof animalRows;

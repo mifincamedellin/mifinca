@@ -372,7 +372,18 @@ export function AnimalList() {
               <Card className="group cursor-pointer overflow-hidden border-border/50 hover:border-accent/50 transition-all duration-300 hover-elevate bg-card/60 backdrop-blur-sm rounded-2xl h-full flex flex-col">
                 <div className="h-32 bg-primary/5 relative flex items-center justify-center border-b border-border/30">
                   {animal.photoUrl ? (
-                    <img src={animal.photoUrl} alt={animal.name || animal.customTag} className="w-full h-full object-cover" />
+                    <>
+                      <img
+                        src={animal.photoUrl}
+                        alt={animal.name || animal.customTag}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          (e.currentTarget.nextElementSibling as HTMLElement)?.removeAttribute("hidden");
+                        }}
+                      />
+                      <span className="text-4xl" hidden>{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
+                    </>
                   ) : (
                     <span className="text-4xl">{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
                   )}

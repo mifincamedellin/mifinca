@@ -44,9 +44,20 @@ function AnimalCard({
   const inner = (
     <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow w-full">
       <div className="w-11 h-11 rounded-xl bg-primary/8 flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
-        {animal.photoUrl
-          ? <img src={animal.photoUrl} alt="" className="w-full h-full object-cover rounded-xl" />
-          : emoji}
+        {animal.photoUrl ? (
+          <>
+            <img
+              src={animal.photoUrl}
+              alt=""
+              className="w-full h-full object-cover rounded-xl"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+                (e.currentTarget.nextElementSibling as HTMLElement)?.removeAttribute("hidden");
+              }}
+            />
+            <span hidden>{emoji}</span>
+          </>
+        ) : emoji}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">{role}</p>
