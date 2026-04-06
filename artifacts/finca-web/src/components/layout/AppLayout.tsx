@@ -197,8 +197,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {children}
           </main>
         </div>
+        <FarmAdvisor />
       </div>
-      <FarmAdvisor />
     </SidebarProvider>
   );
 }

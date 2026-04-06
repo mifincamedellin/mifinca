@@ -255,12 +255,12 @@ export function FarmAdvisor() {
       {/* Floating button */}
       <motion.button
         onClick={() => setOpen(true)}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-secondary hover:bg-secondary/90 transition-colors ${open ? "hidden" : ""}`}
+        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-sidebar hover:opacity-90 transition-opacity ${open ? "hidden" : ""}`}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         title={isEn ? "Farm Advisor" : "Asesor Finca"}
       >
-        <Sprout className="h-7 w-7 text-white" />
+        <Sprout className="h-7 w-7 text-sidebar-foreground" />
         <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-accent rounded-full border-2 border-white" />
       </motion.button>
 
@@ -275,16 +275,16 @@ export function FarmAdvisor() {
             className="fixed bottom-6 right-6 z-50 w-[360px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-3rem)] flex flex-col rounded-2xl shadow-2xl overflow-hidden border border-border/30 bg-card"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-secondary text-white shrink-0">
+            <div className="flex items-center justify-between px-4 py-3 bg-sidebar text-sidebar-foreground shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <Sprout className="h-4 w-4 text-white" />
+                <div className="w-8 h-8 rounded-full bg-sidebar-foreground/10 flex items-center justify-center">
+                  <Sprout className="h-4 w-4 text-sidebar-foreground" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm leading-tight">
+                  <p className="font-semibold text-sm leading-tight text-sidebar-foreground">
                     {isEn ? "Farm Advisor" : "Asesor Finca"}
                   </p>
-                  <p className="text-white/70 text-xs">
+                  <p className="text-sidebar-foreground/60 text-xs">
                     {isEn ? "AI-powered farm assistant" : "Asistente agrícola con IA"}
                   </p>
                 </div>
@@ -292,13 +292,13 @@ export function FarmAdvisor() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={reset}
-                  className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-sidebar-foreground/10 transition-colors"
                   title={isEn ? "New chat" : "Nueva conversación"}
                 >
-                  <RotateCcw className="h-4 w-4 text-white/80" />
+                  <RotateCcw className="h-4 w-4 text-sidebar-foreground/70" />
                 </button>
-                <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
-                  <X className="h-4 w-4 text-white/80" />
+                <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-sidebar-foreground/10 transition-colors">
+                  <X className="h-4 w-4 text-sidebar-foreground/70" />
                 </button>
               </div>
             </div>
@@ -391,7 +391,7 @@ export function FarmAdvisor() {
                       size="icon"
                       onClick={sendMessage}
                       disabled={!input.trim() || loading || historyLoading}
-                      className="h-10 w-10 rounded-xl bg-secondary hover:bg-secondary/90 shrink-0 mb-0"
+                      className="h-10 w-10 rounded-xl bg-sidebar hover:opacity-90 shrink-0 mb-0 text-sidebar-foreground"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </Button>
