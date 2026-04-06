@@ -12,6 +12,7 @@ import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 const DEMO_USER_ID    = "00000000-0000-0000-0000-000000000001";
 const DEMO_USER_EMAIL = "demo@fincacolombia.com";
 const DEMO_USER_PASS  = "demo1234";
+const DEMO_FARM_ID    = "a33817a9-7829-49ca-be0d-6c77a2a52e16";
 
 export async function ensureDemoAuthUser() {
   await pool.query(`
@@ -27,6 +28,24 @@ export async function ensureDemoAuthUser() {
     INSERT INTO auth_users (id, email, password_hash) VALUES ($1, $2, $3)
     ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash
   `, [DEMO_USER_ID, DEMO_USER_EMAIL, hash]);
+
+  await pool.query(`
+    INSERT INTO profiles (id, full_name, role, preferred_language)
+    VALUES ($1, 'Demo Usuario', 'owner', 'es')
+    ON CONFLICT (id) DO NOTHING
+  `, [DEMO_USER_ID]);
+
+  await pool.query(`
+    INSERT INTO farms (id, owner_id, name, location)
+    VALUES ($1, $2, 'Finca La Esperanza', 'Colombia')
+    ON CONFLICT (id) DO NOTHING
+  `, [DEMO_FARM_ID, DEMO_USER_ID]);
+
+  await pool.query(`
+    INSERT INTO farm_members (farm_id, user_id, role, permissions)
+    VALUES ($1, $2, 'owner', '{"can_edit":true,"can_add_animals":true,"can_log_inventory":true}')
+    ON CONFLICT (farm_id, user_id) DO NOTHING
+  `, [DEMO_FARM_ID, DEMO_USER_ID]);
 }
 
 const router = Router();
