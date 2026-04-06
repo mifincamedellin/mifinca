@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, Loader2, Sprout, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "assistant";
@@ -11,19 +12,6 @@ interface Message {
 }
 
 const LS_KEY = "finca_advisor_conv_id";
-
-function stripMarkdown(text: string): string {
-  return text
-    .replace(/#{1,6}\s+/g, "")
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    .replace(/`{1,3}[^`]*`{1,3}/g, (m) => m.replace(/`/g, ""))
-    .replace(/^[-*+]\s+/gm, "")
-    .replace(/^\d+\.\s+/gm, (m) => m)
-    .replace(/_{1,2}(.+?)_{1,2}/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .trim();
-}
 
 function TypingDots() {
   return (
@@ -172,7 +160,7 @@ export function FarmAdvisor() {
                 const next = [...prev];
                 const last = next[next.length - 1];
                 if (last?.streaming) {
-                  next[next.length - 1] = { ...last, content: stripMarkdown(last.content), streaming: false };
+                  next[next.length - 1] = { ...last, streaming: false };
                 }
                 return next;
               });
@@ -280,11 +268,31 @@ export function FarmAdvisor() {
                     >
                       {msg.streaming && msg.content === "" ? (
                         <TypingDots />
+                      ) : msg.role === "assistant" ? (
+                        <div className="prose-chat">
+                          <ReactMarkdown
+                            components={{
+                              h1: ({ children }) => <p className="font-bold text-base mb-1 mt-2 first:mt-0">{children}</p>,
+                              h2: ({ children }) => <p className="font-bold text-sm mb-1 mt-2 first:mt-0 text-secondary">{children}</p>,
+                              h3: ({ children }) => <p className="font-semibold text-sm mb-0.5 mt-1.5 first:mt-0">{children}</p>,
+                              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                              em: ({ children }) => <em className="italic text-muted-foreground">{children}</em>,
+                              p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+                              ul: ({ children }) => <ul className="mt-1 mb-1.5 space-y-0.5 pl-4 list-disc">{children}</ul>,
+                              ol: ({ children }) => <ol className="mt-1 mb-1.5 space-y-0.5 pl-4 list-decimal">{children}</ol>,
+                              li: ({ children }) => <li className="leading-snug">{children}</li>,
+                              code: ({ children }) => <code className="bg-muted/60 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                              hr: () => <hr className="my-2 border-border/30" />,
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                          {msg.streaming && msg.content !== "" && (
+                            <span className="inline-block w-0.5 h-4 bg-secondary/70 ml-0.5 animate-pulse align-middle" />
+                          )}
+                        </div>
                       ) : (
                         <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
-                      )}
-                      {msg.streaming && msg.content !== "" && (
-                        <span className="inline-block w-0.5 h-4 bg-secondary/70 ml-0.5 animate-pulse align-middle" />
                       )}
                     </div>
                   </div>
