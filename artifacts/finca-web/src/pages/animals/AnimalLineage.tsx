@@ -311,7 +311,7 @@ export function AnimalLineage({ animal, farmId, onRefresh }: Props) {
           <Button
             size="sm"
             onClick={() => setPicker({ type: "child" })}
-            className="rounded-xl bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+            className="rounded-xl bg-primary hover:bg-primary/90"
             disabled={loading}
           >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
