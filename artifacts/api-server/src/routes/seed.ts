@@ -117,8 +117,9 @@ router.post("/farms/:farmId/seed", requireAuth, requireFarmAccess, async (req, r
 
     // ── FINANCES (36 transactions) ────────────────────────────────────────────
     await db.insert(financeTransactionsTable).values([
-      // Income — milk (8 fortnightly payments ~4 months)
+      // Income — milk (9 fortnightly payments ~4 months)
       { farmId, type: "income",  category: "venta_leche",    amount: "2050000",  description: "Venta leche quincenal — 410 litros",              date: daysAgo(1),        notes: "Cooperativa Lácteos del Río" },
+      { farmId, type: "income",  category: "venta_leche",    amount: "1950000",  description: "Venta leche quincenal — 390 litros",              date: daysAgo(5),        notes: "Cooperativa Lácteos del Río" },
       { farmId, type: "income",  category: "venta_leche",    amount: "1850000",  description: "Venta leche quincenal — 370 litros",              date: daysAgo(16),       notes: "Cooperativa Lácteos del Río" },
       { farmId, type: "income",  category: "venta_leche",    amount: "1990000",  description: "Venta leche quincenal — 398 litros",              date: daysAgo(32),       notes: null },
       { farmId, type: "income",  category: "venta_leche",    amount: "1920000",  description: "Venta leche quincenal — 384 litros",              date: monthsAgo(1, 15), notes: null },
@@ -127,12 +128,14 @@ router.post("/farms/:farmId/seed", requireAuth, requireFarmAccess, async (req, r
       { farmId, type: "income",  category: "venta_leche",    amount: "1760000",  description: "Venta leche quincenal — 352 litros",              date: daysAgo(82),       notes: null },
       { farmId, type: "income",  category: "venta_leche",    amount: "1650000",  description: "Venta leche quincenal — 330 litros",              date: monthsAgo(3, 1),  notes: null },
       // Income — cattle & livestock sales
+      { farmId, type: "income",  category: "venta_animales", amount: "8200000",  description: "Venta novillo gordo BOV-010 — 820 kg en pie",      date: daysAgo(3),        notes: "Frigorífico El Palmar — 10.000 COP/kg" },
       { farmId, type: "income",  category: "venta_animales", amount: "16400000", description: "Venta 2 novillos Brahman engorde — 2.000 kg en pie", date: daysAgo(10),    notes: "Frigorífico El Palmar — 8.200 COP/kg" },
       { farmId, type: "income",  category: "venta_animales", amount: "6900000",  description: "Venta 3 terneros destetados",                     date: daysAgo(18),       notes: "Subasta ganadera Fusagasugá" },
       { farmId, type: "income",  category: "venta_animales", amount: "5200000",  description: "Venta novillo Palomo — 480 kg en pie",            date: daysAgo(4),        notes: "Frigorífico El Palmar" },
       { farmId, type: "income",  category: "venta_animales", amount: "5100000",  description: "Venta 3 cerdos cebados (Yorkshire + Pietrain)",    date: monthsAgo(1, 8),  notes: "Frigorífico El Palmar" },
       { farmId, type: "income",  category: "venta_animales", amount: "3800000",  description: "Venta 2 cerdos Duroc en pie",                     date: monthsAgo(2, 18), notes: "Frigorífico El Palmar" },
       // Income — crops & other
+      { farmId, type: "income",  category: "venta_cosecha",  amount: "2800000",  description: "Venta café pergamino seco — 140 kg",              date: daysAgo(2),        notes: "Cooperativa de Caficultores" },
       { farmId, type: "income",  category: "venta_cosecha",  amount: "3100000",  description: "Venta fríjol cosecha principal — 620 kg",         date: daysAgo(55),       notes: "Mercado Fusagasugá" },
       { farmId, type: "income",  category: "venta_cosecha",  amount: "2400000",  description: "Venta maíz cosecha — 450 kg",                     date: monthsAgo(2, 5),  notes: "Mercado local" },
       { farmId, type: "income",  category: "otros",           amount: "850000",   description: "Alquiler potrero norte — 3 meses",                date: daysAgo(45),       notes: "Vecino Eduardo Salcedo" },
