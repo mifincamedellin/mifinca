@@ -10,7 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
@@ -25,8 +25,34 @@ function formatCOP(amount: number): string {
 
 function InfoTooltip({ text }: { text: string }) {
   const [show, setShow] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  const getAlignment = () => {
+    if (!ref.current) return "center";
+    const rect = ref.current.getBoundingClientRect();
+    const tooltipWidth = 240;
+    const halfTooltip = tooltipWidth / 2;
+    if (rect.left < halfTooltip + 8) return "left";
+    if (window.innerWidth - rect.right < halfTooltip + 8) return "right";
+    return "center";
+  };
+
+  const align = show ? getAlignment() : "center";
+  const popupClass =
+    align === "left"
+      ? "absolute bottom-full left-0 mb-2 z-50 pointer-events-none"
+      : align === "right"
+      ? "absolute bottom-full right-0 mb-2 z-50 pointer-events-none"
+      : "absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none";
+  const caretClass =
+    align === "left"
+      ? "block absolute top-full left-3 border-4 border-transparent border-t-foreground"
+      : align === "right"
+      ? "block absolute top-full right-3 border-4 border-transparent border-t-foreground"
+      : "block absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground";
+
   return (
-    <span className="relative inline-flex items-center ml-1.5">
+    <span ref={ref} className="relative inline-flex items-center ml-1.5">
       <button
         type="button"
         onMouseEnter={() => setShow(true)}
@@ -45,11 +71,11 @@ function InfoTooltip({ text }: { text: string }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none"
+            className={popupClass}
           >
             <span className="block bg-foreground text-background text-xs rounded-xl px-3 py-2 shadow-xl w-[240px] text-left leading-snug whitespace-normal">
               {text}
-              <span className="block absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+              <span className={caretClass} />
             </span>
           </motion.div>
         )}
