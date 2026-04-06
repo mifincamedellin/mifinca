@@ -33,7 +33,7 @@ function InfoTooltip({ text }: { text: string }) {
             transition={{ duration: 0.15 }}
             className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none"
           >
-            <div className="bg-foreground text-background text-xs rounded-xl px-3 py-2 shadow-xl max-w-[200px] text-center leading-snug whitespace-normal">
+            <div className="bg-foreground text-background text-xs rounded-xl px-3 py-2 shadow-xl w-[240px] text-left leading-snug whitespace-normal">
               {text}
               <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
             </div>
@@ -93,8 +93,8 @@ export function Dashboard() {
       color: "text-secondary",
       bg: "bg-secondary/10",
       tooltip: isEn
-        ? "Total number of animals registered on this farm across all species."
-        : "Número total de animales registrados en esta finca, de todas las especies.",
+        ? "All animals registered on this farm, across all species."
+        : "Total de animales registrados en esta finca, de todas las especies.",
     },
     {
       title: t('dashboard.lowStock'),
@@ -103,8 +103,8 @@ export function Dashboard() {
       color: "text-destructive",
       bg: "bg-destructive/10",
       tooltip: isEn
-        ? "Inventory items that have fallen below their minimum stock threshold."
-        : "Artículos de inventario que han caído por debajo de su stock mínimo.",
+        ? "Items that have fallen below their minimum stock level."
+        : "Artículos por debajo del nivel mínimo de inventario.",
     },
     {
       title: t('dashboard.upcomingTasks'),
@@ -113,8 +113,8 @@ export function Dashboard() {
       color: "text-accent",
       bg: "bg-accent/10",
       tooltip: isEn
-        ? "Upcoming or overdue medical events such as vaccines and check-ups."
-        : "Eventos médicos próximos o vencidos, como vacunas y revisiones.",
+        ? "Upcoming or overdue medical events: vaccines and check-ups."
+        : "Eventos médicos próximos o vencidos: vacunas y revisiones.",
     },
     {
       title: t('dashboard.recentActivity'),
@@ -123,8 +123,8 @@ export function Dashboard() {
       color: "text-primary",
       bg: "bg-primary/10",
       tooltip: isEn
-        ? "Number of actions logged on this farm in the last 7 days."
-        : "Acciones registradas en esta finca durante los últimos 7 días.",
+        ? "Actions logged on this farm in the last 7 days."
+        : "Acciones registradas en esta finca en los últimos 7 días.",
     },
   ];
 
@@ -177,8 +177,8 @@ export function Dashboard() {
             {t('dashboard.animalsBySpecies')}
             <InfoTooltip text={
               isEn
-                ? "A breakdown of how many animals you have per species on this farm."
-                : "Distribución de cuántos animales tienes por especie en esta finca."
+                ? "Number of animals per species on this farm."
+                : "Cantidad de animales por especie en esta finca."
             } />
           </h3>
           <div className="h-72 w-full">
@@ -213,8 +213,8 @@ export function Dashboard() {
             {t('dashboard.recentActivity')}
             <InfoTooltip text={
               isEn
-                ? "The latest actions recorded on your farm — animal updates, inventory changes, and more."
-                : "Las últimas acciones registradas en tu finca: actualizaciones de animales, cambios de inventario y más."
+                ? "Latest actions on your farm: animal updates, inventory changes, and more."
+                : "Últimas acciones en tu finca: animales, inventario, y más."
             } />
           </h3>
           <div className="flex-1 overflow-y-auto pr-2 space-y-5">
