@@ -564,7 +564,7 @@ export default function Home() {
                 <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[0].name}</h3>
                 <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[0].desc}</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold font-serif">$0</span>
+                  <span className="text-3xl font-bold font-serif">$0</span>
                   <span className="text-muted-foreground ml-1 text-sm">COP</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
@@ -588,7 +588,7 @@ export default function Home() {
                 <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[1].name}</h3>
                 <p className="text-primary-foreground/80 text-sm mb-6">{t.pricing.tiers[1].desc}</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold font-serif">
+                  <span className="text-3xl font-bold font-serif">
                     ${annualBilling ? "4.000.000" : "400.000"}
                   </span>
                   <span className="text-primary-foreground/60 ml-1">
@@ -613,7 +613,7 @@ export default function Home() {
                 <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[2].name}</h3>
                 <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[2].desc}</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold font-serif">{t.pricing.custom}</span>
+                  <span className="text-3xl font-bold font-serif">{t.pricing.custom}</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
                   {t.pricing.tiers[2].features.map((feature, i) => (
