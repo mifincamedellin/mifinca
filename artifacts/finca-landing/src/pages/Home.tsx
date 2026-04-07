@@ -390,7 +390,7 @@ export default function Home() {
                     <a href={`${APP_URL}/login`}>{t.hero.ctaPrimary}</a>
                   </Button>
                   <Button asChild variant="outline" className="h-14 px-8 rounded-full text-base font-medium border-border hover:bg-muted hover-elevate">
-                    <a href={`${APP_URL}/login?demo=true`}>{t.hero.ctaSecondary}</a>
+                    <a href={`${APP_URL}/login`}>{t.hero.ctaSecondary}</a>
                   </Button>
                 </div>
                 <div className="mt-10 flex items-center gap-4 text-sm text-muted-foreground">
@@ -494,7 +494,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-12 px-8 rounded-full hover-elevate">
-                  <a href={`${APP_URL}/login?demo=true`}>{t.advisor.cta}</a>
+                  <a href={`${APP_URL}/login`}>{t.advisor.cta}</a>
                 </Button>
               </div>
 

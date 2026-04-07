@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSignIn } from "@clerk/react";
 import { useStore } from "@/lib/store";
@@ -11,7 +11,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 export function Login() {
   const { i18n } = useTranslation();
   const { signIn, isLoaded } = useSignIn();
-  const { token, setToken, setActiveFarmId } = useStore();
+  const { setToken, setActiveFarmId } = useStore();
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,11 +21,6 @@ export function Login() {
   const toggleLang = () => {
     i18n.changeLanguage(isEn ? "es" : "en");
   };
-
-  // If already authenticated (demo JWT), redirect to dashboard
-  useEffect(() => {
-    if (token) setLocation("/dashboard");
-  }, [token]);
 
   const handleGoogleSignIn = async () => {
     if (!isLoaded || !signIn) return;
@@ -58,11 +53,6 @@ export function Login() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("demo") === "true") handleDemoLogin();
-  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
