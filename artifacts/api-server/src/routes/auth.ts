@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { db, pool } from "@workspace/db";
 import { profilesTable, farmsTable, farmMembersTable, farmInvitationsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt, like } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { getAuth, clerkClient } from "@clerk/express";
 import { requireAuth } from "../middleware/auth.js";
+import { seedDemoFarmData } from "./seed.js";
 
 const router = Router();
 
@@ -23,24 +24,74 @@ async function ensureAuthTable() {
   `);
 }
 
-// ── Demo login (kept for demo mode only) ────────────────────────────────────
+// Deletes ephemeral demo profiles older than 2 hours along with all their data.
+// Must clear NO-ACTION FK references first before deleting the profile row.
+async function cleanupOldDemoSessions() {
+  try {
+    const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const oldDemoProfiles = await db
+      .select({ id: profilesTable.id })
+      .from(profilesTable)
+      .where(
+        and(
+          like(profilesTable.clerkId, "demo:%"),
+          lt(profilesTable.createdAt, cutoff),
+        ),
+      );
+
+    for (const { id } of oldDemoProfiles) {
+      // Clear NO-ACTION FK refs before cascade-deleting the profile
+      await pool.query("DELETE FROM activity_log  WHERE user_id    = $1", [id]);
+      await pool.query("DELETE FROM inventory_logs WHERE created_by = $1", [id]);
+      await pool.query("DELETE FROM medical_records WHERE created_by = $1", [id]);
+      await pool.query("DELETE FROM weight_records  WHERE created_by = $1", [id]);
+      // Deleting the profile cascades: profile → farm → all farm data
+      await db.delete(profilesTable).where(eq(profilesTable.id, id));
+    }
+  } catch (err) {
+    console.error("Demo cleanup error (non-fatal):", err);
+  }
+}
+
+// ── Demo login — ephemeral session per visitor ───────────────────────────────
 router.post("/auth/demo", async (req, res) => {
   try {
-    await ensureAuthTable();
-    const result = await pool.query(
-      "SELECT id FROM auth_users WHERE email = $1",
-      ["demo@fincacolombia.com"]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "not_found", message: "Demo user not found" });
-    }
-    const user = result.rows[0] as { id: string };
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-    const farms = await db.select({ id: farmsTable.id }).from(farmMembersTable)
-      .innerJoin(farmsTable, eq(farmMembersTable.farmId, farmsTable.id))
-      .where(eq(farmMembersTable.userId, user.id))
-      .limit(1);
-    return res.json({ token, defaultFarmId: farms[0]?.id ?? null });
+    // Clean up expired demo sessions in the background
+    cleanupOldDemoSessions();
+
+    const profileId = crypto.randomUUID();
+    const demoTag   = crypto.randomUUID();
+
+    // Create a fresh profile for this visitor
+    await db.insert(profilesTable).values({
+      id:                profileId,
+      clerkId:           `demo:${demoTag}`,
+      fullName:          "Agricultor Demo",
+      role:              "owner",
+      preferredLanguage: "es",
+    });
+
+    // Create a fresh farm
+    const [newFarm] = await db
+      .insert(farmsTable)
+      .values({ ownerId: profileId, name: "La Esperanza" })
+      .returning();
+
+    // Add the demo profile as farm owner
+    await db.insert(farmMembersTable).values({
+      farmId:      newFarm!.id,
+      userId:      profileId,
+      role:        "owner",
+      permissions: { can_edit: true, can_add_animals: true, can_log_inventory: true },
+    });
+
+    // Seed the farm with the full demo dataset
+    await seedDemoFarmData(newFarm!.id);
+
+    // Issue a short-lived JWT (2 hours for demo)
+    const token = jwt.sign({ userId: profileId }, JWT_SECRET, { expiresIn: "2h" });
+
+    return res.json({ token, defaultFarmId: newFarm!.id });
   } catch (err) {
     req.log.error({ err }, "Demo login error");
     return res.status(500).json({ error: "internal" });
