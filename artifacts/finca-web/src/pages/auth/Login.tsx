@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+const CLERK_ACCOUNTS_URL = "https://true-chamois-78.accounts.dev";
+
 export function Login() {
   const { i18n } = useTranslation();
   const { signIn, isLoaded } = useSignIn();
@@ -23,19 +25,26 @@ export function Login() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!isLoaded || !signIn) return;
+    if (loading) return;
     setLoading(true);
     setError(null);
-    try {
-      await signIn.authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: `${window.location.origin}${basePath}/sign-in`,
-        redirectUrlComplete: `${window.location.origin}${basePath}/dashboard`,
-      });
-    } catch (err: any) {
-      setError(isEn ? "Could not start Google sign-in. Try again." : "No se pudo iniciar sesión con Google. Intenta de nuevo.");
-      setLoading(false);
+
+    if (isLoaded && signIn) {
+      try {
+        await signIn.authenticateWithRedirect({
+          strategy: "oauth_google",
+          redirectUrl: `${window.location.origin}${basePath}/sign-in`,
+          redirectUrlComplete: `${window.location.origin}${basePath}/dashboard`,
+        });
+        return;
+      } catch (err: any) {
+        console.warn("Clerk SDK OAuth failed, falling back to accounts portal", err);
+      }
     }
+
+    const redirectUrl = encodeURIComponent(`${window.location.origin}${basePath}/sign-in`);
+    const afterUrl = encodeURIComponent(`${window.location.origin}${basePath}/dashboard`);
+    window.location.href = `${CLERK_ACCOUNTS_URL}/sign-in?redirect_url=${redirectUrl}&after_sign_in_url=${afterUrl}`;
   };
 
   const handleDemoLogin = async () => {
@@ -96,7 +105,7 @@ export function Login() {
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              disabled={loading || !isLoaded}
+              disabled={loading}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-black/12 bg-white hover:bg-gray-50 active:bg-gray-100 shadow-sm transition-all text-[#3c4043] text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
