@@ -116,12 +116,10 @@ function Router() {
 function AppWithClerk() {
   const [, setLocation] = useLocation();
   const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
   return (
     <ClerkProvider
       publishableKey={clerkPubKey || "pk_test_placeholder"}
-      {...(clerkProxyUrl ? { proxyUrl: clerkProxyUrl } : {})}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
