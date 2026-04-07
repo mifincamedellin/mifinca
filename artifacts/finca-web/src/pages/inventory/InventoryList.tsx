@@ -6,7 +6,8 @@ import type { InventoryItem, CreateInventoryItemRequest } from "@workspace/api-c
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, PackageOpen, AlertCircle, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Search, Plus, PackageOpen, AlertCircle, ArrowUpCircle, ArrowDownCircle, Info } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -180,14 +181,34 @@ export function InventoryList() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="quantity" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('inventory.quantity')}</FormLabel>
+                      <FormLabel className="flex items-center gap-1.5">
+                        {t('inventory.quantity')}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help transition-colors" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[200px] whitespace-pre-line leading-snug">
+                            {t('inventory.quantityTip')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </FormLabel>
                       <FormControl><Input type="number" {...field} className="rounded-xl"/></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}/>
                   <FormField control={form.control} name="lowStockThreshold" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('inventory.minAlert')}</FormLabel>
+                      <FormLabel className="flex items-center gap-1.5">
+                        {t('inventory.minAlert')}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help transition-colors" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[200px] whitespace-pre-line leading-snug">
+                            {t('inventory.minAlertTip')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </FormLabel>
                       <FormControl><Input type="number" {...field} className="rounded-xl" placeholder={t('common.optional')}/></FormControl>
                     </FormItem>
                   )}/>
