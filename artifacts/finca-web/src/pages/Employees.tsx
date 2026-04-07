@@ -66,6 +66,24 @@ function formatCOP(value: number): string {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value);
 }
 
+// COP input helpers — display with . thousands separator, store raw digits
+function copDisplay(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return parseInt(digits, 10).toLocaleString("es-CO");
+}
+function copRaw(formatted: string): string {
+  return formatted.replace(/\D/g, "");
+}
+
+// Auto-format Colombian bank account numbers as XXX-XXXXXX-XX
+function formatBankAccount(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 9) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 9)}-${d.slice(9)}`;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -80,6 +98,138 @@ function getServeUrl(att: Attachment): string {
 
 function isImageMime(mime: string): boolean {
   return mime.startsWith("image/");
+}
+
+const CROP_SIZE = 240;
+
+function PhotoCropModal({ src, onConfirm, onCancel }: {
+  src: string;
+  onConfirm: (dataUrl: string) => void;
+  onCancel: () => void;
+}) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef({ mx: 0, my: 0, ox: 0, oy: 0 });
+  const [imgNatural, setImgNatural] = useState({ w: 1, h: 1 });
+  const [minScale, setMinScale] = useState(1);
+
+  const onImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+    setImgNatural({ w: natW, h: natH });
+    const cover = Math.max(CROP_SIZE / natW, CROP_SIZE / natH);
+    setMinScale(cover);
+    setScale(cover);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  const clampOffset = useCallback((ox: number, oy: number, sc: number) => {
+    const hw = (imgNatural.w * sc - CROP_SIZE) / 2;
+    const hh = (imgNatural.h * sc - CROP_SIZE) / 2;
+    return {
+      x: Math.min(hw, Math.max(-hw, ox)),
+      y: Math.min(hh, Math.max(-hh, oy)),
+    };
+  }, [imgNatural]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setDragging(true);
+    dragStart.current = { mx: e.clientX, my: e.clientY, ox: offset.x, oy: offset.y };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging) return;
+    const dx = e.clientX - dragStart.current.mx;
+    const dy = e.clientY - dragStart.current.my;
+    setOffset(clampOffset(dragStart.current.ox + dx, dragStart.current.oy + dy, scale));
+  };
+  const onPointerUp = () => setDragging(false);
+
+  const handleScaleChange = (newScale: number) => {
+    setScale(newScale);
+    setOffset(o => clampOffset(o.x, o.y, newScale));
+  };
+
+  const handleConfirm = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = CROP_SIZE;
+    canvas.height = CROP_SIZE;
+    const ctx = canvas.getContext("2d")!;
+    const { w, h } = imgNatural;
+    const srcX = w / 2 - (CROP_SIZE / 2 + offset.x) / scale;
+    const srcY = h / 2 - (CROP_SIZE / 2 + offset.y) / scale;
+    const srcW = CROP_SIZE / scale;
+    const srcH = CROP_SIZE / scale;
+    ctx.drawImage(imgRef.current!, srcX, srcY, srcW, srcH, 0, 0, CROP_SIZE, CROP_SIZE);
+    onConfirm(canvas.toDataURL("image/jpeg", 0.88));
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={onCancel}>
+      <div
+        className="bg-card rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-border/30"
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 className="font-serif font-bold text-primary text-lg mb-0.5">Ajustar foto</h3>
+        <p className="text-xs text-muted-foreground mb-4">Arrastra para encuadrar · Desliza para hacer zoom</p>
+
+        <div className="flex justify-center mb-4">
+          <div
+            className="relative overflow-hidden rounded-full border-2 border-primary/30 select-none bg-muted/30"
+            style={{ width: CROP_SIZE, height: CROP_SIZE, cursor: dragging ? "grabbing" : "grab", touchAction: "none" }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerLeave={onPointerUp}
+          >
+            <img
+              ref={imgRef}
+              src={src}
+              alt="crop preview"
+              onLoad={onImgLoad}
+              draggable={false}
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                width: imgNatural.w * scale,
+                height: imgNatural.h * scale,
+                transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+                userSelect: "none",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mb-5">
+          <span className="text-muted-foreground text-sm font-medium select-none">−</span>
+          <input
+            type="range"
+            className="flex-1 accent-primary"
+            min={minScale}
+            max={minScale * 4}
+            step={(minScale * 3) / 100}
+            value={scale}
+            onChange={e => handleScaleChange(parseFloat(e.target.value))}
+          />
+          <span className="text-muted-foreground text-sm font-medium select-none">+</span>
+        </div>
+
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="button" className="flex-1 rounded-xl" onClick={handleConfirm}>
+            Usar foto
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function useAuthBlobUrl(url: string | null): string | null {
@@ -505,6 +655,7 @@ export function Employees() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: employees = [], isLoading } = useQuery<Employee[]>({
@@ -587,9 +738,10 @@ export function Employees() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setForm(f => ({ ...f, photoUrl: reader.result as string }));
+      setCropSrc(reader.result as string);
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   // ── Totals ──
@@ -871,7 +1023,14 @@ export function Employees() {
               </div>
               <div>
                 <Label>{t("emp.salary")}</Label>
-                <Input type="number" value={form.monthlySalary} onChange={e => setForm(f => ({ ...f, monthlySalary: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={copDisplay(form.monthlySalary)}
+                  onChange={e => setForm(f => ({ ...f, monthlySalary: copRaw(e.target.value) }))}
+                  className="rounded-xl mt-1"
+                  placeholder="0"
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -881,7 +1040,15 @@ export function Employees() {
               </div>
               <div>
                 <Label>{t("emp.bankAccount")}</Label>
-                <Input value={form.bankAccount} onChange={e => setForm(f => ({ ...f, bankAccount: e.target.value }))} className="rounded-xl mt-1" placeholder="000-000000-00" />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={form.bankAccount}
+                  onChange={e => setForm(f => ({ ...f, bankAccount: formatBankAccount(e.target.value) }))}
+                  className="rounded-xl mt-1 font-mono tracking-wide"
+                  placeholder="000-000000-00"
+                  maxLength={13}
+                />
               </div>
             </div>
             <div>
@@ -914,35 +1081,35 @@ export function Employees() {
                     <ShieldCheck className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
                     {t("emp.pension")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
-                  <Input type="number" value={form.pension} onChange={e => setForm(f => ({ ...f, pension: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
+                  <Input type="text" inputMode="numeric" value={copDisplay(form.pension)} onChange={e => setForm(f => ({ ...f, pension: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
                     <HeartPulse className="h-3.5 w-3.5 text-rose-500 dark:text-rose-400" />
                     {t("emp.salud")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
-                  <Input type="number" value={form.salud} onChange={e => setForm(f => ({ ...f, salud: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
+                  <Input type="text" inputMode="numeric" value={copDisplay(form.salud)} onChange={e => setForm(f => ({ ...f, salud: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
                     <ShieldCheck className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" />
                     {t("emp.arl")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
-                  <Input type="number" value={form.arl} onChange={e => setForm(f => ({ ...f, arl: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
+                  <Input type="text" inputMode="numeric" value={copDisplay(form.arl)} onChange={e => setForm(f => ({ ...f, arl: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
                     <Receipt className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                     {t("emp.primas")} <span className="text-muted-foreground font-normal">{t("emp.perSemester")}</span>
                   </Label>
-                  <Input type="number" value={form.primas} onChange={e => setForm(f => ({ ...f, primas: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
+                  <Input type="text" inputMode="numeric" value={copDisplay(form.primas)} onChange={e => setForm(f => ({ ...f, primas: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs flex items-center gap-1.5">
                     <Coins className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                     {t("emp.cesantias")} <span className="text-muted-foreground font-normal">{t("emp.perYear")}</span>
                   </Label>
-                  <Input type="number" value={form.cesantias} onChange={e => setForm(f => ({ ...f, cesantias: e.target.value }))} className="rounded-xl mt-1" placeholder="0" min={0} />
+                  <Input type="text" inputMode="numeric" value={copDisplay(form.cesantias)} onChange={e => setForm(f => ({ ...f, cesantias: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
               </div>
             </div>
@@ -957,6 +1124,15 @@ export function Employees() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Photo crop modal */}
+      {cropSrc && (
+        <PhotoCropModal
+          src={cropSrc}
+          onConfirm={(dataUrl) => { setForm(f => ({ ...f, photoUrl: dataUrl })); setCropSrc(null); }}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteConfirm} onOpenChange={(v) => { if (!v) setDeleteConfirm(null); }}>
