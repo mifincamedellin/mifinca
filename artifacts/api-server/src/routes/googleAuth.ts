@@ -8,8 +8,9 @@ import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
-const ISSUER_URL = "https://replit.com/oidc";
 const JWT_SECRET = process.env["SESSION_SECRET"] || "finca-secret-key";
+const GOOGLE_CLIENT_ID = process.env["GOOGLE_CLIENT_ID"] ?? "";
+const GOOGLE_CLIENT_SECRET = process.env["GOOGLE_CLIENT_SECRET"] ?? "";
 
 const pendingStates = new Map<string, { createdAt: number }>();
 
@@ -24,8 +25,9 @@ let oidcConfig: oidcClient.Configuration | null = null;
 async function getConfig() {
   if (!oidcConfig) {
     oidcConfig = await oidcClient.discovery(
-      new URL(ISSUER_URL),
-      process.env.REPL_ID!,
+      new URL("https://accounts.google.com"),
+      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET,
     );
   }
   return oidcConfig;
@@ -46,6 +48,9 @@ function getCallbackBase(req: any): string {
 }
 
 router.get("/auth/google/start", async (req, res) => {
+  if (!GOOGLE_CLIENT_ID) {
+    return res.redirect("/app/login?error=google_not_configured");
+  }
   try {
     const config = await getConfig();
     const state = crypto.randomBytes(16).toString("hex");
@@ -56,10 +61,11 @@ router.get("/auth/google/start", async (req, res) => {
 
     const authUrl = new URL(config.serverMetadata().authorization_endpoint!);
     authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("client_id", process.env.REPL_ID!);
+    authUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID);
     authUrl.searchParams.set("redirect_uri", callbackUrl);
     authUrl.searchParams.set("scope", "openid profile email");
     authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("access_type", "offline");
 
     res.cookie("oauth_state", state, {
       httpOnly: true,
@@ -118,20 +124,19 @@ router.get("/auth/google/callback", async (req, res) => {
     const claims = tokens.claims();
     if (!claims) throw new Error("No claims in token");
 
-    const replId = String(claims.sub);
+    const googleId = String(claims.sub);
     const email = String(claims.email ?? "");
     const firstName = String(claims.given_name ?? "");
     const lastName = String(claims.family_name ?? "");
     const fullName =
       [firstName, lastName].filter(Boolean).join(" ") ||
       String(claims.name ?? "") ||
-      String(claims.preferred_username ?? "") ||
       email;
 
     let profile = await db
       .select()
       .from(profilesTable)
-      .where(eq(profilesTable.clerkId, `replit:${replId}`))
+      .where(eq(profilesTable.clerkId, `google:${googleId}`))
       .limit(1);
 
     if (profile.length === 0 && email) {
@@ -146,7 +151,7 @@ router.get("/auth/google/callback", async (req, res) => {
       const id = crypto.randomUUID();
       await db.insert(profilesTable).values({
         id,
-        clerkId: `replit:${replId}`,
+        clerkId: `google:${googleId}`,
         email,
         fullName,
         role: "owner",
@@ -157,13 +162,11 @@ router.get("/auth/google/callback", async (req, res) => {
         .from(profilesTable)
         .where(eq(profilesTable.id, id))
         .limit(1);
-    } else {
-      if (profile[0]!.clerkId !== `replit:${replId}`) {
-        await db
-          .update(profilesTable)
-          .set({ clerkId: `replit:${replId}`, updatedAt: new Date() })
-          .where(eq(profilesTable.id, profile[0]!.id));
-      }
+    } else if (profile[0]!.clerkId !== `google:${googleId}`) {
+      await db
+        .update(profilesTable)
+        .set({ clerkId: `google:${googleId}`, updatedAt: new Date() })
+        .where(eq(profilesTable.id, profile[0]!.id));
     }
 
     const profileId = profile[0]!.id;
