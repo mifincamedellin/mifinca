@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSignIn } from "@clerk/react";
 import { useStore } from "@/lib/store";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -8,11 +7,8 @@ import { motion } from "framer-motion";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-const CLERK_ACCOUNTS_URL = "https://true-chamois-78.accounts.dev";
-
 export function Login() {
   const { i18n } = useTranslation();
-  const { signIn, isLoaded } = useSignIn();
   const { setToken, setActiveFarmId } = useStore();
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
@@ -24,27 +20,10 @@ export function Login() {
     i18n.changeLanguage(isEn ? "es" : "en");
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     if (loading) return;
     setLoading(true);
-    setError(null);
-
-    if (isLoaded && signIn) {
-      try {
-        await signIn.authenticateWithRedirect({
-          strategy: "oauth_google",
-          redirectUrl: `${window.location.origin}${basePath}/sign-in`,
-          redirectUrlComplete: `${window.location.origin}${basePath}/dashboard`,
-        });
-        return;
-      } catch (err: any) {
-        console.warn("Clerk SDK OAuth failed, falling back to accounts portal", err);
-      }
-    }
-
-    const redirectUrl = encodeURIComponent(`${window.location.origin}${basePath}/sign-in`);
-    const afterUrl = encodeURIComponent(`${window.location.origin}${basePath}/dashboard`);
-    window.location.href = `${CLERK_ACCOUNTS_URL}/sign-in?redirect_url=${redirectUrl}&after_sign_in_url=${afterUrl}`;
+    window.location.href = "/api/auth/google/start";
   };
 
   const handleDemoLogin = async () => {

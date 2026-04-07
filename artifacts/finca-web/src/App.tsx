@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, useAuth } from "@clerk/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ClerkProvider } from "@clerk/react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -35,57 +35,33 @@ function stripBase(path: string): string {
     : path;
 }
 
-// Syncs a new Clerk user's profile + farm to the backend once per sign-in
-function ClerkSyncer() {
-  const { isSignedIn } = useAuth();
-  const { setActiveFarmId } = useStore();
-  const qc = useQueryClient();
-  const synced = useRef(false);
+function OAuthCallbackHandler() {
+  const { setToken, setActiveFarmId } = useStore();
+  const [, setLocation] = useLocation();
+  const handled = useRef(false);
 
   useEffect(() => {
-    if (!isSignedIn || synced.current) return;
-    synced.current = true;
-    fetch("/api/auth/clerk-sync", { method: "POST" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.defaultFarmId) {
-          setActiveFarmId(data.defaultFarmId);
-          qc.invalidateQueries();
-        }
-      })
-      .catch(console.error);
-  }, [isSignedIn]);
+    if (handled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("_auth_token");
+    const farmId = params.get("_farm_id");
+    const errorParam = params.get("error");
 
-  useEffect(() => {
-    if (!isSignedIn) synced.current = false;
-  }, [isSignedIn]);
+    if (token) {
+      handled.current = true;
+      setToken(token);
+      if (farmId) setActiveFarmId(farmId);
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+      setLocation("/dashboard");
+    } else if (errorParam) {
+      handled.current = true;
+      window.history.replaceState({}, "", window.location.pathname);
+      setLocation(`/login?error=${encodeURIComponent(errorParam)}`);
+    }
+  }, []);
 
   return null;
-}
-
-// Clears query cache when Clerk user changes (e.g. sign-out → sign-in as different user)
-function ClerkCacheInvalidator() {
-  const { userId } = useAuth();
-  const qc = useQueryClient();
-  const prevId = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
-    if (prevId.current !== undefined && prevId.current !== userId) qc.clear();
-    prevId.current = userId;
-  }, [userId]);
-  return null;
-}
-
-function SignInPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignIn
-        routing="path"
-        path={`${basePath}/sign-in`}
-        signUpUrl={`${basePath}/sign-in`}
-        forceRedirectUrl={`${basePath}/dashboard`}
-      />
-    </div>
-  );
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ElementType }) {
@@ -94,22 +70,24 @@ function ProtectedRoute({ component: Component }: { component: React.ElementType
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/login" component={Login} />
-      <Route path="/sign-in/*?" component={SignInPage} />
-      <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
-      <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
-      <Route path="/animals" component={() => <ProtectedRoute component={AnimalList} />} />
-      <Route path="/animals/:id" component={() => <ProtectedRoute component={AnimalDetail} />} />
-      <Route path="/inventory" component={() => <ProtectedRoute component={InventoryList} />} />
-      <Route path="/land" component={() => <ProtectedRoute component={Land} />} />
-      <Route path="/finances" component={() => <ProtectedRoute component={Finances} />} />
-      <Route path="/contacts" component={() => <ProtectedRoute component={Contacts} />} />
-      <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
-      <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
-      <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <OAuthCallbackHandler />
+      <Switch>
+        <Route path="/login" component={Login} />
+        <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
+        <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+        <Route path="/animals" component={() => <ProtectedRoute component={AnimalList} />} />
+        <Route path="/animals/:id" component={() => <ProtectedRoute component={AnimalDetail} />} />
+        <Route path="/inventory" component={() => <ProtectedRoute component={InventoryList} />} />
+        <Route path="/land" component={() => <ProtectedRoute component={Land} />} />
+        <Route path="/finances" component={() => <ProtectedRoute component={Finances} />} />
+        <Route path="/contacts" component={() => <ProtectedRoute component={Contacts} />} />
+        <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
+        <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
+        <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
+        <Route component={NotFound} />
+      </Switch>
+    </>
   );
 }
 
@@ -123,8 +101,6 @@ function AppWithClerk() {
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
-      <ClerkSyncer />
-      <ClerkCacheInvalidator />
       <Router />
     </ClerkProvider>
   );

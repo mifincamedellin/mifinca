@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health.js";
 import authRouter from "./auth.js";
+import googleAuthRouter from "./googleAuth.js";
 import farmsRouter from "./farms.js";
 import animalsRouter from "./animals.js";
 import inventoryRouter from "./inventory.js";
@@ -18,6 +19,7 @@ import invitationsRouter from "./invitations.js";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(googleAuthRouter);
 router.use(authRouter);
 router.use(farmsRouter);
 router.use(animalsRouter);
