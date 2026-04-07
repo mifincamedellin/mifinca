@@ -98,6 +98,7 @@ export function Finances() {
   const [editRow, setEditRow]     = useState<Transaction | null>(null);
   const [form, setForm]           = useState(EMPTY_FORM);
   const [filterType, setFilterType] = useState("all");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [period, setPeriod]       = useState<Period>("month");
 
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
@@ -131,7 +132,7 @@ export function Finances() {
     mutationFn: async (id: string) => {
       await fetch(`/api/farms/${activeFarmId}/finances/${id}`, { method: "DELETE" });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["finances", activeFarmId] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["finances", activeFarmId] }); setDeleteConfirm(null); },
   });
 
   const openNew  = () => { setEditRow(null); setForm(EMPTY_FORM); setShowForm(true); };
@@ -359,7 +360,7 @@ export function Finances() {
                         <button onClick={() => openEdit(row)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => deleteMut.mutate(row.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-muted-foreground hover:text-red-600">
+                        <button onClick={() => setDeleteConfirm(row.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-muted-foreground hover:text-red-600">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -443,6 +444,44 @@ export function Finances() {
                     {saveMut.isPending ? t("common.saving") : t("common.save")}
                   </Button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete confirmation */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+            onClick={e => e.target === e.currentTarget && setDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-border/30"
+            >
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
+                <div className="p-3 bg-red-100 rounded-full">
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                </div>
+                <h2 className="text-lg font-serif font-bold text-destructive">{t("fin.confirmDelete")}</h2>
+                <p className="text-sm text-muted-foreground">{t("fin.confirmDeleteDesc")}</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setDeleteConfirm(null)}>
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 rounded-xl"
+                  disabled={deleteMut.isPending}
+                  onClick={() => deleteConfirm && deleteMut.mutate(deleteConfirm)}
+                >
+                  {t("fin.delete")}
+                </Button>
               </div>
             </motion.div>
           </motion.div>

@@ -50,6 +50,7 @@ export function Contacts() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["contacts", activeFarmId],
@@ -80,7 +81,7 @@ export function Contacts() {
     mutationFn: async (id: string) => {
       await fetch(`/api/farms/${activeFarmId}/contacts/${id}`, { method: "DELETE" });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts", activeFarmId] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["contacts", activeFarmId] }); setDeleteConfirm(null); },
   });
 
   const openNew = () => { setEditRow(null); setForm(EMPTY_FORM); setShowForm(true); };
@@ -180,7 +181,7 @@ export function Contacts() {
                       <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => deleteMut.mutate(c.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-muted-foreground hover:text-red-600">
+                      <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-muted-foreground hover:text-red-600">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -213,7 +214,45 @@ export function Contacts() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Delete confirmation */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+            onClick={e => e.target === e.currentTarget && setDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-border/30"
+            >
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
+                <div className="p-3 bg-red-100 rounded-full">
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                </div>
+                <h2 className="text-lg font-serif font-bold text-destructive">{t("contacts.confirmDelete")}</h2>
+                <p className="text-sm text-muted-foreground">{t("contacts.confirmDeleteDesc")}</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setDeleteConfirm(null)}>
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 rounded-xl"
+                  disabled={deleteMut.isPending}
+                  onClick={() => deleteConfirm && deleteMut.mutate(deleteConfirm)}
+                >
+                  {t("contacts.delete")}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit/New Modal */}
       <AnimatePresence>
         {showForm && (
           <motion.div
