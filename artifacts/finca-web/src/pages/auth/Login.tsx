@@ -92,7 +92,7 @@ export function Login() {
       >
         <Card className="p-8 shadow-2xl bg-card/95 backdrop-blur-xl border-white/20 rounded-2xl">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-serif text-primary font-bold mb-2">Finca</h1>
+            <h1 className="text-4xl font-serif text-primary font-bold mb-2">miFinca</h1>
             <p className="text-muted-foreground text-sm">
               {isEn ? "Sign in to manage your farm" : "Inicia sesión para gestionar tu finca"}
             </p>
