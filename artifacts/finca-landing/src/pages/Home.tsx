@@ -317,7 +317,7 @@ export default function Home() {
               {lang === "es" ? "ES" : "EN"}
             </button>
             <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 hover-elevate rounded-full px-6">
-              <a href={`${APP_URL}/register`}>{t.nav.cta}</a>
+              <a href={`${APP_URL}/login`}>{t.nav.cta}</a>
             </Button>
           </nav>
 
@@ -359,7 +359,7 @@ export default function Home() {
             {lang === "es" ? "Switch to English" : "Cambiar a Español"}
           </button>
           <Button asChild className="bg-primary text-primary-foreground w-full py-6 text-lg mt-4 rounded-xl">
-            <a href={`${APP_URL}/register`}>{t.nav.cta}</a>
+            <a href={`${APP_URL}/login`}>{t.nav.cta}</a>
           </Button>
         </div>
       )}
@@ -387,7 +387,7 @@ export default function Home() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate">
-                    <a href={`${APP_URL}/register`}>{t.hero.ctaPrimary}</a>
+                    <a href={`${APP_URL}/login`}>{t.hero.ctaPrimary}</a>
                   </Button>
                   <Button asChild variant="outline" className="h-14 px-8 rounded-full text-base font-medium border-border hover:bg-muted hover-elevate">
                     <a href={`${APP_URL}/login?demo=true`}>{t.hero.ctaSecondary}</a>
@@ -575,7 +575,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <Button asChild variant="outline" className="w-full rounded-full h-12">
-                  <a href={`${APP_URL}/register`}>{t.pricing.tiers[0].cta}</a>
+                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[0].cta}</a>
                 </Button>
               </div>
 
@@ -603,7 +603,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full rounded-full h-12">
-                  <a href={`${APP_URL}/register`}>{t.pricing.tiers[1].cta}</a>
+                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[1].cta}</a>
                 </Button>
               </div>
 
@@ -623,7 +623,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <Button asChild variant="outline" className="w-full rounded-full h-12">
-                  <a href={`${APP_URL}/register`}>{t.pricing.tiers[2].cta}</a>
+                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[2].cta}</a>
                 </Button>
               </div>
             </div>
@@ -645,7 +645,7 @@ export default function Home() {
                     {t.lifestyle.heading} <br /> {t.lifestyle.headingLine2}
                   </h2>
                   <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate border-none">
-                    <a href={`${APP_URL}/register`}>{t.lifestyle.cta}</a>
+                    <a href={`${APP_URL}/login`}>{t.lifestyle.cta}</a>
                   </Button>
                 </div>
               </div>
