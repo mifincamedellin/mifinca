@@ -26,6 +26,15 @@ interface Transaction {
 
 type Period = "all" | "year" | "6m" | "3m" | "last" | "month";
 
+function copDisplay(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return parseInt(digits, 10).toLocaleString("es-CO");
+}
+function copRaw(formatted: string): string {
+  return formatted.replace(/\D/g, "");
+}
+
 const INCOME_CATEGORIES = ["venta_animales", "venta_leche", "venta_cosecha", "subsidio", "otro_ingreso"];
 const EXPENSE_CATEGORIES = ["alimentacion", "medicamentos", "mano_obra", "maquinaria", "servicios", "insumos", "transporte", "otro_gasto"];
 
@@ -138,7 +147,7 @@ export function Finances() {
   const openNew  = () => { setEditRow(null); setForm(EMPTY_FORM); setShowForm(true); };
   const openEdit = (row: Transaction) => {
     setEditRow(row);
-    setForm({ type: row.type, category: row.category, amount: row.amount, description: row.description, date: row.date, notes: row.notes ?? "" });
+    setForm({ type: row.type, category: row.category, amount: Math.round(parseFloat(row.amount) || 0).toString(), description: row.description, date: row.date, notes: row.notes ?? "" });
     setShowForm(true);
   };
   const closeForm = () => { setShowForm(false); setEditRow(null); };
@@ -428,7 +437,7 @@ export function Finances() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">{t("fin.col.amount")} (COP)</label>
-                  <Input type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" className="rounded-xl" />
+                  <Input type="text" inputMode="numeric" value={copDisplay(form.amount)} onChange={e => setForm(f => ({ ...f, amount: copRaw(e.target.value) }))} placeholder="0" className="rounded-xl" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">{t("fin.form.notes")}</label>
