@@ -1,6 +1,6 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
-import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable } from "@workspace/db";
+import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable, activityLogTable } from "@workspace/db";
 import { eq, and, lt, sql } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
@@ -28,6 +28,7 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
     const { farmId } = req.params as { farmId: string };
     const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes,
             pension, salud, arl, primas, cesantias, photoUrl } = req.body;
+    const userId = (req as AuthedReq).userId;
     const employee = await db.insert(employeesTable).values({
       farmId,
       name,
@@ -45,6 +46,15 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
       cesantias: cesantias ? String(cesantias) : "0",
       photoUrl: photoUrl || null,
     }).returning();
+
+    await db.insert(activityLogTable).values({
+      farmId, userId,
+      actionType: "created",
+      entityType: "employee",
+      entityId: employee[0]!.id,
+      description: `Added employee: ${name}`,
+    });
+
     return res.status(201).json(employee[0]);
   } catch (err) {
     req.log.error({ err }, "Create employee error");
@@ -55,6 +65,7 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
 router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
+    const userId = (req as AuthedReq).userId;
     const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes,
             pension, salud, arl, primas, cesantias, photoUrl } = req.body;
     const updated = await db.update(employeesTable).set({
@@ -75,6 +86,15 @@ router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAcces
       updatedAt: new Date(),
     }).where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId))).returning();
     if (!updated[0]) return res.status(404).json({ error: "not_found" });
+
+    await db.insert(activityLogTable).values({
+      farmId, userId,
+      actionType: "updated",
+      entityType: "employee",
+      entityId: employeeId,
+      description: `Updated employee: ${name}`,
+    });
+
     return res.json(updated[0]);
   } catch (err) {
     req.log.error({ err }, "Update employee error");
@@ -85,8 +105,25 @@ router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAcces
 router.delete("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
+    const userId = (req as AuthedReq).userId;
+
+    const [emp] = await db.select().from(employeesTable)
+      .where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId)))
+      .limit(1);
+
     await db.delete(employeesTable)
       .where(and(eq(employeesTable.id, employeeId), eq(employeesTable.farmId, farmId)));
+
+    if (emp) {
+      await db.insert(activityLogTable).values({
+        farmId, userId,
+        actionType: "deleted",
+        entityType: "employee",
+        entityId: employeeId,
+        description: `Removed employee: ${emp.name}`,
+      });
+    }
+
     return res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "Delete employee error");

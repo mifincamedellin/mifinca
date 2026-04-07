@@ -1,6 +1,6 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
-import { financeTransactionsTable, farmMembersTable } from "@workspace/db";
+import { financeTransactionsTable, farmMembersTable, activityLogTable } from "@workspace/db";
 import { eq, and, desc, gte, lte } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
@@ -33,6 +33,7 @@ router.get("/farms/:farmId/finances", requireAuth, requireFarmAccess, async (req
 router.post("/farms/:farmId/finances", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
+    const userId = (req as AuthedReq).userId;
     const { type, category, amount, description, date, notes } = req.body;
 
     if (!type || !category || !amount || !description || !date) {
@@ -49,6 +50,14 @@ router.post("/farms/:farmId/finances", requireAuth, requireFarmAccess, async (re
       notes: notes || null,
     }).returning();
 
+    await db.insert(activityLogTable).values({
+      farmId, userId,
+      actionType: "created",
+      entityType: "finance",
+      entityId: row!.id,
+      description: `Added ${type === "income" ? "income" : "expense"}: ${description}`,
+    });
+
     return res.status(201).json(row);
   } catch (err) {
     req.log.error({ err }, "Create finance error");
@@ -60,6 +69,7 @@ router.post("/farms/:farmId/finances", requireAuth, requireFarmAccess, async (re
 router.put("/farms/:farmId/finances/:id", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { id, farmId } = req.params as Record<string, string>;
+    const userId = (req as AuthedReq).userId;
     const { type, category, amount, description, date, notes } = req.body;
 
     const [row] = await db.update(financeTransactionsTable)
@@ -68,6 +78,15 @@ router.put("/farms/:farmId/finances/:id", requireAuth, requireFarmAccess, async 
       .returning();
 
     if (!row) return res.status(404).json({ error: "Not found" });
+
+    await db.insert(activityLogTable).values({
+      farmId: farmId!, userId,
+      actionType: "updated",
+      entityType: "finance",
+      entityId: id,
+      description: `Updated ${type === "income" ? "income" : "expense"}: ${description}`,
+    });
+
     return res.json(row);
   } catch (err) {
     req.log.error({ err }, "Update finance error");
@@ -79,8 +98,25 @@ router.put("/farms/:farmId/finances/:id", requireAuth, requireFarmAccess, async 
 router.delete("/farms/:farmId/finances/:id", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { id, farmId } = req.params as Record<string, string>;
+    const userId = (req as AuthedReq).userId;
+
+    const [txn] = await db.select().from(financeTransactionsTable)
+      .where(and(eq(financeTransactionsTable.id, id), eq(financeTransactionsTable.farmId, farmId!)))
+      .limit(1);
+
     await db.delete(financeTransactionsTable)
       .where(and(eq(financeTransactionsTable.id, id), eq(financeTransactionsTable.farmId, farmId!)));
+
+    if (txn) {
+      await db.insert(activityLogTable).values({
+        farmId: farmId!, userId,
+        actionType: "deleted",
+        entityType: "finance",
+        entityId: id,
+        description: `Removed ${txn.type === "income" ? "income" : "expense"}: ${txn.description}`,
+      });
+    }
+
     return res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "Delete finance error");

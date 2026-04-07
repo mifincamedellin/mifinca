@@ -1,6 +1,6 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
-import { contactsTable, farmMembersTable } from "@workspace/db";
+import { contactsTable, farmMembersTable, activityLogTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
@@ -35,6 +35,7 @@ router.get("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (req
 router.post("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
+    const userId = (req as AuthedReq).userId;
     const { name, phone, email, category, notes } = req.body;
 
     if (!name) return res.status(400).json({ error: "Name is required" });
@@ -48,6 +49,14 @@ router.post("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (re
       notes: notes || null,
     }).returning();
 
+    await db.insert(activityLogTable).values({
+      farmId, userId,
+      actionType: "created",
+      entityType: "contact",
+      entityId: row!.id,
+      description: `Added contact: ${name}`,
+    });
+
     return res.status(201).json(row);
   } catch (err) {
     req.log.error({ err }, "Create contact error");
@@ -59,6 +68,7 @@ router.post("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (re
 router.put("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { id, farmId } = req.params as Record<string, string>;
+    const userId = (req as AuthedReq).userId;
     const { name, phone, email, category, notes } = req.body;
 
     const [row] = await db.update(contactsTable)
@@ -67,6 +77,15 @@ router.put("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, async 
       .returning();
 
     if (!row) return res.status(404).json({ error: "Not found" });
+
+    await db.insert(activityLogTable).values({
+      farmId: farmId!, userId,
+      actionType: "updated",
+      entityType: "contact",
+      entityId: id,
+      description: `Updated contact: ${name}`,
+    });
+
     return res.json(row);
   } catch (err) {
     req.log.error({ err }, "Update contact error");
@@ -78,8 +97,25 @@ router.put("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, async 
 router.delete("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { id, farmId } = req.params as Record<string, string>;
+    const userId = (req as AuthedReq).userId;
+
+    const [contact] = await db.select().from(contactsTable)
+      .where(and(eq(contactsTable.id, id), eq(contactsTable.farmId, farmId!)))
+      .limit(1);
+
     await db.delete(contactsTable)
       .where(and(eq(contactsTable.id, id), eq(contactsTable.farmId, farmId!)));
+
+    if (contact) {
+      await db.insert(activityLogTable).values({
+        farmId: farmId!, userId,
+        actionType: "deleted",
+        entityType: "contact",
+        entityId: id,
+        description: `Removed contact: ${contact.name}`,
+      });
+    }
+
     return res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "Delete contact error");

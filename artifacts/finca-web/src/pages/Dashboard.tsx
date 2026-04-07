@@ -500,18 +500,28 @@ export function Dashboard() {
           )}
         </div>
         <div className="space-y-5">
-          {activity && activity.length > 0 ? activity.map((item, i) => (
-            <div key={item.id} className="relative pl-6">
-              {i !== activity.length - 1 && (
-                <div className="absolute left-[7px] top-6 bottom-[-20px] w-0.5 bg-border/60" />
-              )}
-              <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-background bg-secondary" />
-              <p className="text-sm font-medium text-foreground">{item.description || item.actionType}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {format(new Date(item.createdAt || ""), "dd MMM, HH:mm")} · {item.profile?.fullName || (isEn ? "User" : "Usuario")}
-              </p>
-            </div>
-          )) : (
+          {activity && activity.length > 0 ? activity.map((item, i) => {
+            const dotColor =
+              item.actionType === "deleted"
+                ? "bg-destructive"
+                : item.actionType === "created" || item.actionType === "inventory_added"
+                  ? "bg-emerald-500"
+                  : item.actionType?.startsWith("inventory_")
+                    ? "bg-accent"
+                    : "bg-secondary";
+            return (
+              <div key={item.id} className="relative pl-6">
+                {i !== activity.length - 1 && (
+                  <div className="absolute left-[7px] top-6 bottom-[-20px] w-0.5 bg-border/60" />
+                )}
+                <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-background ${dotColor}`} />
+                <p className="text-sm font-medium text-foreground">{item.description || item.actionType}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {format(new Date(item.createdAt || ""), "dd MMM, HH:mm")} · {item.profile?.fullName || (isEn ? "User" : "Usuario")}
+                </p>
+              </div>
+            );
+          }) : (
             <p className="text-sm text-muted-foreground text-center py-8">{t("dashboard.noActivity")}</p>
           )}
         </div>
