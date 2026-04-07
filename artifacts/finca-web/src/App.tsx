@@ -10,6 +10,19 @@ import { useStore } from "@/lib/store";
 import "@/lib/fetch-interceptor";
 import "@/lib/i18n";
 
+// ── Synchronous OAuth callback hydration ─────────────────────────────────────
+// Read _auth_token and _farm_id from the URL *before* the first React render
+// so AppLayout sees the token immediately and never shows a blank screen.
+{
+  const _p = new URLSearchParams(window.location.search);
+  const _t = _p.get("_auth_token");
+  const _f = _p.get("_farm_id");
+  if (_t) {
+    useStore.setState({ token: _t, activeFarmId: _f ?? null });
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+}
+
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Login } from "@/pages/auth/Login";
 import { Dashboard } from "@/pages/Dashboard";

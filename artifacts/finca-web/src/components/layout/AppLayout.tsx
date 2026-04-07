@@ -81,8 +81,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
     }
   }, [farms, activeFarmId, setActiveFarmId]);
 
-  // Not yet ready
-  if (!clerkLoaded || !isAuthenticated) return null;
+  // If we have a JWT token (Google OAuth / demo), show immediately — no need
+  // to wait for Clerk to initialise.  Only gate on clerkLoaded when the user
+  // relies on a Clerk session rather than our own JWT.
+  if (!token && !clerkLoaded) return null;
+  if (!isAuthenticated) return null;
 
   const style = {
     "--sidebar-width": "16rem",
