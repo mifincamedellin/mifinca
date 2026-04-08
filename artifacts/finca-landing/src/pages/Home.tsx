@@ -96,7 +96,7 @@ const translations = {
         {
           name: "Semilla",
           desc: "Para empezar a organizarse.",
-          features: ["1 finca", "Hasta 15 animales", "Control básico", "Sin asesor IA"],
+          features: ["1 finca", "Hasta 10 animales", "1 empleado", "1 contacto", "Sin asesor IA"],
           cta: "Empezar gratis",
         },
         {
@@ -208,7 +208,7 @@ const translations = {
         {
           name: "Seed",
           desc: "To start getting organized.",
-          features: ["1 farm", "Up to 15 animals", "Basic tracking", "No AI Advisor"],
+          features: ["1 farm", "Up to 10 animals", "1 employee", "1 contact", "No AI Advisor"],
           cta: "Start for free",
         },
         {
