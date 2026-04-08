@@ -396,13 +396,13 @@ export default function Home() {
               </div>
               <div className="mt-8 flex items-center gap-4 text-sm text-muted-foreground justify-center">
                 <div className="flex -space-x-2">
-                  {[1, 2, 3].map((i) => (
-                    <div
+                  {["avatar-1.png", "avatar-2.png", "avatar-3.png"].map((file, i) => (
+                    <img
                       key={i}
-                      className="w-8 h-8 rounded-full border-2 border-background bg-card flex items-center justify-center text-xs font-medium"
-                    >
-                      {String.fromCharCode(64 + i)}
-                    </div>
+                      src={`${getBaseUrl()}/images/${file}`}
+                      alt="Farmer"
+                      className="w-8 h-8 rounded-full border-2 border-background object-cover object-top"
+                    />
                   ))}
                 </div>
                 <p>{t.hero.social}</p>
