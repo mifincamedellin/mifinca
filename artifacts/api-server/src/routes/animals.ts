@@ -357,4 +357,33 @@ router.put("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, re
   }
 });
 
+router.delete("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+
+    const [animal] = await db.select().from(animalsTable)
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId)))
+      .limit(1);
+
+    await db.delete(animalsTable)
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId)));
+
+    if (animal) {
+      await db.insert(activityLogTable).values({
+        farmId, userId,
+        actionType: "deleted",
+        entityType: "animal",
+        entityId: animalId,
+        description: `Removed animal: ${animal.name ?? animal.customTag ?? animal.species}`,
+      });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Delete animal error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 export default router;

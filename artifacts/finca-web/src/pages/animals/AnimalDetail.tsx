@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord } from "@workspace/api-client-react";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp } from "lucide-react";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -75,11 +75,13 @@ export function AnimalDetail() {
   const isEn = i18n.language === "en";
   const qc = useQueryClient();
 
+  const [, setLocation] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
   const [medicalOpen, setMedicalOpen] = useState(false);
   const [editingMedical, setEditingMedical] = useState<any | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: animal, isLoading, refetch } = useGetAnimal(activeFarmId || '', id || '', {
@@ -166,6 +168,17 @@ export function AnimalDetail() {
       });
       if (!res.ok) throw new Error("update failed");
       return res.json();
+    },
+  });
+
+  const deleteAnimal = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("delete failed");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/animals`] });
+      setLocation("/animals");
     },
   });
 
@@ -312,14 +325,45 @@ export function AnimalDetail() {
             {animal.species} • {animal.sex || t('animals.unknownSex')}
           </p>
         </div>
-        <Button
-          variant="outline"
-          className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover-elevate"
-          onClick={() => { setPhotoPreview(null); setEditOpen(true); }}
-        >
-          <Edit className="h-4 w-4 mr-2" /> {t('animals.edit')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover-elevate"
+            onClick={() => { setPhotoPreview(null); setEditOpen(true); }}
+          >
+            <Edit className="h-4 w-4 mr-2" /> {t('animals.edit')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 hover-elevate"
+            onClick={() => setDeleteConfirm(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Delete confirmation */}
+      <Dialog open={deleteConfirm} onOpenChange={(v) => { if (!v) setDeleteConfirm(false); }}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-destructive">{t('animals.confirmDelete')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('animals.confirmDeleteDesc')}</p>
+          <div className="flex gap-3 mt-2">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setDeleteConfirm(false)}>{t('common.cancel')}</Button>
+            <Button
+              variant="destructive"
+              className="flex-1 rounded-xl"
+              disabled={deleteAnimal.isPending}
+              onClick={() => deleteAnimal.mutate()}
+            >
+              {t('common.delete')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={(v) => { setEditOpen(v); if (!v) setPhotoPreview(null); }}>

@@ -96,6 +96,7 @@ router.get("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, a
 router.put("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, itemId } = req.params as { farmId: string; itemId: string };
+    const userId = (req as AuthedReq).userId;
     const { category, name, quantity, unit, lowStockThreshold, costPerUnitCop, supplierName, supplierContact, expirationDate, notes } = req.body;
 
     const updated = await db.update(inventoryItemsTable)
@@ -110,6 +111,16 @@ router.put("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, a
       })
       .where(and(eq(inventoryItemsTable.id, itemId), eq(inventoryItemsTable.farmId, farmId)))
       .returning();
+
+    if (updated[0]) {
+      await db.insert(activityLogTable).values({
+        farmId, userId,
+        actionType: "updated",
+        entityType: "inventory",
+        entityId: itemId,
+        description: `Updated inventory: ${updated[0].name}`,
+      });
+    }
 
     return res.json({ ...updated[0], status: computeStatus(updated[0]!) });
   } catch (err) {
@@ -153,6 +164,35 @@ router.post("/farms/:farmId/inventory/:itemId/log", requireAuth, requireFarmAcce
     return res.status(201).json(log[0]);
   } catch (err) {
     req.log.error({ err }, "Log inventory error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.delete("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, itemId } = req.params as { farmId: string; itemId: string };
+    const userId = (req as AuthedReq).userId;
+
+    const [item] = await db.select().from(inventoryItemsTable)
+      .where(and(eq(inventoryItemsTable.id, itemId), eq(inventoryItemsTable.farmId, farmId)))
+      .limit(1);
+
+    await db.delete(inventoryItemsTable)
+      .where(and(eq(inventoryItemsTable.id, itemId), eq(inventoryItemsTable.farmId, farmId)));
+
+    if (item) {
+      await db.insert(activityLogTable).values({
+        farmId, userId,
+        actionType: "deleted",
+        entityType: "inventory",
+        entityId: itemId,
+        description: `Removed inventory: ${item.name}`,
+      });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Delete inventory error");
     return res.status(500).json({ error: "internal" });
   }
 });

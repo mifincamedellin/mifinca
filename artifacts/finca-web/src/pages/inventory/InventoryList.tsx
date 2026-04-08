@@ -6,7 +6,7 @@ import type { InventoryItem, CreateInventoryItemRequest } from "@workspace/api-c
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, PackageOpen, AlertCircle, ArrowUpCircle, ArrowDownCircle, Info } from "lucide-react";
+import { Search, Plus, PackageOpen, AlertCircle, ArrowUpCircle, ArrowDownCircle, Info, Trash2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -38,7 +38,19 @@ export function InventoryList() {
   const [adjustOp, setAdjustOp] = useState<"add" | "use">("add");
   const [adjustAmt, setAdjustAmt] = useState("");
   const [adjustNotes, setAdjustNotes] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const deleteItem = useMutation({
+    mutationFn: async (itemId: string) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/inventory/${itemId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("delete failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/inventory`] });
+      setDeleteConfirm(null);
+    },
+  });
 
   const adjustMut = useMutation({
     mutationFn: async ({ itemId, change, notes }: { itemId: string; change: number; notes: string }) => {
@@ -276,14 +288,24 @@ export function InventoryList() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary hover:text-accent hover:bg-accent/10 rounded-lg"
-                        onClick={() => openAdjust(item)}
-                      >
-                        {t('inventory.adjust')}
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary hover:text-accent hover:bg-accent/10 rounded-lg"
+                          onClick={() => openAdjust(item)}
+                        >
+                          {t('inventory.adjust')}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/8"
+                          onClick={() => setDeleteConfirm(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -426,6 +448,27 @@ export function InventoryList() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(v) => { if (!v) setDeleteConfirm(null); }}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-destructive">{t('inventory.confirmDelete')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('inventory.confirmDeleteDesc')}</p>
+          <div className="flex gap-3 mt-2">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setDeleteConfirm(null)}>{t('common.cancel')}</Button>
+            <Button
+              variant="destructive"
+              className="flex-1 rounded-xl"
+              disabled={deleteItem.isPending}
+              onClick={() => deleteConfirm && deleteItem.mutate(deleteConfirm)}
+            >
+              {t('common.delete')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
