@@ -111,7 +111,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAuthenticated = !!token || !!isSignedIn;
 
   const { data: user, isError: authFailed } = useGetMe({
-    query: { enabled: isAuthenticated, retry: false }
+    query: { enabled: isAuthenticated, retry: 3, retryDelay: 2000 }
   });
 
   const { data: farms } = useListFarms({

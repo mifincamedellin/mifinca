@@ -119,7 +119,7 @@ router.post("/auth/login", async (req, res) => {
       .innerJoin(farmsTable, eq(farmMembersTable.farmId, farmsTable.id))
       .where(eq(farmMembersTable.userId, user.id)).limit(1);
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "30d" });
     return res.json({
       token,
       user: { id: user.id, email: user.email, fullName: profile[0]?.fullName, role: profile[0]?.role },
