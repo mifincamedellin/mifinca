@@ -409,8 +409,30 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Product screenshot — Apple-style browser frame */}
-            <div className="mt-16 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 -mx-6 md:mx-0">
+            {/* Mobile: Phone frame */}
+            <div className="md:hidden mt-12 flex justify-center animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+              <div className="relative w-[260px]">
+                {/* Volume buttons */}
+                <div className="absolute -left-[3px] top-[88px] w-[3px] h-7 bg-foreground/20 rounded-l-full"></div>
+                <div className="absolute -left-[3px] top-[124px] w-[3px] h-7 bg-foreground/20 rounded-l-full"></div>
+                {/* Power button */}
+                <div className="absolute -right-[3px] top-[104px] w-[3px] h-10 bg-foreground/20 rounded-r-full"></div>
+                {/* Phone shell */}
+                <div className="rounded-[44px] overflow-hidden border-[10px] border-foreground/[0.12] bg-foreground/5 shadow-[0_40px_80px_-8px_rgba(0,0,0,0.28),0_0_0_1px_rgba(0,0,0,0.06)]" style={{ aspectRatio: "9/19.5" }}>
+                  {/* Screenshot — crops to show sidebar + stats */}
+                  <img
+                    src={`${getBaseUrl()}/images/dashboard-ui.png`}
+                    alt="miFinca dashboard"
+                    className="w-full h-full object-cover object-left-top"
+                  />
+                </div>
+                {/* Dynamic island — layered on top outside overflow-hidden */}
+                <div className="absolute top-[14px] left-1/2 -translate-x-1/2 w-[72px] h-[22px] bg-foreground/80 rounded-full z-10 pointer-events-none"></div>
+              </div>
+            </div>
+
+            {/* Desktop: Browser frame */}
+            <div className="hidden md:block mt-16 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
               {/* Browser chrome strip */}
               <div className="bg-[#ede8e1] border border-border/60 rounded-t-[20px] px-4 py-3 flex items-center gap-3 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
                 <div className="flex gap-1.5 shrink-0">
