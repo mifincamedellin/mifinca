@@ -366,7 +366,7 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <section className="relative pt-40 pb-0 md:pt-52 px-6 overflow-hidden">
+        <section className="relative pt-40 pb-0 md:pt-52 px-6 overflow-x-hidden">
           {/* Background glow — centred */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/3 w-[900px] h-[700px] bg-secondary/15 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -409,8 +409,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Mobile: Phone frame */}
-            <div className="md:hidden mt-12 flex justify-center animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+            {/* Mobile: Phone frame — tucked into next section */}
+            <div className="md:hidden mt-12 -mb-24 flex justify-center animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
               <div className="relative w-[260px]">
                 {/* Volume buttons */}
                 <div className="absolute -left-[3px] top-[88px] w-[3px] h-7 bg-foreground/20 rounded-l-full"></div>
@@ -454,7 +454,7 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section id="caracteristicas" className="py-24 bg-card border-y border-border">
+        <section id="caracteristicas" className="pt-40 pb-24 md:py-24 bg-card border-y border-border">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto mb-20">
               <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6 whitespace-pre-line">{t.features.heading}</h2>
