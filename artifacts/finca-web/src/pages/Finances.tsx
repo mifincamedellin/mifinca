@@ -89,7 +89,7 @@ function getDateRange(period: Period): { from: Date | null; to: Date | null } {
 }
 
 const EMPTY_FORM = {
-  type: "expense" as "income" | "expense",
+  type: "income" as "income" | "expense",
   category: "",
   amount: "",
   description: "",
