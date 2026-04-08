@@ -39,7 +39,7 @@ const translations = {
     },
     features: {
       heading: "Todo bajo control,\ndesde cualquier lugar.",
-      sub: "Reemplazamos las libretas y las hojas de cálculo confusas\ncon herramientas diseñadas para la realidad del campo.",
+      sub: "Reemplazamos las libretas y las\nhojas de cálculo confusas\ncon herramientas diseñadas para la\nrealidad del campo.",
       items: [
         {
           title: "Control de Animales",
