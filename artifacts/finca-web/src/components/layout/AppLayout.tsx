@@ -178,7 +178,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div data-sidebar-theme={sidebarTheme} className={`flex min-h-screen w-full bg-background${sidebarTheme === "vaca" ? " dark" : ""}`}>
+      {/* Mobile status-bar colour band — fills the safe-area behind the OS clock/signal/battery icons */}
+      <div
+        className="md:hidden fixed top-0 left-0 right-0 z-[200] bg-primary"
+        style={{ height: "env(safe-area-inset-top)" }}
+      />
+      <div
+        data-sidebar-theme={sidebarTheme}
+        className={`flex min-h-screen w-full bg-background${sidebarTheme === "vaca" ? " dark" : ""}`}
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <Sidebar className="border-r-border/50">
           <SidebarContent>
             <div className="p-6">
