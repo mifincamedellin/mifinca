@@ -31,9 +31,10 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
             pension, salud, arl, primas, cesantias, photoUrl } = req.body;
     const userId = (req as AuthedReq).userId;
 
-    const [profile] = await db.select({ plan: profilesTable.plan }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const [profile] = await db.select({ plan: profilesTable.plan, clerkId: profilesTable.clerkId }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const isDemo = profile?.clerkId?.startsWith("demo:");
     const limits = getPlanLimits(profile?.plan);
-    if (limits.employees !== null) {
+    if (!isDemo && limits.employees !== null) {
       const [{ count: empCount }] = await db.select({ count: count() }).from(employeesTable).where(eq(employeesTable.farmId, farmId));
       if (empCount >= limits.employees) {
         return res.status(403).json({ error: "plan_limit", resource: "employees", limit: limits.employees });

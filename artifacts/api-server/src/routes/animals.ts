@@ -57,9 +57,10 @@ router.post("/farms/:farmId/animals", requireAuth, requireFarmAccess, async (req
     const farmId = req.params["farmId"]!;
     const userId = (req as AuthedReq).userId;
 
-    const [profile] = await db.select({ plan: profilesTable.plan }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const [profile] = await db.select({ plan: profilesTable.plan, clerkId: profilesTable.clerkId }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const isDemo = profile?.clerkId?.startsWith("demo:");
     const limits = getPlanLimits(profile?.plan);
-    if (limits.animals !== null) {
+    if (!isDemo && limits.animals !== null) {
       const [{ count: animalCount }] = await db.select({ count: count() }).from(animalsTable).where(eq(animalsTable.farmId, farmId));
       if (animalCount >= limits.animals) {
         return res.status(403).json({ error: "plan_limit", resource: "animals", limit: limits.animals });

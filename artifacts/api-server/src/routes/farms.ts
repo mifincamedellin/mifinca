@@ -43,9 +43,10 @@ router.post("/farms", requireAuth, async (req, res) => {
     const userId = (req as AuthedReq).userId;
     const { name, location, totalHectares } = req.body;
 
-    const [profile] = await db.select({ plan: profilesTable.plan }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const [profile] = await db.select({ plan: profilesTable.plan, clerkId: profilesTable.clerkId }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const isDemo = profile?.clerkId?.startsWith("demo:");
     const limits = getPlanLimits(profile?.plan);
-    if (limits.farms !== null) {
+    if (!isDemo && limits.farms !== null) {
       const [{ count: farmCount }] = await db.select({ count: count() }).from(farmMembersTable).where(and(eq(farmMembersTable.userId, userId), eq(farmMembersTable.role, "owner")));
       if (farmCount >= limits.farms) {
         return res.status(403).json({ error: "plan_limit", resource: "farms", limit: limits.farms });
