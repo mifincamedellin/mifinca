@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { FarmAdvisor } from "@/components/FarmAdvisor";
 import { SeedButton } from "@/components/SeedButton";
 import { SidebarThemePicker } from "@/components/SidebarThemePicker";
@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useGetMe, useListFarms } from "@workspace/api-client-react";
 import { useAuth, useClerk } from "@clerk/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Home, 
   PawPrint, 
@@ -18,6 +19,9 @@ import {
   Users,
   UserCheck,
   CalendarDays,
+  Pencil,
+  Plus,
+  Check,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,10 +40,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t, i18n } = useTranslation();
@@ -47,6 +55,56 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { token, logout, activeFarmId, setActiveFarmId, sidebarTheme } = useStore();
   const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
   const { signOut } = useClerk();
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  const [editingFarm, setEditingFarm] = useState<{ id: string; name: string } | null>(null);
+  const [editName, setEditName] = useState("");
+  const [showAddFarm, setShowAddFarm] = useState(false);
+  const [newFarmName, setNewFarmName] = useState("");
+
+  const renameFarm = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const res = await fetch(`/api/farms/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) throw new Error("rename failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/farms"] });
+      setEditingFarm(null);
+    },
+  });
+
+  const addFarm = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await fetch("/api/farms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw Object.assign(new Error("add failed"), { data: body });
+      }
+      return res.json();
+    },
+    onSuccess: (farm) => {
+      qc.invalidateQueries({ queryKey: ["/api/farms"] });
+      setActiveFarmId(farm.id);
+      setShowAddFarm(false);
+      setNewFarmName("");
+    },
+    onError: (err: any) => {
+      if (err?.data?.error === "plan_limit") {
+        toast({ variant: "destructive", title: t("plan.limitTitle"), description: t("plan.limitFarms", { limit: err.data.limit }) });
+        setShowAddFarm(false);
+      }
+    },
+  });
 
   // Consider authenticated if: demo JWT present, or Clerk session active
   const isAuthenticated = !!token || !!isSignedIn;
@@ -181,15 +239,38 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 rounded-xl border-border/50 shadow-lg p-1">
-                    {farms.map(farm => (
-                      <DropdownMenuItem 
-                        key={farm.id} 
-                        onClick={() => setActiveFarmId(farm.id)}
-                        className={`rounded-lg cursor-pointer my-0.5 py-2.5 ${activeFarmId === farm.id ? 'bg-primary/5 text-primary font-medium' : ''}`}
-                      >
-                        {farm.name}
-                      </DropdownMenuItem>
-                    ))}
+                    {farms.map(farm => {
+                      const isActive = activeFarmId === farm.id;
+                      return (
+                        <DropdownMenuItem
+                          key={farm.id}
+                          onClick={() => setActiveFarmId(farm.id)}
+                          className={`rounded-lg cursor-pointer my-0.5 py-2.5 pr-2 flex items-center justify-between gap-2 ${isActive ? 'bg-primary/5 text-primary font-medium' : ''}`}
+                        >
+                          <span className="truncate">{farm.name}</span>
+                          {isActive && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                setEditName(farm.name);
+                                setEditingFarm({ id: farm.id, name: farm.name });
+                              }}
+                              className="shrink-0 p-1 rounded-md hover:bg-primary/10 text-primary/60 hover:text-primary transition-colors"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuItem
+                      onClick={() => { setNewFarmName(""); setShowAddFarm(true); }}
+                      className="rounded-lg cursor-pointer my-0.5 py-2.5 text-muted-foreground hover:text-foreground gap-2"
+                    >
+                      <Plus className="h-4 w-4 shrink-0" />
+                      {t('farms.addFarm')}
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -213,6 +294,64 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
         <FarmAdvisor />
       </div>
+
+      {/* Rename farm dialog */}
+      <Dialog open={!!editingFarm} onOpenChange={open => { if (!open) setEditingFarm(null); }}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif">{t('farms.renameTitle')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <Input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              placeholder={t('farms.namePlaceholder')}
+              className="rounded-xl"
+              onKeyDown={e => { if (e.key === "Enter" && editName.trim() && editingFarm) renameFarm.mutate({ id: editingFarm.id, name: editName.trim() }); }}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setEditingFarm(null)}>{t('common.cancel')}</Button>
+              <Button
+                className="flex-1 rounded-xl gap-2"
+                disabled={!editName.trim() || renameFarm.isPending}
+                onClick={() => editingFarm && renameFarm.mutate({ id: editingFarm.id, name: editName.trim() })}
+              >
+                <Check className="h-4 w-4" /> {t('common.save')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add farm dialog */}
+      <Dialog open={showAddFarm} onOpenChange={open => { if (!open) setShowAddFarm(false); }}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif">{t('farms.addTitle')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <Input
+              value={newFarmName}
+              onChange={e => setNewFarmName(e.target.value)}
+              placeholder={t('farms.namePlaceholder')}
+              className="rounded-xl"
+              onKeyDown={e => { if (e.key === "Enter" && newFarmName.trim()) addFarm.mutate(newFarmName.trim()); }}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowAddFarm(false)}>{t('common.cancel')}</Button>
+              <Button
+                className="flex-1 rounded-xl gap-2"
+                disabled={!newFarmName.trim() || addFarm.isPending}
+                onClick={() => newFarmName.trim() && addFarm.mutate(newFarmName.trim())}
+              >
+                <Plus className="h-4 w-4" /> {t('farms.addFarm')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
