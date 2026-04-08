@@ -419,15 +419,12 @@ export default function Home() {
                 <div className="absolute -right-[3px] top-[104px] w-[3px] h-10 bg-foreground/20 rounded-r-full"></div>
                 {/* Phone shell */}
                 <div className="rounded-[44px] overflow-hidden border-[10px] border-foreground/[0.12] bg-foreground/5 shadow-[0_40px_80px_-8px_rgba(0,0,0,0.28),0_0_0_1px_rgba(0,0,0,0.06)]" style={{ aspectRatio: "9/19.5" }}>
-                  {/* Screenshot — crops to show sidebar + stats */}
                   <img
-                    src={`${getBaseUrl()}/images/dashboard-ui.png`}
-                    alt="miFinca dashboard"
-                    className="w-full h-full object-cover object-left-top"
+                    src={`${getBaseUrl()}/images/dashboard-mobile.png`}
+                    alt="miFinca dashboard en móvil"
+                    className="w-full h-full object-cover object-top"
                   />
                 </div>
-                {/* Dynamic island — layered on top outside overflow-hidden */}
-                <div className="absolute top-[14px] left-1/2 -translate-x-1/2 w-[72px] h-[22px] bg-foreground/80 rounded-full z-10 pointer-events-none"></div>
               </div>
             </div>
 
