@@ -366,68 +366,69 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <section className="relative pt-40 pb-20 md:pt-52 md:pb-32 px-6 overflow-hidden">
-          <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[800px] h-[800px] bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
+        <section className="relative pt-40 pb-0 md:pt-52 px-6 overflow-hidden">
+          {/* Background glow — centred */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/3 w-[900px] h-[700px] bg-secondary/15 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div className="container mx-auto max-w-6xl">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-              <div className="max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent font-medium text-sm mb-6 border border-accent/20">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
-                  </span>
-                  {t.hero.badge}
+          <div className="container mx-auto max-w-5xl">
+            {/* Centred headline block */}
+            <div className="text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent font-medium text-sm mb-6 border border-accent/20">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                </span>
+                {t.hero.badge}
+              </div>
+              <h1 className="text-5xl md:text-7xl font-serif font-medium leading-[1.1] tracking-tight text-foreground mb-6">
+                {t.hero.h1a} <span className="text-primary italic">{t.hero.h1b}</span> {t.hero.h1c}
+              </h1>
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto">
+                {t.hero.sub}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate">
+                  <a href={`${APP_URL}/login`}>{t.hero.ctaPrimary}</a>
+                </Button>
+                <Button asChild variant="outline" className="h-14 px-8 rounded-full text-base font-medium border-border hover:bg-muted hover-elevate">
+                  <a href={`${APP_URL}/login`}>{t.hero.ctaSecondary}</a>
+                </Button>
+              </div>
+              <div className="mt-8 flex items-center gap-4 text-sm text-muted-foreground justify-center">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="w-8 h-8 rounded-full border-2 border-background bg-card flex items-center justify-center text-xs font-medium"
+                    >
+                      {String.fromCharCode(64 + i)}
+                    </div>
+                  ))}
                 </div>
-                <h1 className="text-5xl md:text-7xl font-serif font-medium leading-[1.1] tracking-tight text-foreground mb-6">
-                  {t.hero.h1a} <span className="text-primary italic">{t.hero.h1b}</span> {t.hero.h1c}
-                </h1>
-                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-lg">
-                  {t.hero.sub}
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 rounded-full text-base font-medium hover-elevate">
-                    <a href={`${APP_URL}/login`}>{t.hero.ctaPrimary}</a>
-                  </Button>
-                  <Button asChild variant="outline" className="h-14 px-8 rounded-full text-base font-medium border-border hover:bg-muted hover-elevate">
-                    <a href={`${APP_URL}/login`}>{t.hero.ctaSecondary}</a>
-                  </Button>
+                <p>{t.hero.social}</p>
+              </div>
+            </div>
+
+            {/* Product screenshot — Apple-style browser frame */}
+            <div className="mt-16 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 -mx-6 md:mx-0">
+              {/* Browser chrome strip */}
+              <div className="bg-[#ede8e1] border border-border/60 rounded-t-[20px] px-4 py-3 flex items-center gap-3 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
+                <div className="flex gap-1.5 shrink-0">
+                  <div className="w-3 h-3 rounded-full bg-[#FF5F57]/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#FEBC2E]/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#28C840]/80"></div>
                 </div>
-                <div className="mt-10 flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="w-8 h-8 rounded-full border-2 border-background bg-card flex items-center justify-center text-xs font-medium"
-                      >
-                        {String.fromCharCode(64 + i)}
-                      </div>
-                    ))}
-                  </div>
-                  <p>{t.hero.social}</p>
+                <div className="flex-1 mx-2 bg-background/70 rounded-full h-6 flex items-center px-3 border border-border/40">
+                  <span className="text-xs text-muted-foreground/70 font-medium">app.mifinca.com</span>
                 </div>
               </div>
-
-              <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000 delay-200">
-                <div className="relative rounded-[2rem] overflow-hidden shadow-2xl aspect-[4/3] lg:aspect-[4/5] xl:aspect-square transform lg:-rotate-2 transition-transform hover:rotate-0 duration-500 border-8 border-background">
-                  <img
-                    src={`${getBaseUrl()}/images/hero-farm-new.png`}
-                    alt={t.footer.heroAlt}
-                    className="object-cover w-full h-full"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent"></div>
-
-                  {/* Floating UI Element */}
-                  <div className="absolute bottom-8 left-8 right-8 glass-panel rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-white/80 font-medium">{t.hero.stat}</p>
-                      <p className="text-2xl font-serif text-white font-bold">+24%</p>
-                    </div>
-                    <div className="h-10 w-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
-                      <BarChart3 className="h-5 w-5" />
-                    </div>
-                  </div>
-                </div>
+              {/* Screenshot */}
+              <div className="overflow-hidden rounded-b-[20px] border border-t-0 border-border/60 shadow-[0_40px_100px_-12px_rgba(0,0,0,0.22)]">
+                <img
+                  src={`${getBaseUrl()}/images/lifestyle-dashboard.png`}
+                  alt="miFinca dashboard"
+                  className="w-full block"
+                />
               </div>
             </div>
           </div>
