@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -245,19 +246,22 @@ export function AnimalList() {
                   <FormField control={form.control} name="animalType" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('animals.type')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          list={`type-suggestions-${watchedSpecies}`}
-                          className="rounded-xl"
-                          placeholder={t('animals.typePlaceholder')}
-                        />
-                      </FormControl>
-                      <datalist id={`type-suggestions-${watchedSpecies}`}>
-                        {(ANIMAL_TYPE_SUGGESTIONS[watchedSpecies] ?? []).map(opt => (
-                          <option key={opt} value={opt} />
-                        ))}
-                      </datalist>
+                      <Select
+                        value={field.value ?? ""}
+                        onValueChange={field.onChange}
+                        disabled={(ANIMAL_TYPE_SUGGESTIONS[watchedSpecies] ?? []).length === 0}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder={t('animals.typePlaceholder')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(ANIMAL_TYPE_SUGGESTIONS[watchedSpecies] ?? []).map(opt => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="breed" render={({ field }) => (
