@@ -151,7 +151,7 @@ const translations = {
     },
     features: {
       heading: "Everything under control,\nfrom anywhere.",
-      sub: "We replace confusing notebooks and spreadsheets\nwith tools designed for the reality of farm life.",
+      sub: "We replace confusing notebooks and\nspreadsheets\nwith tools designed for the\nreality of farm life.",
       items: [
         {
           title: "Animal Tracking",
