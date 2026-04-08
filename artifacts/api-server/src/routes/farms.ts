@@ -8,6 +8,7 @@ import {
 } from "@workspace/db";
 import { eq, and, count, lt, lte } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+import { getPlanLimits } from "../lib/plans.js";
 
 const router = Router();
 
@@ -41,6 +42,15 @@ router.post("/farms", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthedReq).userId;
     const { name, location, totalHectares } = req.body;
+
+    const [profile] = await db.select({ plan: profilesTable.plan }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const limits = getPlanLimits(profile?.plan);
+    if (limits.farms !== null) {
+      const [{ count: farmCount }] = await db.select({ count: count() }).from(farmMembersTable).where(and(eq(farmMembersTable.userId, userId), eq(farmMembersTable.role, "owner")));
+      if (farmCount >= limits.farms) {
+        return res.status(403).json({ error: "plan_limit", resource: "farms", limit: limits.farms });
+      }
+    }
 
     const farm = await db.insert(farmsTable).values({
       ownerId: userId,

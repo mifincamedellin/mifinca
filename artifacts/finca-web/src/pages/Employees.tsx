@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { useToast } from "@/hooks/use-toast";
 import { useListFarms } from "@workspace/api-client-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -644,6 +645,7 @@ export function Employees() {
   const { t, i18n } = useTranslation();
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
+  const { toast } = useToast();
   const isEn = i18n.language === "en";
 
   const { data: farms } = useListFarms({ query: { enabled: !!activeFarmId } });
@@ -675,10 +677,18 @@ export function Employees() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw Object.assign(new Error("failed"), { data: body, status: res.status });
+      }
       return res.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["employees", activeFarmId] }); closeDialog(); },
+    onError: (err: any) => {
+      if (err?.data?.error === "plan_limit") {
+        toast({ variant: "destructive", title: t("plan.limitTitle"), description: t("plan.limitEmployees", { limit: err.data.limit }) });
+      }
+    },
   });
 
   const updateEmployee = useMutation({

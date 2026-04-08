@@ -37,16 +37,24 @@ const emailSchema = z.object({
   email: z.string().email(),
 });
 
-const PLANS = [
+const PLAN_DEFS = [
+  {
+    key: "seed",
+    labelEs: "Semilla",
+    labelEn: "Seed",
+    priceEs: "Gratis",
+    priceEn: "Free",
+    features: ["1 finca", "10 animales", "1 empleado", "1 contacto"],
+    featuresEn: ["1 farm", "10 animals", "1 employee", "1 contact"],
+  },
   {
     key: "farm",
     labelEs: "Farm",
     labelEn: "Farm",
     priceEs: "400.000 COP/mes",
     priceEn: "400,000 COP/mo",
-    features: ["1 finca", "Animales ilimitados", "Todas las funciones", "Asesor IA incluido", "Soporte estándar"],
-    featuresEn: ["1 farm", "Unlimited animals", "All features", "AI Advisor included", "Standard support"],
-    current: true,
+    features: ["1 finca", "Animales ilimitados", "Empleados ilimitados", "Asesor IA incluido", "Soporte estándar"],
+    featuresEn: ["1 farm", "Unlimited animals", "Unlimited employees", "AI Advisor included", "Standard support"],
   },
   {
     key: "pro",
@@ -54,9 +62,8 @@ const PLANS = [
     labelEn: "Pro",
     priceEs: "4.000.000 COP/año",
     priceEn: "4,000,000 COP/yr",
-    features: ["Fincas ilimitadas", "Animales ilimitados", "Todas las funciones", "Reportes personalizados", "Soporte prioritario"],
-    featuresEn: ["Unlimited farms", "Unlimited animals", "All features", "Custom reports", "Priority support"],
-    current: false,
+    features: ["Fincas ilimitadas", "Animales ilimitados", "Reportes personalizados", "Soporte prioritario"],
+    featuresEn: ["Unlimited farms", "Unlimited animals", "Custom reports", "Priority support"],
   },
 ];
 
@@ -132,9 +139,37 @@ export function Settings() {
     queryFn: async () => {
       const res = await fetch("/api/auth/me");
       if (!res.ok) throw new Error("failed");
-      return res.json() as Promise<{ id: string; fullName: string; email: string; role: string; preferredLanguage: string }>;
+      return res.json() as Promise<{ id: string; fullName: string; email: string; role: string; preferredLanguage: string; plan: string }>;
     },
   });
+
+  const { data: farmStats } = useQuery({
+    queryKey: [`/api/farms/${activeFarmId}/stats`],
+    queryFn: async () => {
+      const res = await fetch(`/api/farms/${activeFarmId}/stats`);
+      if (!res.ok) throw new Error("failed");
+      return res.json() as Promise<{ totalAnimals: number; employeeCount: number; contactCount: number }>;
+    },
+    enabled: !!activeFarmId,
+  });
+
+  const { data: farms } = useQuery({
+    queryKey: ["/api/farms"],
+    queryFn: async () => {
+      const res = await fetch("/api/farms");
+      if (!res.ok) throw new Error("failed");
+      return res.json() as Promise<{ id: string }[]>;
+    },
+  });
+
+  const currentPlanKey = (profile?.plan ?? "seed") as "seed" | "farm" | "pro";
+  const planUsage = {
+    farms: farms?.length ?? 0,
+    animals: farmStats?.totalAnimals ?? 0,
+    employees: farmStats?.employeeCount ?? 0,
+    contacts: farmStats?.contactCount ?? 0,
+  };
+  const planLimits = { seed: { farms: 1, animals: 10, employees: 1, contacts: 1 }, farm: { farms: 1, animals: null, employees: null, contacts: null }, pro: { farms: null, animals: null, employees: null, contacts: null } };
 
   const updateFarm = useUpdateFarm();
 
@@ -342,45 +377,84 @@ export function Settings() {
           <h2 className="text-2xl font-serif text-primary">{t("settings.plan")}</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.key}
-              className={`relative rounded-2xl border-2 p-6 flex flex-col transition-all ${
-                plan.current
-                  ? "border-secondary/50 bg-secondary/5"
-                  : "border-primary bg-primary text-primary-foreground"
-              }`}
-            >
-              {plan.current && (
-                <Badge className="absolute top-4 right-4 bg-primary/10 text-primary border-primary/20 text-xs">
-                  {t("settings.currentPlan")}
-                </Badge>
-              )}
-              <p className={`text-lg font-bold mb-1 ${plan.current ? "text-foreground" : "text-primary-foreground"}`}>
-                {lang === "en" ? plan.labelEn : plan.labelEs}
-              </p>
-              <p className={`text-2xl font-serif mb-4 ${plan.current ? "text-primary" : "text-primary-foreground"}`}>
-                {lang === "en" ? plan.priceEn : plan.priceEs}
-              </p>
-              <ul className="space-y-2 flex-1">
-                {(lang === "en" ? plan.featuresEn : plan.features).map((f) => (
-                  <li key={f} className={`flex items-center gap-2 text-sm ${plan.current ? "text-muted-foreground" : "text-primary-foreground/80"}`}>
-                    <Check className={`h-4 w-4 flex-shrink-0 ${plan.current ? "text-secondary" : "text-primary-foreground"}`} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              {!plan.current && (
-                <Button
-                  className="mt-5 w-full rounded-xl bg-white text-primary hover:bg-white/90 font-medium"
-                  onClick={() => {}}
-                >
-                  {lang === "en" ? "Upgrade to Pro" : "Actualizar a Pro"}
-                </Button>
-              )}
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
+          {PLAN_DEFS.map((plan) => {
+            const isCurrent = plan.key === currentPlanKey;
+            const limits = planLimits[plan.key as keyof typeof planLimits];
+            return (
+              <div
+                key={plan.key}
+                className={`relative rounded-2xl border-2 p-6 flex flex-col transition-all ${
+                  isCurrent
+                    ? "border-secondary/50 bg-secondary/5"
+                    : "border-primary bg-primary text-primary-foreground"
+                }`}
+              >
+                {isCurrent && (
+                  <Badge className="absolute top-4 right-4 bg-primary/10 text-primary border-primary/20 text-xs">
+                    {t("settings.currentPlan")}
+                  </Badge>
+                )}
+                <p className={`text-lg font-bold mb-1 ${isCurrent ? "text-foreground" : "text-primary-foreground"}`}>
+                  {lang === "en" ? plan.labelEn : plan.labelEs}
+                </p>
+                <p className={`text-2xl font-serif mb-4 ${isCurrent ? "text-primary" : "text-primary-foreground"}`}>
+                  {lang === "en" ? plan.priceEn : plan.priceEs}
+                </p>
+                <ul className="space-y-2 flex-1">
+                  {(lang === "en" ? plan.featuresEn : plan.features).map((f) => (
+                    <li key={f} className={`flex items-center gap-2 text-sm ${isCurrent ? "text-muted-foreground" : "text-primary-foreground/80"}`}>
+                      <Check className={`h-4 w-4 flex-shrink-0 ${isCurrent ? "text-secondary" : "text-primary-foreground"}`} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Usage bars — only shown on current Seed plan */}
+                {isCurrent && plan.key === "seed" && (
+                  <div className="mt-5 pt-4 border-t border-border/50 space-y-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      {lang === "en" ? "Usage" : "Uso"}
+                    </p>
+                    {([
+                      { label: lang === "en" ? "Farms" : "Fincas", used: planUsage.farms, max: limits.farms },
+                      { label: lang === "en" ? "Animals" : "Animales", used: planUsage.animals, max: limits.animals },
+                      { label: lang === "en" ? "Employees" : "Empleados", used: planUsage.employees, max: limits.employees },
+                      { label: lang === "en" ? "Contacts" : "Contactos", used: planUsage.contacts, max: limits.contacts },
+                    ] as { label: string; used: number; max: number | null }[]).map(({ label, used, max }) => (
+                      <div key={label}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{label}</span>
+                          <span className={`font-semibold ${max !== null && used >= max ? "text-destructive" : "text-foreground"}`}>
+                            {used} / {max ?? "∞"}
+                          </span>
+                        </div>
+                        {max !== null && (
+                          <div className="w-full bg-border/40 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full transition-all ${used >= max ? "bg-destructive" : "bg-secondary"}`}
+                              style={{ width: `${Math.min(100, (used / max) * 100)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!isCurrent && (
+                  <Button
+                    className="mt-5 w-full rounded-xl bg-white text-primary hover:bg-white/90 font-medium"
+                    onClick={() => {}}
+                  >
+                    {lang === "en"
+                      ? `Upgrade to ${plan.labelEn}`
+                      : `Actualizar a ${plan.labelEs}`}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Card>
 

@@ -1,9 +1,10 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
 import {
-  animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable, milkRecordsTable,
+  animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable, milkRecordsTable, profilesTable,
 } from "@workspace/db";
-import { eq, and, desc, ilike, or } from "drizzle-orm";
+import { eq, and, desc, ilike, or, count } from "drizzle-orm";
+import { getPlanLimits } from "../lib/plans.js";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
 const router = Router();
@@ -55,6 +56,15 @@ router.post("/farms/:farmId/animals", requireAuth, requireFarmAccess, async (req
   try {
     const farmId = req.params["farmId"]!;
     const userId = (req as AuthedReq).userId;
+
+    const [profile] = await db.select({ plan: profilesTable.plan }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const limits = getPlanLimits(profile?.plan);
+    if (limits.animals !== null) {
+      const [{ count: animalCount }] = await db.select({ count: count() }).from(animalsTable).where(eq(animalsTable.farmId, farmId));
+      if (animalCount >= limits.animals) {
+        return res.status(403).json({ error: "plan_limit", resource: "animals", limit: limits.animals });
+      }
+    }
 
     const animal = await db.insert(animalsTable).values({
       farmId,

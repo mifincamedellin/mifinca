@@ -1,7 +1,8 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
-import { contactsTable, farmMembersTable, activityLogTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { contactsTable, farmMembersTable, activityLogTable, profilesTable } from "@workspace/db";
+import { eq, and, desc, count } from "drizzle-orm";
+import { getPlanLimits } from "../lib/plans.js";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
 const router = Router();
@@ -39,6 +40,15 @@ router.post("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (re
     const { name, phone, email, category, notes } = req.body;
 
     if (!name) return res.status(400).json({ error: "Name is required" });
+
+    const [profile] = await db.select({ plan: profilesTable.plan }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const limits = getPlanLimits(profile?.plan);
+    if (limits.contacts !== null) {
+      const [{ count: contactCount }] = await db.select({ count: count() }).from(contactsTable).where(eq(contactsTable.farmId, farmId));
+      if (contactCount >= limits.contacts) {
+        return res.status(403).json({ error: "plan_limit", resource: "contacts", limit: limits.contacts });
+      }
+    }
 
     const [row] = await db.insert(contactsTable).values({
       farmId,

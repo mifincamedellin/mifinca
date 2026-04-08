@@ -1,7 +1,8 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
-import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable, activityLogTable } from "@workspace/db";
-import { eq, and, lt, sql } from "drizzle-orm";
+import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable, activityLogTable, profilesTable } from "@workspace/db";
+import { eq, and, lt, sql, count } from "drizzle-orm";
+import { getPlanLimits } from "../lib/plans.js";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
 
@@ -29,6 +30,16 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
     const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes,
             pension, salud, arl, primas, cesantias, photoUrl } = req.body;
     const userId = (req as AuthedReq).userId;
+
+    const [profile] = await db.select({ plan: profilesTable.plan }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    const limits = getPlanLimits(profile?.plan);
+    if (limits.employees !== null) {
+      const [{ count: empCount }] = await db.select({ count: count() }).from(employeesTable).where(eq(employeesTable.farmId, farmId));
+      if (empCount >= limits.employees) {
+        return res.status(403).json({ error: "plan_limit", resource: "employees", limit: limits.employees });
+      }
+    }
+
     const employee = await db.insert(employeesTable).values({
       farmId,
       name,

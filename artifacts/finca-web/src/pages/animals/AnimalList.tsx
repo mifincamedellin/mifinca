@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
+import { useToast } from "@/hooks/use-toast";
 import { useListAnimals, useCreateAnimal } from "@workspace/api-client-react";
 import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
@@ -49,6 +50,7 @@ const SPECIES_EMOJI: Record<string, string> = {
 export function AnimalList() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -108,6 +110,11 @@ export function AnimalList() {
         setPhotoPreview(null);
         form.reset();
         queryClient.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/animals`] });
+      },
+      onError: (err: any) => {
+        if (err?.data?.error === "plan_limit") {
+          toast({ variant: "destructive", title: t("plan.limitTitle"), description: t("plan.limitAnimals", { limit: err.data.limit }) });
+        }
       }
     });
   };

@@ -398,6 +398,12 @@ const resources = {
       "common.optional": "Opcional",
       "common.user": "Usuario",
       "common.error": "Error",
+      "plan.limitTitle": "Límite del plan Semilla",
+      "plan.limitAnimals": "Alcanzaste el límite de {{limit}} animales. Actualiza tu plan para continuar.",
+      "plan.limitEmployees": "Alcanzaste el límite de {{limit}} empleado. Actualiza tu plan para continuar.",
+      "plan.limitContacts": "Alcanzaste el límite de {{limit}} contacto. Actualiza tu plan para continuar.",
+      "plan.limitFarms": "Alcanzaste el límite de {{limit}} finca. Actualiza tu plan para continuar.",
+      "plan.limitGeneric": "Límite del plan alcanzado. Actualiza en Configuración para continuar.",
     }
   },
   en: {
@@ -796,6 +802,12 @@ const resources = {
       "common.optional": "Optional",
       "common.user": "User",
       "common.error": "Error",
+      "plan.limitTitle": "Seed plan limit reached",
+      "plan.limitAnimals": "You've reached the {{limit}}-animal limit. Upgrade your plan to add more.",
+      "plan.limitEmployees": "You've reached the {{limit}}-employee limit. Upgrade your plan to add more.",
+      "plan.limitContacts": "You've reached the {{limit}}-contact limit. Upgrade your plan to add more.",
+      "plan.limitFarms": "You've reached the {{limit}}-farm limit. Upgrade your plan to add more.",
+      "plan.limitGeneric": "Plan limit reached. Upgrade in Settings to continue.",
     }
   }
 };

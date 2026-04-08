@@ -9,6 +9,7 @@ export const profilesTable = pgTable("profiles", {
   fullName: text("full_name"),
   role: text("role", { enum: ["owner", "worker"] }).default("owner"),
   preferredLanguage: text("preferred_language").default("es"),
+  plan: text("plan", { enum: ["seed", "farm", "pro"] }).default("seed").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
