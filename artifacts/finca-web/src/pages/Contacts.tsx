@@ -30,7 +30,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: "bg-gray-100 text-gray-600",
 };
 
-const EMPTY_FORM = { name: "", phone: "", email: "", category: "other", notes: "" };
+const EMPTY_FORM = { name: "", phone: "", email: "", category: "other", customCategory: "", notes: "" };
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map(w => w[0]?.toUpperCase() ?? "").join("");
@@ -65,13 +65,17 @@ export function Contacts() {
 
   const saveMut = useMutation({
     mutationFn: async (payload: typeof form) => {
+      const { customCategory, ...rest } = payload;
+      const resolvedCategory = rest.category === "other" && customCategory.trim()
+        ? customCategory.trim()
+        : rest.category;
       const url = editRow
         ? `/api/farms/${activeFarmId}/contacts/${editRow.id}`
         : `/api/farms/${activeFarmId}/contacts`;
       const res = await fetch(url, {
         method: editRow ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...rest, category: resolvedCategory }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -97,7 +101,15 @@ export function Contacts() {
   const openNew = () => { setEditRow(null); setForm(EMPTY_FORM); setShowForm(true); };
   const openEdit = (c: Contact) => {
     setEditRow(c);
-    setForm({ name: c.name, phone: c.phone ?? "", email: c.email ?? "", category: c.category, notes: c.notes ?? "" });
+    const isCustom = !CATEGORIES.includes(c.category);
+    setForm({
+      name: c.name,
+      phone: c.phone ?? "",
+      email: c.email ?? "",
+      category: isCustom ? "other" : c.category,
+      customCategory: isCustom ? c.category : "",
+      notes: c.notes ?? "",
+    });
     setShowForm(true);
   };
   const closeForm = () => { setShowForm(false); setEditRow(null); };
@@ -197,7 +209,7 @@ export function Contacts() {
                     </div>
                   </div>
                   <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${CATEGORY_COLORS[c.category] ?? "bg-gray-100 text-gray-600"}`}>
-                    {t(`contacts.cat.${c.category}`)}
+                    {CATEGORIES.includes(c.category) ? t(`contacts.cat.${c.category}`) : c.category}
                   </span>
                 </div>
               </div>
@@ -286,12 +298,21 @@ export function Contacts() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">{t("contacts.form.category")}</label>
-                  <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                  <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v, customCategory: "" }))}>
                     <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {CATEGORIES.map(c => <SelectItem key={c} value={c}>{t(`contacts.cat.${c}`)}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {form.category === "other" && (
+                    <Input
+                      value={form.customCategory}
+                      onChange={e => setForm(f => ({ ...f, customCategory: e.target.value }))}
+                      placeholder={t("contacts.form.customCategoryPlaceholder")}
+                      className="rounded-xl mt-2"
+                      maxLength={40}
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">{t("contacts.form.phone")}</label>
