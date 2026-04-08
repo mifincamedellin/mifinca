@@ -425,7 +425,7 @@ export default function Home() {
               {/* Screenshot */}
               <div className="overflow-hidden rounded-b-[20px] border border-t-0 border-border/60 shadow-[0_40px_100px_-12px_rgba(0,0,0,0.22)]">
                 <img
-                  src={`${getBaseUrl()}/images/lifestyle-dashboard.png`}
+                  src={`${getBaseUrl()}/images/dashboard-ui.png`}
                   alt="miFinca dashboard"
                   className="w-full block"
                 />
