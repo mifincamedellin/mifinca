@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
-import { useToast } from "@/hooks/use-toast";
+import { useUpgradeStore } from "@/lib/upgradeStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Plus, X, Pencil, Trash2, Phone, Mail, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export function Contacts() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
-  const { toast } = useToast();
+  const { openUpgradeModal } = useUpgradeStore();
 
   const [showForm, setShowForm] = useState(false);
   const [editRow, setEditRow] = useState<Contact | null>(null);
@@ -86,7 +86,7 @@ export function Contacts() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["contacts", activeFarmId] }); closeForm(); },
     onError: (err: any) => {
       if (err?.data?.error === "plan_limit") {
-        toast({ variant: "destructive", title: t("plan.limitTitle"), description: t("plan.limitContacts", { limit: err.data.limit }) });
+        openUpgradeModal("contacts", err.data.limit);
       }
     },
   });

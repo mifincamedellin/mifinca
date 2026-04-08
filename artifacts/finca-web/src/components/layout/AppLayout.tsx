@@ -1,5 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { FarmAdvisor } from "@/components/FarmAdvisor";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { useUpgradeStore } from "@/lib/upgradeStore";
 import { SeedButton } from "@/components/SeedButton";
 import { SidebarThemePicker } from "@/components/SidebarThemePicker";
 import { Link, useLocation } from "wouter";
@@ -47,7 +49,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t, i18n } = useTranslation();
@@ -56,7 +57,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { isSignedIn, isLoaded: clerkLoaded } = useAuth();
   const { signOut } = useClerk();
   const qc = useQueryClient();
-  const { toast } = useToast();
+  const { openUpgradeModal } = useUpgradeStore();
 
   const [editingFarm, setEditingFarm] = useState<{ id: string; name: string } | null>(null);
   const [editName, setEditName] = useState("");
@@ -100,8 +101,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
     },
     onError: (err: any) => {
       if (err?.data?.error === "plan_limit") {
-        toast({ variant: "destructive", title: t("plan.limitTitle"), description: t("plan.limitFarms", { limit: err.data.limit }) });
         setShowAddFarm(false);
+        openUpgradeModal("farms", err.data.limit);
       }
     },
   });
@@ -294,6 +295,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
         <FarmAdvisor />
       </div>
+
+      <UpgradeModal />
 
       {/* Rename farm dialog */}
       <Dialog open={!!editingFarm} onOpenChange={open => { if (!open) setEditingFarm(null); }}>
