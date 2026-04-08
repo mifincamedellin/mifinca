@@ -374,7 +374,7 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <section className="relative pt-40 pb-0 md:pt-52 px-6">
+        <section className="relative pt-40 pb-16 md:pb-0 md:pt-52 px-6">
           {/* Background glow — centred */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/3 w-[900px] h-[700px] bg-secondary/15 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -418,7 +418,7 @@ export default function Home() {
             </div>
 
             {/* Mobile: Phone frame — tucked into next section */}
-            <div className="md:hidden mt-12 -mb-24 flex justify-center animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+            <div className="md:hidden mt-12 flex justify-center animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
               <div className="relative w-[260px]">
                 {/* Volume buttons */}
                 <div className="absolute -left-[3px] top-[88px] w-[3px] h-7 bg-foreground/20 rounded-l-full"></div>
