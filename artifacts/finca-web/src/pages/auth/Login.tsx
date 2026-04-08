@@ -17,7 +17,9 @@ export function Login() {
   const isEn = i18n.language === "en";
 
   const toggleLang = () => {
-    i18n.changeLanguage(isEn ? "es" : "en");
+    const newLang = isEn ? "es" : "en";
+    i18n.changeLanguage(newLang);
+    localStorage.setItem("mifinca-lang", newLang);
   };
 
   const handleGoogleSignIn = () => {

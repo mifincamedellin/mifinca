@@ -822,11 +822,15 @@ const resources = {
   }
 };
 
+const savedLang = localStorage.getItem("mifinca-lang");
+const browserLang = navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
+const initialLang = (savedLang === "es" || savedLang === "en") ? savedLang : browserLang;
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: "es",
+    lng: initialLang,
     fallbackLng: "en",
     interpolation: {
       escapeValue: false

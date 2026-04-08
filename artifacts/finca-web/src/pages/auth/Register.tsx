@@ -15,7 +15,9 @@ export function Register() {
   const { register } = useAuth();
 
   const toggleLang = () => {
-    i18n.changeLanguage(i18n.language === "es" ? "en" : "es");
+    const newLang = i18n.language === "es" ? "en" : "es";
+    i18n.changeLanguage(newLang);
+    localStorage.setItem("mifinca-lang", newLang);
   };
   
   const form = useForm<RegisterData>({

@@ -249,7 +249,11 @@ export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [annualBilling, setAnnualBilling] = useState(true);
-  const [lang, setLang] = useState<Lang>("es");
+  const [lang, setLang] = useState<Lang>(() => {
+    const saved = localStorage.getItem("mifinca-lang") as Lang | null;
+    if (saved === "es" || saved === "en") return saved;
+    return navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
+  });
 
   const t = translations[lang];
 
@@ -271,7 +275,11 @@ export default function Home() {
 
   const getBaseUrl = () => import.meta.env.BASE_URL.replace(/\/$/, "");
 
-  const toggleLang = () => setLang((l) => (l === "es" ? "en" : "es"));
+  const toggleLang = () => setLang((l) => {
+    const next = l === "es" ? "en" : "es";
+    localStorage.setItem("mifinca-lang", next);
+    return next;
+  });
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-secondary selection:text-secondary-foreground overflow-x-hidden">
