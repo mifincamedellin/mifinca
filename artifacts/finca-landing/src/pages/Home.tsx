@@ -655,7 +655,7 @@ export default function Home() {
           <div className="container mx-auto px-6">
             <div className="rounded-[2rem] overflow-hidden relative shadow-lg h-[500px]">
               <img
-                src={`${getBaseUrl()}/images/lifestyle-dashboard.png`}
+                src={`${getBaseUrl()}/images/lifestyle-farm.png`}
                 alt={t.footer.imgAlt}
                 className="object-cover w-full h-full"
               />
