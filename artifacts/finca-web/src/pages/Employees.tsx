@@ -110,48 +110,54 @@ function PhotoCropModal({ src, onConfirm, onCancel }: {
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
-  const dragStart = useRef({ mx: 0, my: 0, ox: 0, oy: 0 });
-  const [imgNatural, setImgNatural] = useState({ w: 1, h: 1 });
   const [minScale, setMinScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  // Use refs for values accessed in pointer event handlers to avoid stale closures
+  const isDragging = useRef(false);
+  const dragStart = useRef({ mx: 0, my: 0, ox: 0, oy: 0 });
+  const imgNat = useRef({ w: 1, h: 1 });
+  const scaleRef = useRef(1);
+
+  // Clamp reads from refs — always fresh, no useCallback dependency issues
+  const clamp = (ox: number, oy: number, sc: number) => {
+    const hw = Math.max(0, (imgNat.current.w * sc - CROP_SIZE) / 2);
+    const hh = Math.max(0, (imgNat.current.h * sc - CROP_SIZE) / 2);
+    return {
+      x: Math.min(hw, Math.max(-hw, ox)),
+      y: Math.min(hh, Math.max(-hh, oy)),
+    };
+  };
 
   const onImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
-    const natW = img.naturalWidth;
-    const natH = img.naturalHeight;
-    setImgNatural({ w: natW, h: natH });
-    const cover = Math.max(CROP_SIZE / natW, CROP_SIZE / natH);
+    imgNat.current = { w: img.naturalWidth, h: img.naturalHeight };
+    const cover = Math.max(CROP_SIZE / img.naturalWidth, CROP_SIZE / img.naturalHeight);
+    scaleRef.current = cover;
     setMinScale(cover);
     setScale(cover);
     setOffset({ x: 0, y: 0 });
   };
 
-  const clampOffset = useCallback((ox: number, oy: number, sc: number) => {
-    const hw = (imgNatural.w * sc - CROP_SIZE) / 2;
-    const hh = (imgNatural.h * sc - CROP_SIZE) / 2;
-    return {
-      x: Math.min(hw, Math.max(-hw, ox)),
-      y: Math.min(hh, Math.max(-hh, oy)),
-    };
-  }, [imgNatural]);
-
   const onPointerDown = (e: React.PointerEvent) => {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    setDragging(true);
+    isDragging.current = true;
+    // Capture starting positions at the moment of press
     dragStart.current = { mx: e.clientX, my: e.clientY, ox: offset.x, oy: offset.y };
   };
+
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragging) return;
+    if (!isDragging.current) return;
     const dx = e.clientX - dragStart.current.mx;
     const dy = e.clientY - dragStart.current.my;
-    setOffset(clampOffset(dragStart.current.ox + dx, dragStart.current.oy + dy, scale));
+    setOffset(clamp(dragStart.current.ox + dx, dragStart.current.oy + dy, scaleRef.current));
   };
-  const onPointerUp = () => setDragging(false);
+
+  const onPointerUp = () => { isDragging.current = false; };
 
   const handleScaleChange = (newScale: number) => {
+    scaleRef.current = newScale;
     setScale(newScale);
-    setOffset(o => clampOffset(o.x, o.y, newScale));
+    setOffset(prev => clamp(prev.x, prev.y, newScale));
   };
 
   const handleConfirm = () => {
@@ -159,12 +165,10 @@ function PhotoCropModal({ src, onConfirm, onCancel }: {
     canvas.width = CROP_SIZE;
     canvas.height = CROP_SIZE;
     const ctx = canvas.getContext("2d")!;
-    const { w, h } = imgNatural;
+    const { w, h } = imgNat.current;
     const srcX = w / 2 - (CROP_SIZE / 2 + offset.x) / scale;
     const srcY = h / 2 - (CROP_SIZE / 2 + offset.y) / scale;
-    const srcW = CROP_SIZE / scale;
-    const srcH = CROP_SIZE / scale;
-    ctx.drawImage(imgRef.current!, srcX, srcY, srcW, srcH, 0, 0, CROP_SIZE, CROP_SIZE);
+    ctx.drawImage(imgRef.current!, srcX, srcY, CROP_SIZE / scale, CROP_SIZE / scale, 0, 0, CROP_SIZE, CROP_SIZE);
     onConfirm(canvas.toDataURL("image/jpeg", 0.88));
   };
 
@@ -179,8 +183,8 @@ function PhotoCropModal({ src, onConfirm, onCancel }: {
 
         <div className="flex justify-center mb-4">
           <div
-            className="relative overflow-hidden rounded-full border-2 border-primary/30 select-none bg-muted/30"
-            style={{ width: CROP_SIZE, height: CROP_SIZE, cursor: dragging ? "grabbing" : "grab", touchAction: "none" }}
+            className="relative overflow-hidden rounded-full border-2 border-primary/30 select-none bg-muted/30 cursor-grab active:cursor-grabbing"
+            style={{ width: CROP_SIZE, height: CROP_SIZE, touchAction: "none" }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -196,8 +200,8 @@ function PhotoCropModal({ src, onConfirm, onCancel }: {
                 position: "absolute",
                 left: "50%",
                 top: "50%",
-                width: imgNatural.w * scale,
-                height: imgNatural.h * scale,
+                width: imgNat.current.w * scale,
+                height: imgNat.current.h * scale,
                 transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
                 userSelect: "none",
                 pointerEvents: "none",
@@ -213,7 +217,7 @@ function PhotoCropModal({ src, onConfirm, onCancel }: {
             className="flex-1 accent-primary"
             min={minScale}
             max={minScale * 4}
-            step={(minScale * 3) / 100}
+            step={0.001}
             value={scale}
             onChange={e => handleScaleChange(parseFloat(e.target.value))}
           />
