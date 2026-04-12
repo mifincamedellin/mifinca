@@ -40,6 +40,7 @@ const translations = {
     features: {
       heading: "Todo bajo control,\ndesde cualquier lugar.",
       sub: "Reemplazamos las libretas y las\nhojas de cálculo confusas\ncon herramientas diseñadas para la\nrealidad del campo.",
+      subMobile: "Reemplazamos las libretas y las\nhojas de cálculo confusas\ncon herramientas diseñadas para la\nrealidad del campo.",
       items: [
         {
           title: "Control de Animales",
@@ -152,6 +153,7 @@ const translations = {
     features: {
       heading: "Everything under control,\nfrom anywhere.",
       sub: "We replace confusing notebooks and spreadsheets\nwith tools designed for the reality of farm life.",
+      subMobile: "We replace confusing notebooks\nand spreadsheets\nwith tools designed for the\nreality of farm life.",
       items: [
         {
           title: "Animal Tracking",
@@ -466,7 +468,8 @@ export default function Home() {
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto mb-20">
               <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6 whitespace-pre-line">{t.features.heading}</h2>
-              <p className="text-lg text-muted-foreground whitespace-pre-line">{t.features.sub}</p>
+              <p className="md:hidden text-lg text-muted-foreground whitespace-pre-line">{t.features.subMobile}</p>
+              <p className="hidden md:block text-lg text-muted-foreground whitespace-pre-line">{t.features.sub}</p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
