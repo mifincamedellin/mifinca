@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Trash2, User, CalendarX, Syringe } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Trash2, User, CalendarX, Syringe, Pencil } from "lucide-react";
 
 type FarmEvent = {
   id: string;
@@ -167,6 +167,10 @@ export function Calendar() {
       setLocation(`/animals/${event.animalId}${tab}`);
       return;
     }
+    openEditModal(event);
+  };
+
+  const openEditModal = (event: FarmEvent) => {
     setEditingEvent(event);
     form.reset({
       title: event.title,
@@ -175,7 +179,7 @@ export function Calendar() {
       endDate: event.endDate || "",
       category: (event.category as any) || "other",
       assignedTo: event.assignedTo || "",
-      animalId: "",
+      animalId: event.animalId || "",
     });
     setDialogOpen(true);
   };
@@ -415,52 +419,73 @@ export function Calendar() {
             selectedDayEvents.map((evt) => {
               const cat = CATEGORY_COLORS[evt.category || "other"]!;
               const isAuto = !!evt.medicalRecordId;
+              const isManualAnimal = !!evt.animalId && !evt.medicalRecordId;
               const animal = evt.animalId ? animalMap.get(evt.animalId) : null;
               return (
-                <button
+                <div
                   key={evt.id}
-                  onClick={() => openEdit(evt)}
-                  className={`w-full text-left flex items-stretch gap-0 transition-colors group ${isAuto ? "hover:bg-rose-50/50" : "hover:bg-primary/[0.04]"}`}
+                  className={`w-full flex items-stretch gap-0 transition-colors group ${isAuto ? "hover:bg-rose-50/50" : "hover:bg-primary/[0.04]"}`}
                 >
-                  <div className={`w-1 flex-shrink-0 ${cat.bar} ${isAuto ? "opacity-50" : ""} rounded-none`} />
-                  <div className="flex-1 px-4 py-3.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {isAuto && <Syringe className="h-3.5 w-3.5 text-rose-500 flex-shrink-0" />}
-                          {animal && (
-                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">
-                              {animal.customTag || animal.name}
-                            </span>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(evt)}
+                    className="flex-1 text-left flex items-stretch gap-0"
+                  >
+                    <div className={`w-1 flex-shrink-0 ${cat.bar} ${isAuto ? "opacity-50" : ""} rounded-none`} />
+                    <div className="flex-1 px-4 py-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isAuto && <Syringe className="h-3.5 w-3.5 text-rose-500 flex-shrink-0" />}
+                            {animal && (
+                              <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                                {animal.customTag || animal.name}
+                              </span>
+                            )}
+                            <p className="font-semibold text-sm text-foreground leading-snug">{evtTitle(evt)}</p>
+                          </div>
+                          {evtDesc(evt) && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{evtDesc(evt)}</p>
                           )}
-                          <p className="font-semibold text-sm text-foreground leading-snug">{evtTitle(evt)}</p>
+                          {evt.assignedTo && (
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                              <User className="h-3 w-3 flex-shrink-0" />
+                              {evt.assignedTo}
+                            </p>
+                          )}
+                          {evt.endDate && evt.endDate !== evt.startDate && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {isEn ? "Until" : "Hasta"} {format(parseISO(evt.endDate), isEn ? "MMM d" : "d MMM", { locale: isEn ? undefined : es })}
+                            </p>
+                          )}
+                          {isAuto && (
+                            <p className="text-[10px] text-muted-foreground mt-1 italic">
+                              {isEn ? "From medical record — click to view animal" : "Desde registro médico — clic para ver el animal"}
+                            </p>
+                          )}
+                          {isManualAnimal && (
+                            <p className="text-[10px] text-muted-foreground mt-1 italic">
+                              {isEn ? "Click to view animal" : "Clic para ver el animal"}
+                            </p>
+                          )}
                         </div>
-                        {evtDesc(evt) && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{evtDesc(evt)}</p>
-                        )}
-                        {evt.assignedTo && (
-                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            <User className="h-3 w-3 flex-shrink-0" />
-                            {evt.assignedTo}
-                          </p>
-                        )}
-                        {evt.endDate && evt.endDate !== evt.startDate && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {isEn ? "Until" : "Hasta"} {format(parseISO(evt.endDate), isEn ? "MMM d" : "d MMM", { locale: isEn ? undefined : es })}
-                          </p>
-                        )}
-                        {isAuto && (
-                          <p className="text-[10px] text-muted-foreground mt-1 italic">
-                            {isEn ? "From medical record — click to view animal" : "Desde registro médico — clic para ver el animal"}
-                          </p>
-                        )}
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 mt-0.5 ${cat.pill} ${isAuto ? "border-dashed" : ""}`}>
+                          {catLabel(evt.category)}
+                        </span>
                       </div>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 mt-0.5 ${cat.pill} ${isAuto ? "border-dashed" : ""}`}>
-                        {catLabel(evt.category)}
-                      </span>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  {isManualAnimal && (
+                    <button
+                      type="button"
+                      title={isEn ? "Edit event" : "Editar evento"}
+                      onClick={() => openEditModal(evt)}
+                      className="flex-shrink-0 px-3 flex items-center text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               );
             })
           )}
