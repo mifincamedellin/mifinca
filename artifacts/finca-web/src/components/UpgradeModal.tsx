@@ -8,8 +8,6 @@ import {
   Users,
   UserCheck,
   Map,
-  Check,
-  X,
   Sprout,
   Tractor,
   Star,
@@ -26,23 +24,25 @@ const RESOURCE_META: Record<UpgradeResource, { icon: React.ElementType; colorCla
 interface FeatureRow {
   labelEs: string;
   labelEn: string;
-  seed: string;
-  paid: string;
-  highlight?: boolean;
+  seedEs: string;
+  seedEn: string;
+  paidEs: string;
+  paidEn: string;
+  resource?: UpgradeResource;
 }
 
 const FEATURES: FeatureRow[] = [
-  { labelEs: "Animales",       labelEn: "Animals",    seed: "10",         paid: "Ilimitados / Unlimited", highlight: false },
-  { labelEs: "Empleados",      labelEn: "Employees",  seed: "1",          paid: "Ilimitados / Unlimited", highlight: false },
-  { labelEs: "Contactos",      labelEn: "Contacts",   seed: "1",          paid: "Ilimitados / Unlimited", highlight: false },
-  { labelEs: "Fincas",         labelEn: "Farms",      seed: "1",          paid: "Ilimitadas / Unlimited", highlight: false },
-  { labelEs: "Finanzas",       labelEn: "Finances",   seed: "✓",          paid: "✓",                      highlight: false },
-  { labelEs: "Inventario",     labelEn: "Inventory",  seed: "✓",          paid: "✓",                      highlight: false },
-  { labelEs: "Soporte",        labelEn: "Support",    seed: "Básico",     paid: "Prioritario / Priority", highlight: false },
+  { labelEs: "Animales",   labelEn: "Animals",   seedEs: "10",     seedEn: "10",    paidEs: "Ilimitados",  paidEn: "Unlimited", resource: "animals" },
+  { labelEs: "Empleados",  labelEn: "Employees", seedEs: "1",      seedEn: "1",     paidEs: "Ilimitados",  paidEn: "Unlimited", resource: "employees" },
+  { labelEs: "Contactos",  labelEn: "Contacts",  seedEs: "1",      seedEn: "1",     paidEs: "Ilimitados",  paidEn: "Unlimited", resource: "contacts" },
+  { labelEs: "Fincas",     labelEn: "Farms",     seedEs: "1",      seedEn: "1",     paidEs: "Ilimitadas",  paidEn: "Unlimited", resource: "farms" },
+  { labelEs: "Finanzas",   labelEn: "Finances",  seedEs: "✓",      seedEn: "✓",     paidEs: "✓",           paidEn: "✓" },
+  { labelEs: "Inventario", labelEn: "Inventory", seedEs: "✓",      seedEn: "✓",     paidEs: "✓",           paidEn: "✓" },
+  { labelEs: "Soporte",    labelEn: "Support",   seedEs: "Básico", seedEn: "Basic", paidEs: "Prioritario", paidEn: "Priority" },
 ];
 
 export function UpgradeModal() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const { open, resource, limit, closeUpgradeModal } = useUpgradeStore();
   const isEn = i18n.language === "en";
@@ -59,30 +59,46 @@ export function UpgradeModal() {
 
   const triggerLabel = resource ? (isEn ? resourceLabel[resource].en : resourceLabel[resource].es) : "";
 
+  const farmBullets = isEn
+    ? ["✓ Unlimited animals", "✓ Unlimited employees", "✓ Multi-farm"]
+    : ["✓ Animales ilimitados", "✓ Empleados ilimitados", "✓ Multifinca"];
+
+  const proBullets = isEn
+    ? ["✓ Everything in Farm", "✓ Priority support", "✓ 2 months free"]
+    : ["✓ Todo en Finca", "✓ Soporte prioritario", "✓ 2 meses gratis"];
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) closeUpgradeModal(); }}>
       <DialogContent className="p-0 rounded-3xl overflow-hidden max-w-lg border-0 shadow-2xl gap-0">
 
-        {/* ── Header ── */}
-        <div className="relative bg-gradient-to-br from-primary via-primary/90 to-secondary/80 px-8 pt-8 pb-10 text-primary-foreground overflow-hidden">
-          {/* decorative circles */}
-          <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
-          <div className="absolute -bottom-6 -left-6 w-32 h-32 rounded-full bg-white/5" />
+        {/* ── Header with farm background image ── */}
+        <div className="relative px-8 pt-8 pb-10 text-white overflow-hidden">
+          {/* Background farm image */}
+          <img
+            src={`${import.meta.env.BASE_URL}images/lifestyle-farm.png`}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {/* Tint overlay */}
+          <div className="absolute inset-0 bg-primary/75" />
 
           <div className="relative flex flex-col items-center text-center gap-3">
-            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm ring-1 ring-white/20 mb-1">
-              <Icon className="h-8 w-8 text-white" />
+            {/* miFinca logo icon */}
+            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30 mb-1 overflow-hidden">
+              <img
+                src={`${import.meta.env.BASE_URL}images/logo-icon.png`}
+                alt="miFinca"
+                className="h-11 w-11 object-contain rounded-xl"
+              />
             </div>
-            <h2 className="text-2xl font-serif font-bold leading-snug">
+            <h2 className="text-2xl font-serif font-bold leading-snug text-white">
               {isEn ? "Unlock your farm's full potential" : "Desbloquea todo el potencial de tu finca"}
             </h2>
             {resource && limit !== null && (
-              <p className="text-sm text-white/75 max-w-xs leading-relaxed">
+              <p className="text-sm text-white/80 max-w-xs leading-relaxed">
                 {isEn
-                  ? `You've reached the ${limit}-${triggerLabel} limit on the Seed plan.`
-                  : `Llegaste al límite de ${limit} ${triggerLabel} del plan Semilla.`}
-                {" "}
-                {isEn ? "Upgrade to keep growing." : "Actualiza para seguir creciendo."}
+                  ? `You've reached the ${limit}-${triggerLabel} limit on the Seed plan. Upgrade to keep growing.`
+                  : `Llegaste al límite de ${limit} ${triggerLabel} del plan Semilla. Actualiza para seguir creciendo.`}
               </p>
             )}
           </div>
@@ -108,17 +124,12 @@ export function UpgradeModal() {
               <div
                 key={i}
                 className={`grid grid-cols-3 px-4 py-2.5 text-sm border-t border-border/40 ${
-                  resource && (
-                    (resource === "animals"   && f.labelEn === "Animals") ||
-                    (resource === "employees" && f.labelEn === "Employees") ||
-                    (resource === "contacts"  && f.labelEn === "Contacts") ||
-                    (resource === "farms"     && f.labelEn === "Farms")
-                  ) ? "bg-primary/5 font-medium" : ""
+                  resource && f.resource === resource ? "bg-primary/5 font-medium" : ""
                 }`}
               >
                 <span className="text-foreground/80">{isEn ? f.labelEn : f.labelEs}</span>
-                <span className="text-center text-muted-foreground">{f.seed}</span>
-                <span className="text-center text-primary font-medium">{f.paid}</span>
+                <span className="text-center text-muted-foreground">{isEn ? f.seedEn : f.seedEs}</span>
+                <span className="text-center text-primary font-medium">{isEn ? f.paidEn : f.paidEs}</span>
               </div>
             ))}
           </div>
@@ -133,7 +144,7 @@ export function UpgradeModal() {
             </div>
             <p className="text-lg font-bold text-primary">400.000 <span className="text-xs font-normal text-muted-foreground">COP/{isEn ? "mo" : "mes"}</span></p>
             <ul className="mt-1 space-y-0.5">
-              {["✓ Animales ilimitados", "✓ Empleados ilimitados", "✓ Multifinca"].map(b => (
+              {farmBullets.map(b => (
                 <li key={b} className="text-xs text-muted-foreground">{b}</li>
               ))}
             </ul>
@@ -150,7 +161,7 @@ export function UpgradeModal() {
             </div>
             <p className="text-lg font-bold text-primary">4.000.000 <span className="text-xs font-normal text-muted-foreground">COP/{isEn ? "yr" : "año"}</span></p>
             <ul className="mt-1 space-y-0.5">
-              {["✓ Todo en Finca", "✓ Soporte prioritario", "✓ 2 meses gratis"].map(b => (
+              {proBullets.map(b => (
                 <li key={b} className="text-xs text-muted-foreground">{b}</li>
               ))}
             </ul>
