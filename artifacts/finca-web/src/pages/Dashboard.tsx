@@ -110,7 +110,7 @@ export function Dashboard() {
   const [, navigate] = useLocation();
 
   const { data: user } = useGetMe({ query: { enabled: true } });
-  const firstName = user?.fullName === "Demo Usuario"
+  const firstName = user?.isDemo
     ? (isEn ? "Owner" : "Dueño")
     : (user?.fullName?.split(" ")[0] ?? "");
 

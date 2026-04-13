@@ -224,9 +224,9 @@ router.get("/auth/me", requireAuth, async (req, res) => {
     const profile = await db.select().from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
     if (!profile[0]) return res.status(404).json({ error: "not_found" });
 
-    // Demo accounts always show a fixed email
+    // Demo accounts always show a fixed email and flag isDemo
     if (profile[0].clerkId?.startsWith("demo:")) {
-      return res.json({ ...profile[0], email: "demo@mifinca.co" });
+      return res.json({ ...profile[0], email: "demo@mifinca.co", isDemo: true });
     }
 
     let email = profile[0].email;

@@ -177,7 +177,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     localStorage.setItem("mifinca-lang", newLang);
   };
 
-  const displayName = user?.fullName === "Demo Usuario"
+  const displayName = user?.isDemo
     ? (i18n.language === "en" ? "Owner" : "Dueño")
     : (user?.fullName || t('common.userFallback'));
 

@@ -27,6 +27,7 @@ export interface Profile {
   role?: ProfileRole;
   preferredLanguage?: string;
   createdAt?: string;
+  isDemo?: boolean;
 }
 
 export interface UpdateProfileRequest {

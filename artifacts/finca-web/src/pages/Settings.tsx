@@ -143,7 +143,7 @@ export function Settings() {
     queryFn: async () => {
       const res = await fetch("/api/auth/me");
       if (!res.ok) throw new Error("failed");
-      return res.json() as Promise<{ id: string; fullName: string; email: string; role: string; preferredLanguage: string; plan: string }>;
+      return res.json() as Promise<{ id: string; fullName: string; email: string; role: string; preferredLanguage: string; plan: string; isDemo?: boolean }>;
     },
   });
 
@@ -210,9 +210,10 @@ export function Settings() {
 
   useEffect(() => {
     if (profile) {
-      accountForm.reset({ fullName: profile.fullName || "" });
+      const demoName = i18n.language === "en" ? "Owner" : "Dueño";
+      accountForm.reset({ fullName: profile.isDemo ? demoName : (profile.fullName || "") });
     }
-  }, [profile]);
+  }, [profile, i18n.language]);
 
   const onFarmSubmit = (data: z.infer<typeof farmSchema>) => {
     if (!activeFarmId) return;
