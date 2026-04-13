@@ -1154,7 +1154,7 @@ export function AnimalDetail() {
                             deathForm.reset({ deathDate: new Date().toISOString().split("T")[0], deathCause: undefined, deathCauseOther: "" });
                             setDeathOpen(true);
                           }}
-                          className="rounded-xl h-8 px-3 text-xs border-stone-300 text-stone-600 hover:bg-stone-100 hover:text-stone-800"
+                          className="rounded-xl h-8 px-3 text-xs border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
                         >
                           <Skull className="h-3.5 w-3.5 mr-1" />
                           {isEn ? "Record death" : "Registrar muerte"}
