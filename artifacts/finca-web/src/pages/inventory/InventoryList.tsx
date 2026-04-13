@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useListInventoryItems, useCreateInventoryItem } from "@workspace/api-client-react";
@@ -15,8 +15,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
+
+const ALL_CATEGORIES = ["feed", "medicine", "tools", "supplies"] as const;
+type Category = typeof ALL_CATEGORIES[number];
 
 const createItemSchema = z.object({
   name: z.string().min(2),
@@ -87,14 +89,26 @@ export function InventoryList() {
     ? Math.max(0, parseFloat(adjustItem.quantity) + (adjustOp === "add" ? parseFloat(adjustAmt) : -parseFloat(adjustAmt)))
     : null;
 
-  const { data: items, isLoading } = useListInventoryItems(
-    activeFarmId || '', 
-    { 
-      search: search || undefined,
-      category: category !== "all" ? category : undefined 
-    }, 
+  const { data: allItems, isLoading } = useListInventoryItems(
+    activeFarmId || '',
+    { search: search || undefined },
     { query: { enabled: !!activeFarmId } }
   );
+
+  const categoryCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    ALL_CATEGORIES.forEach(c => { counts[c] = 0; });
+    allItems?.forEach((item: InventoryItem) => {
+      if (item.category) counts[item.category] = (counts[item.category] ?? 0) + 1;
+    });
+    return counts;
+  }, [allItems]);
+
+  const items = useMemo(() => {
+    if (!allItems) return allItems;
+    if (category === "all") return allItems;
+    return allItems.filter((item: InventoryItem) => item.category === category);
+  }, [allItems, category]);
 
   const createItem = useCreateInventoryItem();
 
@@ -235,14 +249,51 @@ export function InventoryList() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <Tabs value={category} onValueChange={setCategory} className="w-full md:w-auto">
-          <TabsList className="bg-card shadow-sm p-1 rounded-xl h-12 w-full md:w-auto overflow-x-auto justify-start">
-            <TabsTrigger value="all" className="rounded-lg px-4">{t('inventory.tab.all')}</TabsTrigger>
-            <TabsTrigger value="feed" className="rounded-lg px-4">{t('inventory.cat.feed')}</TabsTrigger>
-            <TabsTrigger value="medicine" className="rounded-lg px-4">{t('inventory.cat.medicine')}</TabsTrigger>
-            <TabsTrigger value="tools" className="rounded-lg px-4">{t('inventory.cat.tools')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            onClick={() => setCategory("all")}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
+              category === "all"
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-card border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary"
+            }`}
+          >
+            {t('inventory.tab.all')}
+            {allItems && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                category === "all"
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}>
+                {allItems.length}
+              </span>
+            )}
+          </button>
+          {ALL_CATEGORIES.map(cat => {
+            const count = categoryCount[cat] ?? 0;
+            const active = category === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => setCategory(active ? "all" : cat)}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
+                  active
+                    ? "bg-secondary text-white border-secondary shadow-sm"
+                    : "bg-card border-border/50 text-muted-foreground hover:border-secondary/50 hover:text-secondary"
+                }`}
+              >
+                {t(`inventory.cat.${cat}`)}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                  active
+                    ? "bg-white/20 text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
@@ -275,7 +326,7 @@ export function InventoryList() {
                 items.map((item: InventoryItem) => (
                   <tr key={item.id} className="border-b border-border/30 hover:bg-black/[0.02] transition-colors group">
                     <td className="py-4 px-6 font-medium text-foreground">{item.name}</td>
-                    <td className="py-4 px-6 text-muted-foreground capitalize">{item.category}</td>
+                    <td className="py-4 px-6 text-muted-foreground">{item.category ? t(`inventory.cat.${item.category}`) : "—"}</td>
                     <td className="py-4 px-6 font-medium">
                       {item.quantity} <span className="text-muted-foreground font-normal text-sm ml-1">{item.unit}</span>
                     </td>
