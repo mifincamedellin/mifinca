@@ -225,16 +225,16 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
       return item.expirationDate < today!;
     });
 
-    const thirtyDaysOut = new Date();
-    thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
-    const thirtyDaysOutStr = thirtyDaysOut.toISOString().split("T")[0]!;
+    const ninetyDaysOut = new Date();
+    ninetyDaysOut.setDate(ninetyDaysOut.getDate() + 90);
+    const ninetyDaysOutStr = ninetyDaysOut.toISOString().split("T")[0]!;
 
     const upcomingMedical = await db.select().from(medicalRecordsTable)
       .innerJoin(animalsTable, eq(medicalRecordsTable.animalId, animalsTable.id))
       .where(and(
         eq(animalsTable.farmId, farmId),
         isNotNull(medicalRecordsTable.nextDueDate),
-        lte(medicalRecordsTable.nextDueDate, thirtyDaysOutStr),
+        lte(medicalRecordsTable.nextDueDate, ninetyDaysOutStr),
       ));
 
     const recentActivity = await db.select({ count: count() }).from(activityLogTable)
@@ -249,7 +249,15 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
     const [pregnantCountResult] = await db.select({ count: count() }).from(animalsTable)
       .where(and(eq(animalsTable.farmId, farmId), eq(animalsTable.status, "active"), eq(animalsTable.isPregnant, true)));
 
-    const upcomingMedicalAnimalIds = [...new Set(upcomingMedical.map(r => r.medical_records.animalId))];
+    // "Due soon" badge: only animals with events in the next 30 days
+    const thirtyDaysOut = new Date();
+    thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
+    const thirtyDaysOutStr = thirtyDaysOut.toISOString().split("T")[0]!;
+    const upcomingMedicalAnimalIds = [...new Set(
+      upcomingMedical
+        .filter(r => r.medical_records.nextDueDate != null && r.medical_records.nextDueDate <= thirtyDaysOutStr)
+        .map(r => r.medical_records.animalId)
+    )];
 
     return res.json({
       totalAnimals: animalCountResult?.count ?? 0,

@@ -234,17 +234,26 @@ export async function seedDemoFarmData(farmId: string) {
     }
     const v1 = pool[i % pool.length]!;
     const v2 = pool[(i + 1) % pool.length]!;
+    const v3 = pool[(i + 2) % pool.length]!;
+    // Spread nextDueDate across 5–62 days so events appear in the dashboard
+    const daysUntilDue = 5 + (i * 17) % 57;
     const records = [
       {
         animalId: animal.id, recordType: v1.recordType, title: v1.title,
         description: v1.description, costCop: v1.costCop,
         vetName: v1.vetName ?? undefined, recordDate: monthsAgo(v1.monthsBack),
-        nextDueDate: monthsAgo(-v1.nextMonths),
+        nextDueDate: daysFromNow(daysUntilDue),
       },
       {
         animalId: animal.id, recordType: v2.recordType, title: v2.title,
         description: v2.description, costCop: v2.costCop,
         vetName: v2.vetName ?? undefined, recordDate: monthsAgo(v2.monthsBack + 1),
+        nextDueDate: daysFromNow(daysUntilDue + 30),
+      },
+      {
+        animalId: animal.id, recordType: v3.recordType, title: v3.title,
+        description: v3.description, costCop: v3.costCop,
+        vetName: v3.vetName ?? undefined, recordDate: monthsAgo(v3.monthsBack + 2),
       },
     ];
     // Every 3rd animal gets a checkup too
