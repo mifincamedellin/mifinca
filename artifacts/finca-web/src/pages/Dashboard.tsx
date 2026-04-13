@@ -14,7 +14,7 @@ import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
-type StatsExt = FarmStats & { employeeCount?: number; contactCount?: number; pregnantCount?: number };
+type StatsExt = FarmStats;
 type FinanceRow = { id: string; type: "income" | "expense"; amount: string; date: string; category: string; description: string };
 
 function formatCOP(amount: number): string {

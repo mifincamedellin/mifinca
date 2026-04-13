@@ -169,6 +169,9 @@ export interface FarmStats {
   recentActivityCount?: number;
   upcomingMedical?: MedicalRecord[];
   lowStockItems?: InventoryItem[];
+  employeeCount?: number;
+  contactCount?: number;
+  pregnantCount?: number;
 }
 
 export type AnimalSpecies = (typeof AnimalSpecies)[keyof typeof AnimalSpecies];
