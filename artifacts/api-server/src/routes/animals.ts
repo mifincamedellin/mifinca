@@ -21,7 +21,7 @@ async function syncMedicalCalendarEvent(
       .limit(1);
     if (existing[0]) {
       await db.update(farmEventsTable)
-        .set({ title, startDate: nextDueDate, animalId })
+        .set({ title, startDate: nextDueDate, animalId, category: "health" })
         .where(eq(farmEventsTable.id, existing[0].id));
     } else {
       await db.insert(farmEventsTable).values({
