@@ -441,21 +441,14 @@ export function AnimalList() {
                   ) : (
                     <span className="text-4xl">{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
                   )}
-                  <div className="absolute top-3 right-3 bg-card/80 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-primary border border-border/50 shadow-sm">
-                    {animal.customTag || 'S/N'}
-                  </div>
+                  {/* Top-left: Due soon (+ Deceased if applicable) */}
                   <div className="absolute top-3 left-3 flex flex-col gap-1">
-                    {(animal as any).status === "deceased" ? (
+                    {(animal as any).status === "deceased" && (
                       <div className="bg-stone-600/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
                         <span>✝</span>
                         {isEn ? "Deceased" : "Fallecida/o"}
                       </div>
-                    ) : (animal as any).isPregnant ? (
-                      <div className="bg-rose-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
-                        <Baby className="h-3 w-3" />
-                        {isEn ? "Pregnant" : "Preñada"}
-                      </div>
-                    ) : null}
+                    )}
                     {upcomingMedicalSet.has(animal.id) && (
                       <div className="bg-amber-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
                         <Bell className="h-3 w-3" />
@@ -463,10 +456,21 @@ export function AnimalList() {
                       </div>
                     )}
                   </div>
+                  {/* Top-right: Pregnant */}
+                  {(animal as any).isPregnant && (
+                    <div className="absolute top-3 right-3 bg-rose-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
+                      <Baby className="h-3 w-3" />
+                      {isEn ? "Pregnant" : "Preñada"}
+                    </div>
+                  )}
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-serif font-bold text-lg text-primary truncate">{animal.name || t('animals.noName')}</h3>
+                    <h3 className="font-serif font-bold text-lg text-primary truncate">
+                      {animal.customTag && animal.name
+                        ? `${animal.customTag} | ${animal.name}`
+                        : animal.customTag || animal.name || t('animals.noName')}
+                    </h3>
                     <p className="text-muted-foreground text-sm capitalize mt-1 flex items-center gap-2">
                       <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
                       {t(`animals.sp.${animal.species}`)} {animal.breed ? `• ${animal.breed}` : ''}
