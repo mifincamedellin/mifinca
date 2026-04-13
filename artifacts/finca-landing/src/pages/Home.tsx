@@ -31,7 +31,7 @@ const translations = {
       h1a: "La claridad que",
       h1b: "su finca",
       h1c: "necesita.",
-      sub: "El software de gestión para ganaderos que valoran su tiempo. Sin complicaciones. Sin enredos. Solo control total de sus animales, inventario y finanzas.",
+      sub: "El software de gestión para ganaderos que valoran su tiempo.\nSin complicaciones. Sin enredos. Solo control total de\nsus animales, inventario y finanzas.",
       ctaPrimary: "Crear cuenta gratis",
       ctaSecondary: "Ver demostración",
       social: "Más de 500 fincas ya lo usan",
@@ -144,7 +144,7 @@ const translations = {
       h1a: "The clarity your",
       h1b: "farm",
       h1c: "needs.",
-      sub: "Farm management software for ranchers who value their time. No complications. No clutter. Just total control of your animals, inventory, and finances.",
+      sub: "Farm management software for ranchers who value their time.\nNo complications. No clutter. Just total control of\nyour animals, inventory, and finances.",
       ctaPrimary: "Create free account",
       ctaSecondary: "View demo",
       social: "Over 500 farms already using it",
@@ -393,7 +393,7 @@ export default function Home() {
               <h1 className="text-5xl md:text-7xl font-serif font-medium leading-[1.1] tracking-tight text-foreground mb-6">
                 {t.hero.h1a} <span className="text-primary italic">{t.hero.h1b}</span> {t.hero.h1c}
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto">
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto whitespace-pre-line">
                 {t.hero.sub}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
