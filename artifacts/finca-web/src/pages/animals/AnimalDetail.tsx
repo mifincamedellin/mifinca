@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2 } from "lucide-react";
+import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { AnimalLineage } from "./AnimalLineage";
@@ -52,6 +52,14 @@ const milkSchema = z.object({
   notes: z.string().optional(),
 });
 type MilkForm = z.infer<typeof milkSchema>;
+
+const pregnancySchema = z.object({
+  pregnancyStartDate: z.string().min(1),
+  pregnancyDueDate: z.string().min(1),
+});
+type PregnancyForm = z.infer<typeof pregnancySchema>;
+
+const CATTLE_GESTATION_DAYS = 283;
 
 const editSchema = z.object({
   name: z.string().optional(),
@@ -98,6 +106,7 @@ export function AnimalDetail() {
 
   const [milkOpen, setMilkOpen] = useState(false);
   const [editingMilk, setEditingMilk] = useState<any | null>(null);
+  const [pregnancyOpen, setPregnancyOpen] = useState(false);
 
   const { data: milkRecords = [], refetch: refetchMilk } = useQuery<any[]>({
     queryKey: [`/api/farms/${activeFarmId}/animals/${id}/milk`],
@@ -157,6 +166,32 @@ export function AnimalDetail() {
     } else {
       createMilkRecord.mutate(data);
     }
+  };
+
+  const pregnancyForm = useForm<PregnancyForm>({
+    resolver: zodResolver(pregnancySchema),
+    defaultValues: { pregnancyStartDate: "", pregnancyDueDate: "" },
+  });
+
+  const setPregnancy = useMutation({
+    mutationFn: async (payload: { isPregnant: boolean; pregnancyStartDate?: string | null; pregnancyDueDate?: string | null }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals/${id}/pregnancy`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("update pregnancy failed");
+      return res.json();
+    },
+    onSuccess: () => { setPregnancyOpen(false); pregnancyForm.reset(); refetch(); },
+  });
+
+  const onPregnancySubmit = (data: PregnancyForm) => {
+    setPregnancy.mutate({ isPregnant: true, pregnancyStartDate: data.pregnancyStartDate, pregnancyDueDate: data.pregnancyDueDate });
+  };
+
+  const clearPregnancy = () => {
+    setPregnancy.mutate({ isPregnant: false, pregnancyStartDate: null, pregnancyDueDate: null });
   };
 
   const updateMedicalRecord = useMutation({
@@ -899,6 +934,119 @@ export function AnimalDetail() {
                   </div>
                 </Card>
               </div>
+
+              {/* ── Pregnancy card — female cattle only ── */}
+              {(animal as any).species === "cattle" && (animal as any).sex === "female" && (() => {
+                const isPregnant = !!(animal as any).isPregnant;
+                const startDate = (animal as any).pregnancyStartDate as string | null;
+                const dueDate = (animal as any).pregnancyDueDate as string | null;
+                const today = new Date();
+                const daysAlong = startDate ? Math.max(0, differenceInDays(today, parseISO(startDate))) : 0;
+                const pct = Math.min(100, Math.round((daysAlong / CATTLE_GESTATION_DAYS) * 100));
+                const dueFmt = dueDate ? format(parseISO(dueDate), isEn ? "MMMM d, yyyy" : "d 'de' MMMM yyyy", { locale: isEn ? undefined : es }) : null;
+                const daysLeft = dueDate ? Math.max(0, differenceInDays(parseISO(dueDate), today)) : null;
+
+                return (
+                  <Card className={`p-5 rounded-2xl border shadow-sm ${isPregnant ? "border-rose-200 bg-gradient-to-br from-rose-50/60 to-pink-50/40" : "border-border/40 bg-card"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-xl ${isPregnant ? "bg-rose-100 text-rose-600" : "bg-muted/50 text-muted-foreground"}`}>
+                          <Baby className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            {isEn ? "Pregnancy" : "Preñez"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {isPregnant
+                              ? isEn ? "Currently pregnant" : "Actualmente preñada"
+                              : isEn ? "Not currently pregnant" : "Sin preñez registrada"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isPregnant && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={setPregnancy.isPending}
+                            onClick={clearPregnancy}
+                            className="rounded-xl h-8 px-3 text-xs border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                            {isEn ? "Record birth" : "Registrar parto"}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            const today = new Date().toISOString().split("T")[0]!;
+                            const defaultDue = addDays(new Date(), CATTLE_GESTATION_DAYS).toISOString().split("T")[0];
+                            pregnancyForm.reset({
+                              pregnancyStartDate: startDate ?? today,
+                              pregnancyDueDate: dueDate ?? defaultDue,
+                            });
+                            setPregnancyOpen(true);
+                          }}
+                          className={`rounded-xl h-8 px-3 text-xs ${isPregnant ? "bg-rose-600 hover:bg-rose-700" : "bg-primary hover:bg-primary/90"}`}
+                        >
+                          <Baby className="h-3.5 w-3.5 mr-1" />
+                          {isPregnant
+                            ? (isEn ? "Edit" : "Editar")
+                            : (isEn ? "Mark pregnant" : "Marcar preñada")}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {isPregnant && (
+                      <div className="mt-4 space-y-3">
+                        {/* Progress bar */}
+                        <div>
+                          <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                            <span>{isEn ? `${daysAlong} of ${CATTLE_GESTATION_DAYS} days` : `${daysAlong} de ${CATTLE_GESTATION_DAYS} días`}</span>
+                            <span className="font-semibold text-rose-600">{pct}%</span>
+                          </div>
+                          <div className="h-2.5 bg-rose-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-rose-400 to-pink-500 rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                        {/* Due date + days left */}
+                        <div className="grid grid-cols-2 gap-3 pt-1">
+                          {startDate && (
+                            <div className="bg-rose-50/70 rounded-xl px-3 py-2.5">
+                              <p className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-0.5">
+                                {isEn ? "Confirmed" : "Confirmada"}
+                              </p>
+                              <p className="text-sm font-semibold text-rose-700">
+                                {format(parseISO(startDate), isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es })}
+                              </p>
+                            </div>
+                          )}
+                          {dueFmt && (
+                            <div className="bg-pink-50/70 rounded-xl px-3 py-2.5">
+                              <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-wide mb-0.5">
+                                {isEn ? "Due date" : "Fecha probable"}
+                              </p>
+                              <p className="text-sm font-semibold text-pink-700">{dueFmt}</p>
+                              {daysLeft !== null && (
+                                <p className="text-[10px] text-pink-500 mt-0.5">
+                                  {daysLeft === 0
+                                    ? (isEn ? "Due today!" : "¡Hoy!")
+                                    : isEn ? `${daysLeft} days left` : `${daysLeft} días restantes`}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })()}
+
             </TabsContent>
 
             <TabsContent value="weight" className="mt-0">
@@ -1105,6 +1253,82 @@ export function AnimalDetail() {
           </Tabs>
         </div>
       </div>
+
+      {/* Pregnancy dialog */}
+      <Dialog open={pregnancyOpen} onOpenChange={(v) => { setPregnancyOpen(v); if (!v) pregnancyForm.reset(); }}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl text-primary flex items-center gap-2">
+              <Baby className="h-5 w-5 text-rose-500" />
+              {isEn ? "Mark as Pregnant" : "Registrar Preñez"}
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...pregnancyForm}>
+            <form onSubmit={pregnancyForm.handleSubmit(onPregnancySubmit)} className="space-y-4 pt-1">
+              <FormField
+                control={pregnancyForm.control}
+                name="pregnancyStartDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">
+                      {isEn ? "Confirmation date" : "Fecha de confirmación"}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        className="rounded-xl"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          if (e.target.value) {
+                            const due = addDays(parseISO(e.target.value), CATTLE_GESTATION_DAYS)
+                              .toISOString().split("T")[0];
+                            pregnancyForm.setValue("pregnancyDueDate", due!);
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      {isEn ? "When was the pregnancy confirmed?" : "¿Cuándo se confirmó la preñez?"}
+                    </p>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={pregnancyForm.control}
+                name="pregnancyDueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">
+                      {isEn ? "Expected due date" : "Fecha probable de parto"}
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="date" className="rounded-xl" {...field} />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      {isEn
+                        ? `Auto-calculated at ${CATTLE_GESTATION_DAYS} days. Adjust if needed.`
+                        : `Calculada automáticamente a ${CATTLE_GESTATION_DAYS} días. Ajusta si es necesario.`}
+                    </p>
+                  </FormItem>
+                )}
+              />
+
+              <Button
+                type="submit"
+                disabled={setPregnancy.isPending}
+                className="w-full rounded-xl py-6 bg-rose-600 hover:bg-rose-700 text-white"
+              >
+                {setPregnancy.isPending
+                  ? (isEn ? "Saving..." : "Guardando...")
+                  : (isEn ? "Confirm pregnancy" : "Confirmar preñez")}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

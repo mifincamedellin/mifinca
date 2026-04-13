@@ -171,6 +171,46 @@ router.put("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
   }
 });
 
+router.patch("/farms/:farmId/animals/:animalId/pregnancy", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+    const { isPregnant, pregnancyStartDate, pregnancyDueDate } = req.body as {
+      isPregnant: boolean;
+      pregnancyStartDate?: string | null;
+      pregnancyDueDate?: string | null;
+    };
+
+    const [updated] = await db.update(animalsTable)
+      .set({
+        isPregnant,
+        pregnancyStartDate: pregnancyStartDate || null,
+        pregnancyDueDate: pregnancyDueDate || null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId)))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "not_found" });
+
+    await db.insert(activityLogTable).values({
+      farmId,
+      userId,
+      actionType: "updated",
+      entityType: "animal",
+      entityId: animalId,
+      description: isPregnant
+        ? `Marked ${updated.name ?? updated.customTag} as pregnant (due: ${pregnancyDueDate ?? "TBD"})`
+        : `Cleared pregnancy status for ${updated.name ?? updated.customTag}`,
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Update pregnancy error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 router.patch("/farms/:farmId/animals/:animalId/lineage", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };

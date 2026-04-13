@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, date, timestamp, numeric } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, date, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { farmsTable } from "./farms";
@@ -26,6 +26,9 @@ export const animalsTable = pgTable("animals", {
   notes: text("notes"),
   purchaseDate: date("purchase_date"),
   purchasePrice: numeric("purchase_price", { precision: 14, scale: 2 }),
+  isPregnant: boolean("is_pregnant").notNull().default(false),
+  pregnancyStartDate: date("pregnancy_start_date"),
+  pregnancyDueDate: date("pregnancy_due_date"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
