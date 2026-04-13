@@ -142,12 +142,6 @@ function PhotoCropModal({ src, onConfirm, onCancel }: {
 
   const onPointerUp = () => { isDragging.current = false; };
 
-  const handleScaleChange = (newScale: number) => {
-    scaleRef.current = newScale;
-    setScale(newScale);
-    setOffset(prev => clamp(prev.x, prev.y, newScale));
-  };
-
   const handleConfirm = () => {
     const canvas = document.createElement("canvas");
     canvas.width = CROP_SIZE;
@@ -167,7 +161,7 @@ function PhotoCropModal({ src, onConfirm, onCancel }: {
         onClick={e => e.stopPropagation()}
       >
         <h3 className="font-serif font-bold text-primary text-lg mb-0.5">Ajustar foto</h3>
-        <p className="text-xs text-muted-foreground mb-4">Arrastra para encuadrar · Desliza para hacer zoom</p>
+        <p className="text-xs text-muted-foreground mb-4">Arrastra para encuadrar la foto</p>
 
         <div className="flex justify-center mb-4">
           <div
@@ -196,20 +190,6 @@ function PhotoCropModal({ src, onConfirm, onCancel }: {
               }}
             />
           </div>
-        </div>
-
-        <div className="flex items-center gap-3 mb-5">
-          <span className="text-muted-foreground text-sm font-medium select-none">−</span>
-          <input
-            type="range"
-            className="flex-1 accent-primary"
-            min={minScale}
-            max={minScale * 4}
-            step={0.001}
-            value={scale}
-            onChange={e => handleScaleChange(parseFloat(e.target.value))}
-          />
-          <span className="text-muted-foreground text-sm font-medium select-none">+</span>
         </div>
 
         <div className="flex gap-3">
