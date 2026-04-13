@@ -50,6 +50,15 @@ const SPECIES_EMOJI: Record<string, string> = {
   other: "🐾",
 };
 
+function copDisplay(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return parseInt(digits, 10).toLocaleString("es-CO");
+}
+function copRaw(formatted: string): string {
+  return formatted.replace(/\D/g, "");
+}
+
 export function AnimalList() {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language === "en";
@@ -321,10 +330,13 @@ export function AnimalList() {
                       <FormControl>
                         <div className="relative">
                           <Input
-                            type="number"
-                            min="0"
-                            step="1000"
-                            {...field}
+                            type="text"
+                            inputMode="numeric"
+                            value={copDisplay(String(field.value ?? ""))}
+                            onChange={e => field.onChange(copRaw(e.target.value))}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
                             className="rounded-xl pr-14"
                             placeholder="0"
                           />

@@ -88,6 +88,15 @@ const editSchema = z.object({
 });
 type EditForm = z.infer<typeof editSchema>;
 
+function copDisplay(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return parseInt(digits, 10).toLocaleString("es-CO");
+}
+function copRaw(formatted: string): string {
+  return formatted.replace(/\D/g, "");
+}
+
 export function AnimalDetail() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
@@ -630,11 +639,13 @@ export function AnimalDetail() {
                     <FormControl>
                       <div className="relative">
                         <Input
-                          type="number"
-                          min="0"
-                          step="1000"
-                          {...field}
-                          value={field.value ?? ""}
+                          type="text"
+                          inputMode="numeric"
+                          value={copDisplay(String(field.value ?? ""))}
+                          onChange={e => field.onChange(copRaw(e.target.value))}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                           className="rounded-xl pr-14"
                           placeholder="0"
                         />
@@ -809,7 +820,17 @@ export function AnimalDetail() {
                     <FormLabel className="font-semibold">{isEn ? "Cost" : "Costo"} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input type="number" min="0" step="1000" {...field} value={field.value ?? ""} className="rounded-xl pr-14" placeholder="0" />
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={copDisplay(String(field.value ?? ""))}
+                          onChange={e => field.onChange(copRaw(e.target.value))}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                          className="rounded-xl pr-14"
+                          placeholder="0"
+                        />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">COP</span>
                       </div>
                     </FormControl>
