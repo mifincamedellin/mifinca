@@ -35,6 +35,7 @@ import { Finances } from "@/pages/Finances";
 import { Contacts } from "@/pages/Contacts";
 import { Employees } from "@/pages/Employees";
 import { Calendar } from "@/pages/Calendar";
+import { AllActivity } from "@/pages/AllActivity";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -97,6 +98,7 @@ function Router() {
         <Route path="/contacts" component={() => <ProtectedRoute component={Contacts} />} />
         <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
         <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
+        <Route path="/activity" component={() => <ProtectedRoute component={AllActivity} />} />
         <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
         <Route component={NotFound} />
       </Switch>

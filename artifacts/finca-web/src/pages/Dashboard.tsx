@@ -493,11 +493,19 @@ export function Dashboard() {
               : "Últimas acciones en tu finca: animales, inventario, y más."
             } />
           </h3>
-          {(stats?.recentActivityCount ?? 0) > 0 && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium tabular-nums">
-              {stats?.recentActivityCount}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {(stats?.recentActivityCount ?? 0) > 0 && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium tabular-nums">
+                {stats?.recentActivityCount}
+              </span>
+            )}
+            <button
+              onClick={() => setLocation("/activity")}
+              className="text-xs text-primary/70 hover:text-primary font-medium flex items-center gap-0.5 transition-colors"
+            >
+              {isEn ? "View all" : "Ver todo"} <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
         </div>
         <div className="space-y-5">
           {activity && activity.length > 0 ? activity.map((item, i) => {
