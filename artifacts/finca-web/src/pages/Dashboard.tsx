@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   Activity, AlertTriangle, Syringe, PawPrint, HelpCircle,
-  Users, Phone, TrendingUp, TrendingDown, ArrowRight, Plus, CalendarClock, Wallet,
+  Users, Phone, TrendingUp, TrendingDown, ArrowRight, Plus, CalendarClock, Wallet, Baby,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -14,7 +14,7 @@ import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
-type StatsExt = FarmStats & { employeeCount?: number; contactCount?: number };
+type StatsExt = FarmStats & { employeeCount?: number; contactCount?: number; pregnantCount?: number };
 type FinanceRow = { id: string; type: "income" | "expense"; amount: string; date: string; category: string; description: string };
 
 function formatCOP(amount: number): string {
@@ -208,6 +208,15 @@ export function Dashboard() {
       href:    "/contacts",
       tooltip: isEn ? "Suppliers, vets, buyers, and other contacts." : "Proveedores, veterinarios, compradores y otros contactos.",
     },
+    {
+      title:   isEn ? "Pregnant" : "Preñadas",
+      value:   stats?.pregnantCount || 0,
+      icon:    Baby,
+      color:   "text-rose-600",
+      bg:      "bg-rose-100",
+      href:    "/animals",
+      tooltip: isEn ? "Active animals currently marked as pregnant." : "Animales activas actualmente marcadas como preñadas.",
+    },
   ];
 
   return (
@@ -247,11 +256,11 @@ export function Dashboard() {
 
       {/* ── Stat cards ──────────────────────────────────────── */}
       {statsLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => <Card key={i} className="h-24 animate-pulse bg-black/5 border-none" />)}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => <Card key={i} className="h-24 animate-pulse bg-black/5 border-none" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {statCards.map((stat, index) => (
             <motion.div
               key={stat.title}

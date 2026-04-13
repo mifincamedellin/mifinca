@@ -239,6 +239,9 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
     const [contactCountResult] = await db.select({ count: count() }).from(contactsTable)
       .where(eq(contactsTable.farmId, farmId));
 
+    const [pregnantCountResult] = await db.select({ count: count() }).from(animalsTable)
+      .where(and(eq(animalsTable.farmId, farmId), eq(animalsTable.status, "active"), eq(animalsTable.isPregnant, true)));
+
     return res.json({
       totalAnimals: animalCountResult?.count ?? 0,
       animalsBySpecies,
@@ -247,6 +250,7 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
       recentActivityCount: recentActivity[0]?.count ?? 0,
       employeeCount: employeeCountResult?.count ?? 0,
       contactCount: contactCountResult?.count ?? 0,
+      pregnantCount: pregnantCountResult?.count ?? 0,
       upcomingMedical: upcomingMedical.slice(0, 5).map(r => ({
         ...r.medical_records,
         animalName: r.animals.name,
