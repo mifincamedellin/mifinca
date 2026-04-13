@@ -82,9 +82,16 @@ function ProtectedRoute({ component: Component }: { component: React.ElementType
   return <AppLayout><Component /></AppLayout>;
 }
 
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [location]);
+  return null;
+}
+
 function Router() {
   return (
     <>
+      <ScrollToTop />
       <OAuthCallbackHandler />
       <Switch>
         <Route path="/login" component={Login} />
