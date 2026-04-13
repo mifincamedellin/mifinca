@@ -177,6 +177,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     localStorage.setItem("mifinca-lang", newLang);
   };
 
+  const displayName = user?.fullName === "Demo Usuario"
+    ? (i18n.language === "en" ? "Owner" : "Dueño")
+    : (user?.fullName || t('common.userFallback'));
+
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       {/* Mobile status-bar colour band — fills the safe-area behind the OS clock/signal/battery icons */}
@@ -225,11 +229,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-3 mt-1 pt-2 border-t border-sidebar-border">
               <Avatar className="h-10 w-10 border-2 border-accent/20">
                 <AvatarFallback className="bg-primary text-primary-foreground font-serif">
-                  {user?.fullName?.substring(0, 2).toUpperCase() || 'FI'}
+                  {displayName.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-medium text-sidebar-foreground truncate">{user?.fullName || t('common.userFallback')}</span>
+                <span className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</span>
                 <button onClick={handleLogout} className="text-xs text-sidebar-foreground/60 hover:text-accent text-left flex items-center gap-1 mt-0.5 transition-colors">
                   <LogOut className="h-3 w-3" /> {t('common.logout')}
                 </button>

@@ -110,7 +110,9 @@ export function Dashboard() {
   const [, navigate] = useLocation();
 
   const { data: user } = useGetMe({ query: { enabled: true } });
-  const firstName = user?.fullName?.split(" ")[0] ?? "";
+  const firstName = user?.fullName === "Demo Usuario"
+    ? (isEn ? "Owner" : "Dueño")
+    : (user?.fullName?.split(" ")[0] ?? "");
 
   const { data: farms } = useListFarms({ query: { enabled: true } });
   const activeFarm = farms?.find(f => f.id === activeFarmId);
