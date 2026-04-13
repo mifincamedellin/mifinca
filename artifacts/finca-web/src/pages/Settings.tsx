@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Settings as SettingsIcon, AlertTriangle, User, CreditCard,
-  Star, Check, Plus, Trash2, Mail, Pencil, X, Lock,
+  Star, Check, Plus, Trash2, Mail, Lock,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,10 +32,6 @@ const farmSchema = z.object({
 
 const accountSchema = z.object({
   fullName: z.string().min(1),
-});
-
-const emailSchema = z.object({
-  email: z.string().email(),
 });
 
 const PLAN_DEFS = [
@@ -84,7 +80,6 @@ export function Settings() {
   const { activeFarmId } = useStore();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [editingEmail, setEditingEmail] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEMO_PAYMENT_METHODS);
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
@@ -199,32 +194,6 @@ export function Settings() {
     onError: () => toast({ variant: "destructive", title: t("common.error"), description: t("settings.errorDesc") }),
   });
 
-  const updateEmail = useMutation({
-    mutationFn: async (data: { email: string }) => {
-      const res = await fetch("/api/auth/email", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "failed");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      refetchProfile();
-      setEditingEmail(false);
-      toast({ title: t("settings.saved"), description: t("settings.emailSavedDesc") });
-    },
-    onError: (err: Error) => {
-      const msg = err.message === "Email already in use"
-        ? t("settings.emailInUse")
-        : t("settings.errorDesc");
-      toast({ variant: "destructive", title: t("common.error"), description: msg });
-    },
-  });
-
   const farmForm = useForm<z.infer<typeof farmSchema>>({
     resolver: zodResolver(farmSchema),
     defaultValues: { name: "", location: "", totalHectares: 0 }
@@ -235,11 +204,6 @@ export function Settings() {
     defaultValues: { fullName: "" }
   });
 
-  const emailForm = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { email: "" }
-  });
-
   useEffect(() => {
     if (farm) farmForm.reset({ name: farm.name, location: farm.location || "", totalHectares: farm.totalHectares || 0 });
   }, [farm]);
@@ -247,7 +211,6 @@ export function Settings() {
   useEffect(() => {
     if (profile) {
       accountForm.reset({ fullName: profile.fullName || "" });
-      emailForm.reset({ email: profile.email || "" });
     }
   }, [profile]);
 
@@ -331,50 +294,20 @@ export function Settings() {
             </div>
           </form>
 
-          {/* Email */}
+          {/* Email — read-only (managed by Google) */}
           <div className="space-y-2">
             <Label className="text-foreground flex items-center gap-2">
               <Mail className="h-4 w-4" /> {t("settings.email")}
             </Label>
-            {editingEmail ? (
-              <form onSubmit={emailForm.handleSubmit((d) => updateEmail.mutate(d))} className="flex gap-3">
-                <Input
-                  {...emailForm.register("email")}
-                  type="email"
-                  className="rounded-xl py-6 bg-white/50 flex-1"
-                  placeholder="correo@ejemplo.com"
-                />
-                <Button
-                  type="submit"
-                  disabled={updateEmail.isPending}
-                  className="rounded-xl bg-primary hover:bg-primary/90 px-6 self-stretch"
-                >
-                  {updateEmail.isPending ? t("settings.saving") : t("common.save")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl self-stretch px-4"
-                  onClick={() => { setEditingEmail(false); emailForm.reset({ email: profile?.email || "" }); }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </form>
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="flex-1 rounded-xl border border-border/50 bg-muted/30 px-4 py-[14px] text-sm text-foreground">
-                  {profile?.email ?? "—"}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl py-[14px] px-4 border-border/50"
-                  onClick={() => setEditingEmail(true)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 rounded-xl border border-border/50 bg-muted/30 px-4 py-[14px] text-sm text-foreground">
+                {profile?.email ?? "—"}
               </div>
-            )}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
+                <img src="https://www.google.com/favicon.ico" alt="Google" className="h-3.5 w-3.5 rounded-sm" />
+                {lang === "en" ? "Managed by Google" : "Gestionado por Google"}
+              </div>
+            </div>
           </div>
         </div>
       </Card>
