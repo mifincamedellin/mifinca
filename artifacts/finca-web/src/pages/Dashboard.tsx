@@ -167,7 +167,7 @@ export function Dashboard() {
   });
 
   const { data: finances } = useQuery<FinanceRow[]>({
-    queryKey: ["finances-dashboard", activeFarmId],
+    queryKey: ["finances", activeFarmId],
     queryFn: async () => {
       const res = await fetch(`/api/farms/${activeFarmId}/finances`);
       if (!res.ok) return [];
@@ -178,7 +178,7 @@ export function Dashboard() {
 
   const now = new Date();
   const thisMonth = (finances || []).filter(t => {
-    const d = new Date(t.date);
+    const d = new Date(t.date + "T12:00:00");
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   });
   const monthIncome   = thisMonth.filter(t => t.type === "income").reduce((s, t) => s + parseFloat(t.amount), 0);
