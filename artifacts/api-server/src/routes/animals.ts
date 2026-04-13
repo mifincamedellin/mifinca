@@ -144,6 +144,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
         .where(and(eq(animalsTable.farmId, farmId))),
       db.select().from(farmEventsTable)
         .where(and(
+          eq(farmEventsTable.farmId, farmId),
           eq(farmEventsTable.animalId, animalId),
           isNull(farmEventsTable.medicalRecordId),
         ))

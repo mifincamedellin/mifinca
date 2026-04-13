@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { farmEventsTable } from "@workspace/db";
+import { farmEventsTable, animalsTable } from "@workspace/db";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
@@ -29,6 +29,11 @@ router.post("/farms/:farmId/events", requireAuth, requireFarmAccess, async (req,
     const userId = (req as any).userId;
     const { title, description, startDate, endDate, allDay, category, assignedTo, color, animalId } = req.body;
     if (!title || !startDate) return res.status(400).json({ error: "title and startDate required" });
+    if (animalId) {
+      const animal = await db.select({ id: animalsTable.id }).from(animalsTable)
+        .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
+      if (!animal[0]) return res.status(400).json({ error: "animal_not_in_farm" });
+    }
     const record = await db.insert(farmEventsTable).values({
       farmId,
       title,
@@ -61,6 +66,12 @@ router.put("/farms/:farmId/events/:eventId", requireAuth, requireFarmAccess, asy
 
     if (existing[0]?.medicalRecordId) {
       return res.status(403).json({ error: "cannot_edit_auto_event", message: "This event was auto-created from a medical record. Edit it from the animal's profile." });
+    }
+
+    if (animalId) {
+      const animal = await db.select({ id: animalsTable.id }).from(animalsTable)
+        .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
+      if (!animal[0]) return res.status(400).json({ error: "animal_not_in_farm" });
     }
 
     const updated = await db.update(farmEventsTable)
