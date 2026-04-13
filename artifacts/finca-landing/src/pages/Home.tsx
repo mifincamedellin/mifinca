@@ -393,7 +393,7 @@ export default function Home() {
               <h1 className="text-5xl md:text-7xl font-serif font-medium leading-[1.1] tracking-tight text-foreground mb-6">
                 {t.hero.h1a} <span className="text-primary italic">{t.hero.h1b}</span> {t.hero.h1c}
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto whitespace-pre-line">
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto md:whitespace-pre-line">
                 {t.hero.sub}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
