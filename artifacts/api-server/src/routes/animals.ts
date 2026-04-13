@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import {
   animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable, milkRecordsTable, profilesTable,
 } from "@workspace/db";
-import { eq, and, desc, ilike, or, count } from "drizzle-orm";
+import { eq, and, desc, asc, ilike, or, count, sql } from "drizzle-orm";
 import { getPlanLimits } from "../lib/plans.js";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
@@ -22,7 +22,7 @@ router.get("/farms/:farmId/animals", requireAuth, requireFarmAccess, async (req,
 
     let query = db.select().from(animalsTable).where(eq(animalsTable.farmId, farmId));
 
-    const animals = await db.select().from(animalsTable).where(eq(animalsTable.farmId, farmId)).orderBy(desc(animalsTable.createdAt));
+    const animals = await db.select().from(animalsTable).where(eq(animalsTable.farmId, farmId)).orderBy(desc(animalsTable.createdAt), asc(animalsTable.id));
 
     const filtered = animals.filter(a => {
       if (species && a.species !== species) return false;
