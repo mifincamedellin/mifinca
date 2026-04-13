@@ -21,7 +21,9 @@ type FarmEvent = {
   id: string;
   farmId: string;
   title: string;
+  titleEn?: string | null;
   description?: string | null;
+  descriptionEn?: string | null;
   startDate: string;
   endDate?: string | null;
   allDay: boolean;
@@ -58,6 +60,9 @@ export function Calendar() {
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
   const isEn = i18n.language === "en";
+
+  const evtTitle = (evt: FarmEvent) => (isEn && evt.titleEn) ? evt.titleEn : evt.title;
+  const evtDesc  = (evt: FarmEvent) => (isEn && evt.descriptionEn) ? evt.descriptionEn : evt.description;
 
   const today = useMemo(() => new Date(), []);
   const [currentDate, setCurrentDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -299,7 +304,7 @@ export function Calendar() {
                         className={`w-full text-left text-[10px] font-medium px-1.5 py-0.5 rounded border truncate ${cat.pill} hover:opacity-75 transition-opacity`}
                       >
                         <span className={`inline-block w-1.5 h-1.5 rounded-full ${cat.dot} mr-1 align-middle flex-shrink-0`} />
-                        {evt.title}
+                        {evtTitle(evt)}
                       </button>
                     );
                   })}
@@ -365,9 +370,9 @@ export function Calendar() {
                   <div className="flex-1 px-4 py-3.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-foreground leading-snug">{evt.title}</p>
-                        {evt.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{evt.description}</p>
+                        <p className="font-semibold text-sm text-foreground leading-snug">{evtTitle(evt)}</p>
+                        {evtDesc(evt) && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{evtDesc(evt)}</p>
                         )}
                         {evt.assignedTo && (
                           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
