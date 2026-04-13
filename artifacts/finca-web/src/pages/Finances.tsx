@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -26,14 +27,6 @@ interface Transaction {
 
 type Period = "all" | "year" | "6m" | "3m" | "last" | "month";
 
-function copDisplay(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  return parseInt(digits, 10).toLocaleString("es-CO");
-}
-function copRaw(formatted: string): string {
-  return formatted.replace(/\D/g, "");
-}
 
 const INCOME_CATEGORIES = ["venta_animales", "venta_leche", "venta_cosecha", "subsidio", "otro_ingreso"];
 const EXPENSE_CATEGORIES = ["alimentacion", "medicamentos", "mano_obra", "maquinaria", "servicios", "insumos", "transporte", "otro_gasto"];
@@ -57,9 +50,6 @@ function catLabel(cat: string, t: (k: string) => string) {
   return map[cat] ?? cat;
 }
 
-function formatCOP(n: number) {
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
-}
 
 function getDateRange(period: Period): { from: Date | null; to: Date | null } {
   const now = new Date();
@@ -99,7 +89,7 @@ const EMPTY_FORM = {
 
 export function Finances() {
   const { t, i18n } = useTranslation();
-  const { activeFarmId } = useStore();
+  const { activeFarmId, currency } = useStore();
   const qc = useQueryClient();
   const isEn = i18n.language === "en";
 
@@ -260,7 +250,7 @@ export function Finances() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground font-medium">{t("fin.income")}</p>
-            <p className="text-xl font-bold font-mono text-green-600 dark:text-green-400">{formatCOP(totalIncome)}</p>
+            <p className="text-xl font-bold font-mono text-green-600 dark:text-green-400">{formatCurrency(totalIncome, currency)}</p>
           </div>
         </div>
 
@@ -270,7 +260,7 @@ export function Finances() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground font-medium">{t("fin.expense")}</p>
-            <p className="text-xl font-bold font-mono text-red-500 dark:text-red-400">{formatCOP(totalExpense)}</p>
+            <p className="text-xl font-bold font-mono text-red-500 dark:text-red-400">{formatCurrency(totalExpense, currency)}</p>
           </div>
         </div>
 
@@ -285,7 +275,7 @@ export function Finances() {
           <div>
             <p className="text-sm text-muted-foreground font-medium">{t("fin.profit")}</p>
             <p className={`text-xl font-bold font-mono ${profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
-              {profit >= 0 ? "+" : ""}{formatCOP(profit)}
+              {profit >= 0 ? "+" : ""}{formatCurrency(profit, currency)}
             </p>
           </div>
         </div>
@@ -300,7 +290,7 @@ export function Finances() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.5)" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1_000_000).toFixed(1)}M`} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v: number) => formatCOP(v)} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} />
+              <Tooltip formatter={(v: number) => formatCurrency(v, currency)} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} />
               <Legend />
               <Bar dataKey="income"  name={t("fin.income")}  fill="#4A6741" radius={[6, 6, 0, 0]} />
               <Bar dataKey="expense" name={t("fin.expense")} fill="#C4956A" radius={[6, 6, 0, 0]} />
@@ -362,7 +352,7 @@ export function Finances() {
                       </span>
                     </td>
                     <td className={`px-6 py-3 text-right font-mono font-semibold ${row.type === "income" ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                      {row.type === "income" ? "+" : "-"}{formatCOP(parseFloat(row.amount))}
+                      {row.type === "income" ? "+" : "-"}{formatCurrency(parseFloat(row.amount), currency)}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 justify-end">
@@ -436,8 +426,8 @@ export function Finances() {
                   <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder={t("fin.form.descPlaceholder")} className="rounded-xl" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">{t("fin.col.amount")} (COP)</label>
-                  <Input type="text" inputMode="numeric" value={copDisplay(form.amount)} onChange={e => setForm(f => ({ ...f, amount: copRaw(e.target.value) }))} placeholder="0" className="rounded-xl" />
+                  <label className="text-sm font-medium mb-1.5 block">{t("fin.col.amount")} ({currency})</label>
+                  <Input type="text" inputMode="numeric" value={currencyInputDisplay(form.amount, currency)} onChange={e => setForm(f => ({ ...f, amount: currencyInputRaw(e.target.value) }))} placeholder="0" className="rounded-xl" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">{t("fin.form.notes")}</label>

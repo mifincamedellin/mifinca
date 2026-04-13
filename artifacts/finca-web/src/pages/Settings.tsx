@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   Settings as SettingsIcon, AlertTriangle, User, CreditCard,
-  Star, Check, Plus, Trash2, Mail, Lock,
+  Star, Check, Plus, Trash2, Mail, Lock, Coins,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -77,7 +78,7 @@ const DEMO_PAYMENT_METHODS: PaymentMethod[] = [];
 
 export function Settings() {
   const { t, i18n } = useTranslation();
-  const { activeFarmId } = useStore();
+  const { activeFarmId, currency, setCurrency } = useStore();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEMO_PAYMENT_METHODS);
@@ -308,6 +309,42 @@ export function Settings() {
                 <img src="https://www.google.com/favicon.ico" alt="Google" className="h-3.5 w-3.5 rounded-sm" />
                 {lang === "en" ? "Managed by Google" : "Gestionado por Google"}
               </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── PREFERENCES ── */}
+      <Card className="p-8 rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm">
+        <div className="flex items-center gap-3 mb-6 border-b border-border/50 pb-4">
+          <Coins className="h-5 w-5 text-primary" />
+          <h2 className="text-2xl font-serif text-primary">{i18n.language === "en" ? "Preferences" : "Preferencias"}</h2>
+        </div>
+        <div className="max-w-2xl space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">{i18n.language === "en" ? "Currency" : "Moneda"}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {i18n.language === "en"
+                  ? `All amounts are shown in ${currency}. Example: ${formatCurrency(1500000, currency)}`
+                  : `Todos los montos se muestran en ${currency}. Ejemplo: ${formatCurrency(1500000, currency)}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 bg-muted/40 border border-border/50 rounded-xl p-1">
+              {(["COP", "USD"] as const).map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCurrency(c)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    currency === c
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
             </div>
           </div>
         </div>

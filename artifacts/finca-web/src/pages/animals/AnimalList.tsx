@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
+import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListAnimals, useCreateAnimal, useGetFarmStats } from "@workspace/api-client-react";
 import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
@@ -50,19 +51,11 @@ const SPECIES_EMOJI: Record<string, string> = {
   other: "🐾",
 };
 
-function copDisplay(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  return parseInt(digits, 10).toLocaleString("es-CO");
-}
-function copRaw(formatted: string): string {
-  return formatted.replace(/\D/g, "");
-}
 
 export function AnimalList() {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language === "en";
-  const { activeFarmId } = useStore();
+  const { activeFarmId, currency } = useStore();
   const { openUpgradeModal } = useUpgradeStore();
   const [search, setSearch] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<string>("all");
@@ -332,15 +325,15 @@ export function AnimalList() {
                           <Input
                             type="text"
                             inputMode="numeric"
-                            value={copDisplay(String(field.value ?? ""))}
-                            onChange={e => field.onChange(copRaw(e.target.value))}
+                            value={currencyInputDisplay(String(field.value ?? ""), currency)}
+                            onChange={e => field.onChange(currencyInputRaw(e.target.value))}
                             onBlur={field.onBlur}
                             name={field.name}
                             ref={field.ref}
                             className="rounded-xl pr-14"
                             placeholder="0"
                           />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">COP</span>
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">{currency}</span>
                         </div>
                       </FormControl>
                       <FormMessage />

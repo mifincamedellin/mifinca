@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
+import { formatCurrencyCompact } from "@/lib/currency";
 import { useGetFarmStats, useListActivity, useListFarms, useGetMe, type FarmStats } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -17,11 +18,6 @@ import { useQuery } from "@tanstack/react-query";
 type StatsExt = FarmStats;
 type FinanceRow = { id: string; type: "income" | "expense"; amount: string; date: string; category: string; description: string };
 
-function formatCOP(amount: number): string {
-  if (Math.abs(amount) >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(amount) >= 1_000) return `$${Math.round(amount / 1_000)}k`;
-  return `$${Math.round(amount)}`;
-}
 
 function InfoTooltip({ text }: { text: string }) {
   const [show, setShow] = useState(false);
@@ -145,7 +141,7 @@ const ACTIVITY_LABELS: Record<string, Record<string, { es: string; en: string }>
 
 export function Dashboard() {
   const { t, i18n } = useTranslation();
-  const { activeFarmId } = useStore();
+  const { activeFarmId, currency } = useStore();
   const isEn = i18n.language === "en";
   const [, navigate] = useLocation();
 
@@ -394,7 +390,7 @@ export function Dashboard() {
                 <span className="text-sm text-muted-foreground">{t("dashboard.income")}</span>
               </div>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {formatCOP(monthIncome)}
+                {formatCurrencyCompact(monthIncome, currency)}
               </span>
             </div>
             <div className="flex items-center justify-between py-2.5 border-b border-border/40">
@@ -403,13 +399,13 @@ export function Dashboard() {
                 <span className="text-sm text-muted-foreground">{t("dashboard.expenses")}</span>
               </div>
               <span className="font-semibold text-red-500 tabular-nums">
-                {formatCOP(monthExpenses)}
+                {formatCurrencyCompact(monthExpenses, currency)}
               </span>
             </div>
             <div className="flex items-center justify-between py-3">
               <span className="text-sm font-semibold text-foreground">{t("dashboard.netBalance")}</span>
               <span className={`text-xl font-serif font-bold tabular-nums ${monthNet >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                {monthNet >= 0 ? "+" : ""}{formatCOP(monthNet)}
+                {monthNet >= 0 ? "+" : ""}{formatCurrencyCompact(monthNet, currency)}
               </span>
             </div>
             {thisMonth.length === 0 && (

@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useParams, Link, useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
+import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,19 +89,11 @@ const editSchema = z.object({
 });
 type EditForm = z.infer<typeof editSchema>;
 
-function copDisplay(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  return parseInt(digits, 10).toLocaleString("es-CO");
-}
-function copRaw(formatted: string): string {
-  return formatted.replace(/\D/g, "");
-}
 
 export function AnimalDetail() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
-  const { activeFarmId } = useStore();
+  const { activeFarmId, currency } = useStore();
   const isEn = i18n.language === "en";
   const qc = useQueryClient();
 
@@ -641,15 +634,15 @@ export function AnimalDetail() {
                         <Input
                           type="text"
                           inputMode="numeric"
-                          value={copDisplay(String(field.value ?? ""))}
-                          onChange={e => field.onChange(copRaw(e.target.value))}
+                          value={currencyInputDisplay(String(field.value ?? ""), currency)}
+                          onChange={e => field.onChange(currencyInputRaw(e.target.value))}
                           onBlur={field.onBlur}
                           name={field.name}
                           ref={field.ref}
                           className="rounded-xl pr-14"
                           placeholder="0"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">COP</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">{currency}</span>
                       </div>
                     </FormControl>
                   </FormItem>
@@ -823,15 +816,15 @@ export function AnimalDetail() {
                         <Input
                           type="text"
                           inputMode="numeric"
-                          value={copDisplay(String(field.value ?? ""))}
-                          onChange={e => field.onChange(copRaw(e.target.value))}
+                          value={currencyInputDisplay(String(field.value ?? ""), currency)}
+                          onChange={e => field.onChange(currencyInputRaw(e.target.value))}
                           onBlur={field.onBlur}
                           name={field.name}
                           ref={field.ref}
                           className="rounded-xl pr-14"
                           placeholder="0"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">COP</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">{currency}</span>
                       </div>
                     </FormControl>
                   </FormItem>
@@ -972,7 +965,7 @@ export function AnimalDetail() {
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('animals.purchasePrice')}</p>
                 <p className="font-medium text-foreground">
                   {(animal as any).purchasePrice
-                    ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number((animal as any).purchasePrice))
+                    ? formatCurrency(Number((animal as any).purchasePrice), currency)
                     : <span className="text-muted-foreground/60 italic font-normal text-sm">{t('animals.notPurchased')}</span>}
                 </p>
               </div>
@@ -1288,7 +1281,7 @@ export function AnimalDetail() {
                               <Calendar className="h-3 w-3"/> {format(new Date(record.recordDate + "T12:00:00"), 'dd MMM yyyy', isEn ? {} : { locale: es })}
                             </span>
                             {record.vetName && <span>• {record.vetName}</span>}
-                            {(record as any).costCop && <span>• {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number((record as any).costCop))}</span>}
+                            {(record as any).costCop && <span>• {formatCurrency(Number((record as any).costCop), currency)}</span>}
                           </div>
                           {nextDue && (
                             <div className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg ${isUrgent ? "bg-amber-500 text-white" : "bg-secondary/10 text-secondary"}`}>

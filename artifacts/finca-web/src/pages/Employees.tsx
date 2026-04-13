@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListFarms } from "@workspace/api-client-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -63,19 +64,6 @@ function daysUntilPayday(payDay: number): number {
   return Math.ceil((next.getTime() - today.getTime()) / 86400000);
 }
 
-function formatCOP(value: number): string {
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value);
-}
-
-// COP input helpers — display with . thousands separator, store raw digits
-function copDisplay(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  return parseInt(digits, 10).toLocaleString("es-CO");
-}
-function copRaw(formatted: string): string {
-  return formatted.replace(/\D/g, "");
-}
 
 // Auto-format Colombian bank account numbers as XXX-XXXXXX-XX
 function formatBankAccount(value: string): string {
@@ -530,7 +518,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{b.label}</p>
-                    <p className="text-sm font-semibold text-foreground">{formatCOP(b.value)}</p>
+                    <p className="text-sm font-semibold text-foreground">{formatCurrency(b.value, currency)}</p>
                     <p className="text-xs text-muted-foreground/60">{b.sub}</p>
                   </div>
                 </div>
@@ -647,7 +635,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
 
 export function Employees() {
   const { t, i18n } = useTranslation();
-  const { activeFarmId } = useStore();
+  const { activeFarmId, currency } = useStore();
   const qc = useQueryClient();
   const { openUpgradeModal } = useUpgradeStore();
   const isEn = i18n.language === "en";
@@ -773,16 +761,16 @@ export function Employees() {
 
   const topCards = [
     { icon: CalendarDays, color: "text-accent", bg: "bg-accent/10", label: t("emp.daysUntil"), value: t("emp.daysCount", { count: daysUntil }) },
-    { icon: Banknote, color: "text-secondary", bg: "bg-secondary/10", label: t("emp.monthlyPayroll"), value: formatCOP(totals.monthly) },
-    { icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100/60 dark:bg-emerald-950/40", label: t("emp.annualPayroll"), value: formatCOP(totals.monthly * 12) },
+    { icon: Banknote, color: "text-secondary", bg: "bg-secondary/10", label: t("emp.monthlyPayroll"), value: formatCurrency(totals.monthly, currency) },
+    { icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100/60 dark:bg-emerald-950/40", label: t("emp.annualPayroll"), value: formatCurrency(totals.monthly * 12, currency) },
   ];
 
   const benefitCards = [
-    { icon: ShieldCheck, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100/60 dark:bg-blue-950/40", label: t("emp.totalPension"), value: formatCOP(totals.pension), sub: t("emp.perMonth") },
-    { icon: HeartPulse, color: "text-rose-500 dark:text-rose-400", bg: "bg-rose-100/60 dark:bg-rose-950/40", label: t("emp.totalSalud"), value: formatCOP(totals.salud), sub: t("emp.perMonth") },
-    { icon: ShieldCheck, color: "text-orange-500 dark:text-orange-400", bg: "bg-orange-100/60 dark:bg-orange-950/40", label: t("emp.totalArl"), value: formatCOP(totals.arl), sub: t("emp.perMonth") },
-    { icon: Receipt, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100/60 dark:bg-violet-950/40", label: t("emp.totalPrimas"), value: formatCOP(totals.primas), sub: t("emp.perSemester") },
-    { icon: Coins, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100/60 dark:bg-amber-950/40", label: t("emp.totalCesantias"), value: formatCOP(totals.cesantias), sub: t("emp.perYear") },
+    { icon: ShieldCheck, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100/60 dark:bg-blue-950/40", label: t("emp.totalPension"), value: formatCurrency(totals.pension, currency), sub: t("emp.perMonth") },
+    { icon: HeartPulse, color: "text-rose-500 dark:text-rose-400", bg: "bg-rose-100/60 dark:bg-rose-950/40", label: t("emp.totalSalud"), value: formatCurrency(totals.salud, currency), sub: t("emp.perMonth") },
+    { icon: ShieldCheck, color: "text-orange-500 dark:text-orange-400", bg: "bg-orange-100/60 dark:bg-orange-950/40", label: t("emp.totalArl"), value: formatCurrency(totals.arl, currency), sub: t("emp.perMonth") },
+    { icon: Receipt, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100/60 dark:bg-violet-950/40", label: t("emp.totalPrimas"), value: formatCurrency(totals.primas, currency), sub: t("emp.perSemester") },
+    { icon: Coins, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100/60 dark:bg-amber-950/40", label: t("emp.totalCesantias"), value: formatCurrency(totals.cesantias, currency), sub: t("emp.perYear") },
   ];
 
   return (
@@ -918,7 +906,7 @@ export function Employees() {
 
                   {/* Salary */}
                   <div className="text-right">
-                    <p className="font-serif font-bold text-secondary text-base">{formatCOP(num(emp.monthlySalary))}</p>
+                    <p className="font-serif font-bold text-secondary text-base">{formatCurrency(num(emp.monthlySalary), currency)}</p>
                   </div>
 
                   {/* Actions */}
@@ -966,7 +954,7 @@ export function Employees() {
 
                   {/* Salary */}
                   <p className="font-serif font-bold text-secondary text-sm flex-shrink-0">
-                    {formatCOP(num(emp.monthlySalary))}
+                    {formatCurrency(num(emp.monthlySalary), currency)}
                   </p>
 
                   {/* Actions */}
@@ -1090,8 +1078,8 @@ export function Employees() {
                 <Input
                   type="text"
                   inputMode="numeric"
-                  value={copDisplay(form.monthlySalary)}
-                  onChange={e => setForm(f => ({ ...f, monthlySalary: copRaw(e.target.value) }))}
+                  value={currencyInputDisplay(form.monthlySalary, currency)}
+                  onChange={e => setForm(f => ({ ...f, monthlySalary: currencyInputRaw(e.target.value) }))}
                   className="rounded-xl mt-1"
                   placeholder="0"
                 />
@@ -1145,35 +1133,35 @@ export function Employees() {
                     <ShieldCheck className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
                     {t("emp.pension")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
-                  <Input type="text" inputMode="numeric" value={copDisplay(form.pension)} onChange={e => setForm(f => ({ ...f, pension: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
+                  <Input type="text" inputMode="numeric" value={currencyInputDisplay(form.pension, currency)} onChange={e => setForm(f => ({ ...f, pension: currencyInputRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
                     <HeartPulse className="h-3.5 w-3.5 text-rose-500 dark:text-rose-400" />
                     {t("emp.salud")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
-                  <Input type="text" inputMode="numeric" value={copDisplay(form.salud)} onChange={e => setForm(f => ({ ...f, salud: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
+                  <Input type="text" inputMode="numeric" value={currencyInputDisplay(form.salud, currency)} onChange={e => setForm(f => ({ ...f, salud: currencyInputRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
                     <ShieldCheck className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" />
                     {t("emp.arl")} <span className="text-muted-foreground font-normal">{t("emp.perMonth")}</span>
                   </Label>
-                  <Input type="text" inputMode="numeric" value={copDisplay(form.arl)} onChange={e => setForm(f => ({ ...f, arl: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
+                  <Input type="text" inputMode="numeric" value={currencyInputDisplay(form.arl, currency)} onChange={e => setForm(f => ({ ...f, arl: currencyInputRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5">
                     <Receipt className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                     {t("emp.primas")} <span className="text-muted-foreground font-normal">{t("emp.perSemester")}</span>
                   </Label>
-                  <Input type="text" inputMode="numeric" value={copDisplay(form.primas)} onChange={e => setForm(f => ({ ...f, primas: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
+                  <Input type="text" inputMode="numeric" value={currencyInputDisplay(form.primas, currency)} onChange={e => setForm(f => ({ ...f, primas: currencyInputRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs flex items-center gap-1.5">
                     <Coins className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                     {t("emp.cesantias")} <span className="text-muted-foreground font-normal">{t("emp.perYear")}</span>
                   </Label>
-                  <Input type="text" inputMode="numeric" value={copDisplay(form.cesantias)} onChange={e => setForm(f => ({ ...f, cesantias: copRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
+                  <Input type="text" inputMode="numeric" value={currencyInputDisplay(form.cesantias, currency)} onChange={e => setForm(f => ({ ...f, cesantias: currencyInputRaw(e.target.value) }))} className="rounded-xl mt-1" placeholder="0" />
                 </div>
               </div>
             </div>
