@@ -1,11 +1,44 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
 import {
-  animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable, milkRecordsTable, profilesTable,
+  animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable, milkRecordsTable, profilesTable, farmEventsTable,
 } from "@workspace/db";
-import { eq, and, desc, asc, ilike, or, count, sql } from "drizzle-orm";
+import { eq, and, desc, asc, ilike, or, count, sql, isNull } from "drizzle-orm";
 import { getPlanLimits } from "../lib/plans.js";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+
+async function syncMedicalCalendarEvent(
+  farmId: string,
+  animalId: string,
+  recordId: string,
+  title: string,
+  nextDueDate: string | null | undefined,
+) {
+  if (nextDueDate) {
+    const existing = await db.select({ id: farmEventsTable.id })
+      .from(farmEventsTable)
+      .where(eq(farmEventsTable.medicalRecordId, recordId))
+      .limit(1);
+    if (existing[0]) {
+      await db.update(farmEventsTable)
+        .set({ title, startDate: nextDueDate, animalId })
+        .where(eq(farmEventsTable.id, existing[0].id));
+    } else {
+      await db.insert(farmEventsTable).values({
+        farmId,
+        animalId,
+        medicalRecordId: recordId,
+        title,
+        startDate: nextDueDate,
+        category: "health",
+        allDay: true,
+      });
+    }
+  } else {
+    await db.delete(farmEventsTable)
+      .where(eq(farmEventsTable.medicalRecordId, recordId));
+  }
+}
 
 const router = Router();
 type AuthedReq = Request & { userId: string; farmMember?: typeof farmMembersTable.$inferSelect };
@@ -100,7 +133,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
       return res.status(404).json({ error: "not_found" });
     }
 
-    const [weights, medical, offspring] = await Promise.all([
+    const [weights, medical, offspring, linkedEvents] = await Promise.all([
       db.select().from(weightRecordsTable)
         .where(eq(weightRecordsTable.animalId, animalId))
         .orderBy(desc(weightRecordsTable.recordedAt)),
@@ -109,6 +142,12 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
         .orderBy(desc(medicalRecordsTable.recordDate)),
       db.select().from(animalsTable)
         .where(and(eq(animalsTable.farmId, farmId))),
+      db.select().from(farmEventsTable)
+        .where(and(
+          eq(farmEventsTable.animalId, animalId),
+          isNull(farmEventsTable.medicalRecordId),
+        ))
+        .orderBy(asc(farmEventsTable.startDate)),
     ]);
 
     const offspringList = offspring.filter(a =>
@@ -136,6 +175,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
       offspring: offspringList,
       mother,
       father,
+      linkedCalendarEvents: linkedEvents,
     });
   } catch (err) {
     req.log.error({ err }, "Get animal error");
@@ -366,6 +406,10 @@ router.post("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarm
       createdBy: userId,
     }).returning();
 
+    if (record[0]) {
+      await syncMedicalCalendarEvent(farmId, animalId, record[0].id, title, nextDueDate || null);
+    }
+
     await db.insert(activityLogTable).values({
       farmId,
       userId,
@@ -431,7 +475,7 @@ router.put("/farms/:farmId/animals/:animalId/milk/:recordId", requireAuth, requi
 
 router.put("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
-    const { animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
+    const { farmId, animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
     const { recordType, title, description, vetName, costCop, recordDate, nextDueDate } = req.body;
 
     const updated = await db.update(medicalRecordsTable)
@@ -440,9 +484,24 @@ router.put("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, re
       .returning();
 
     if (!updated[0]) return res.status(404).json({ error: "not_found" });
+
+    await syncMedicalCalendarEvent(farmId, animalId, recordId, title, nextDueDate || null);
+
     return res.json(updated[0]);
   } catch (err) {
     req.log.error({ err }, "Update medical error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.delete("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
+    await db.delete(medicalRecordsTable)
+      .where(and(eq(medicalRecordsTable.id, recordId), eq(medicalRecordsTable.animalId, animalId)));
+    return res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Delete medical error");
     return res.status(500).json({ error: "internal" });
   }
 });

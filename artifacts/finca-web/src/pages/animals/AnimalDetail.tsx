@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useParams, Link, useLocation } from "wouter";
+import { useParams, Link, useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord } from "@workspace/api-client-react";
@@ -96,6 +96,10 @@ export function AnimalDetail() {
   const qc = useQueryClient();
 
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const searchParams = new URLSearchParams(search);
+  const initialTab = searchParams.get("tab") || "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [editOpen, setEditOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
   const [medicalOpen, setMedicalOpen] = useState(false);
@@ -956,7 +960,7 @@ export function AnimalDetail() {
         </div>
 
         <div className="md:col-span-3">
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-transparent md:bg-card/50 p-0 md:p-1 rounded-none md:rounded-xl mb-6 flex justify-start gap-2 overflow-x-auto w-[calc(100%+3rem)] md:w-full -mx-6 pl-6 pr-2 md:mx-0 md:px-1 md:space-x-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <TabsTrigger value="overview" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
                 {t('animals.tab.overview')}
@@ -1293,6 +1297,44 @@ export function AnimalDetail() {
                     <p>{t('animals.noMedicalRecords')}</p>
                   </div>
                 )}
+
+                {/* Scheduled Calendar Events */}
+                {(() => {
+                  const calEvents = (animal as any).linkedCalendarEvents as Array<{
+                    id: string; title: string; startDate: string; endDate?: string | null;
+                    category?: string | null; assignedTo?: string | null;
+                  }> | undefined;
+                  if (!calEvents || calEvents.length === 0) return null;
+                  return (
+                    <div className="mt-8 pt-6 border-t border-border/40">
+                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4 flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {isEn ? "Scheduled on Calendar" : "Programado en Calendario"}
+                      </h4>
+                      <div className="space-y-2">
+                        {calEvents.map(evt => (
+                          <div key={evt.id} className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-black/[0.02]">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm text-primary truncate">{evt.title}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {format(new Date(evt.startDate + "T12:00:00"), isEn ? "MMM d, yyyy" : "d 'de' MMM yyyy", isEn ? {} : { locale: es })}
+                                {evt.endDate && evt.endDate !== evt.startDate && ` → ${format(new Date(evt.endDate + "T12:00:00"), isEn ? "MMM d" : "d MMM", isEn ? {} : { locale: es })}`}
+                                {evt.assignedTo && ` · ${evt.assignedTo}`}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setLocation(`/calendar`)}
+                              className="text-xs text-primary hover:underline flex-shrink-0 ml-4 font-medium"
+                            >
+                              {isEn ? "View" : "Ver"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </Card>
             </TabsContent>
             <TabsContent value="lineage" className="mt-0">

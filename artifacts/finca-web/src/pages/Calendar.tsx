@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useLocation } from "wouter";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   isSameDay, isToday, isSameMonth, addMonths, subMonths, parseISO,
@@ -15,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Trash2, User, CalendarX } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Trash2, User, CalendarX, Syringe } from "lucide-react";
 
 type FarmEvent = {
   id: string;
@@ -30,7 +31,16 @@ type FarmEvent = {
   category?: string | null;
   assignedTo?: string | null;
   color?: string | null;
+  animalId?: string | null;
+  medicalRecordId?: string | null;
   createdAt?: string;
+};
+
+type Animal = {
+  id: string;
+  customTag?: string | null;
+  name?: string | null;
+  species?: string;
 };
 
 const CATEGORY_COLORS: Record<string, { pill: string; dot: string; bar: string; label: string; labelEs: string }> = {
@@ -49,6 +59,7 @@ const eventSchema = z.object({
   endDate: z.string().optional(),
   category: z.enum(["feeding", "health", "harvest", "maintenance", "meeting", "other"]).default("other"),
   assignedTo: z.string().optional(),
+  animalId: z.string().optional(),
 });
 type EventForm = z.infer<typeof eventSchema>;
 
@@ -60,6 +71,7 @@ export function Calendar() {
   const { activeFarmId } = useStore();
   const qc = useQueryClient();
   const isEn = i18n.language === "en";
+  const [, setLocation] = useLocation();
 
   const evtTitle = (evt: FarmEvent) => (isEn && evt.titleEn) ? evt.titleEn : evt.title;
   const evtDesc  = (evt: FarmEvent) => (isEn && evt.descriptionEn) ? evt.descriptionEn : evt.description;
@@ -83,7 +95,6 @@ export function Calendar() {
   const firstDayOfWeek = getDay(days[0]!);
   const paddingDays = Array(firstDayOfWeek).fill(null);
 
-  // Fetch a wider window so navigation feels instant
   const fetchFrom = format(subMonths(startOfMonth(currentDate), 1), "yyyy-MM-dd");
   const fetchTo   = format(addMonths(endOfMonth(currentDate),   1), "yyyy-MM-dd");
 
@@ -97,22 +108,47 @@ export function Calendar() {
     enabled: !!activeFarmId,
   });
 
+  const { data: animals = [] } = useQuery<Animal[]>({
+    queryKey: [`/api/farms/${activeFarmId}/animals`],
+    queryFn: async () => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals`);
+      if (!res.ok) throw new Error("fetch animals failed");
+      return res.json();
+    },
+    enabled: !!activeFarmId,
+  });
+
+  const animalMap = useMemo(() => {
+    const m = new Map<string, Animal>();
+    animals.forEach(a => m.set(a.id, a));
+    return m;
+  }, [animals]);
+
+  const animalLabel = (a: Animal) =>
+    a.customTag ? `${a.customTag}${a.name ? ` · ${a.name}` : ""}` : (a.name ?? a.id);
+
   const form = useForm<EventForm>({
     resolver: zodResolver(eventSchema),
-    defaultValues: { title: "", description: "", startDate: "", endDate: "", category: "other", assignedTo: "" },
+    defaultValues: { title: "", description: "", startDate: "", endDate: "", category: "other", assignedTo: "", animalId: "" },
   });
+
+  const watchedAnimalId = form.watch("animalId");
 
   const openCreate = (dateStr?: string) => {
     setEditingEvent(null);
     form.reset({
       title: "", description: "",
       startDate: dateStr || format(selectedDate, "yyyy-MM-dd"),
-      endDate: "", category: "other", assignedTo: "",
+      endDate: "", category: "other", assignedTo: "", animalId: "",
     });
     setDialogOpen(true);
   };
 
   const openEdit = (event: FarmEvent) => {
+    if (event.medicalRecordId) {
+      if (event.animalId) setLocation(`/animals/${event.animalId}?tab=medical`);
+      return;
+    }
     setEditingEvent(event);
     form.reset({
       title: event.title,
@@ -121,6 +157,7 @@ export function Calendar() {
       endDate: event.endDate || "",
       category: (event.category as any) || "other",
       assignedTo: event.assignedTo || "",
+      animalId: event.animalId || "",
     });
     setDialogOpen(true);
   };
@@ -131,7 +168,7 @@ export function Calendar() {
     mutationFn: async (data: EventForm) => {
       const res = await fetch(`/api/farms/${activeFarmId}/events`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, allDay: true }),
+        body: JSON.stringify({ ...data, allDay: true, animalId: data.animalId || null }),
       });
       if (!res.ok) throw new Error("create failed");
       return res.json();
@@ -143,7 +180,7 @@ export function Calendar() {
     mutationFn: async ({ id, data }: { id: string; data: EventForm }) => {
       const res = await fetch(`/api/farms/${activeFarmId}/events/${id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, allDay: true }),
+        body: JSON.stringify({ ...data, allDay: true, animalId: data.animalId || null }),
       });
       if (!res.ok) throw new Error("update failed");
       return res.json();
@@ -173,15 +210,8 @@ export function Calendar() {
     });
   };
 
-  const goToPrevMonth = () => {
-    const prev = subMonths(currentDate, 1);
-    setCurrentDate(prev);
-  };
-
-  const goToNextMonth = () => {
-    const next = addMonths(currentDate, 1);
-    setCurrentDate(next);
-  };
+  const goToPrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
+  const goToNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
 
   const goToToday = () => {
     setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -275,7 +305,6 @@ export function Calendar() {
                 onClick={() => handleDayClick(day)}
                 className={`min-h-[64px] sm:min-h-[100px] border-b border-border/20 ${isLastCol ? "" : "border-r"} p-1.5 sm:p-2 cursor-pointer transition-colors ${isSelected ? "bg-primary/[0.06]" : "hover:bg-primary/[0.03]"}`}
               >
-                {/* Day number */}
                 <div className="flex items-center justify-between mb-1">
                   <span
                     className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full text-xs sm:text-sm font-medium transition-colors
@@ -297,13 +326,23 @@ export function Calendar() {
                 <div className="hidden sm:flex flex-col gap-0.5">
                   {dayEvents.slice(0, 2).map((evt) => {
                     const cat = CATEGORY_COLORS[evt.category || "other"]!;
+                    const isAuto = !!evt.medicalRecordId;
+                    const animal = evt.animalId ? animalMap.get(evt.animalId) : null;
                     return (
                       <button
                         key={evt.id}
                         onClick={(e) => { e.stopPropagation(); openEdit(evt); }}
-                        className={`w-full text-left text-[10px] font-medium px-1.5 py-0.5 rounded border truncate ${cat.pill} hover:opacity-75 transition-opacity`}
+                        className={`w-full text-left text-[10px] font-medium px-1.5 py-0.5 rounded truncate hover:opacity-75 transition-opacity ${isAuto ? `border border-dashed ${cat.pill}` : `border ${cat.pill}`}`}
+                        title={isAuto ? (isEn ? "Auto-generated from medical record" : "Generado desde registro médico") : undefined}
                       >
-                        <span className={`inline-block w-1.5 h-1.5 rounded-full ${cat.dot} mr-1 align-middle flex-shrink-0`} />
+                        {isAuto ? (
+                          <Syringe className="inline-block h-2.5 w-2.5 mr-0.5 align-middle flex-shrink-0" />
+                        ) : (
+                          <span className={`inline-block w-1.5 h-1.5 rounded-full ${cat.dot} mr-1 align-middle flex-shrink-0`} />
+                        )}
+                        {animal?.customTag && (
+                          <span className="font-bold mr-0.5">{animal.customTag}</span>
+                        )}
                         {evtTitle(evt)}
                       </button>
                     );
@@ -326,9 +365,8 @@ export function Calendar() {
         </div>
       </Card>
 
-      {/* ── Day detail panel (Apple Calendar style) ── */}
+      {/* ── Day detail panel ── */}
       <Card className="rounded-2xl shadow-sm border-border/40 overflow-hidden">
-        {/* Day header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border/40 bg-card">
           <div>
             <p className="text-sm font-semibold text-foreground capitalize">{selectedDateLabel}</p>
@@ -346,7 +384,6 @@ export function Calendar() {
           </Button>
         </div>
 
-        {/* Events list */}
         <div className="divide-y divide-border/30">
           {selectedDayEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
@@ -359,18 +396,27 @@ export function Calendar() {
           ) : (
             selectedDayEvents.map((evt) => {
               const cat = CATEGORY_COLORS[evt.category || "other"]!;
+              const isAuto = !!evt.medicalRecordId;
+              const animal = evt.animalId ? animalMap.get(evt.animalId) : null;
               return (
                 <button
                   key={evt.id}
                   onClick={() => openEdit(evt)}
-                  className="w-full text-left flex items-stretch gap-0 hover:bg-primary/[0.04] transition-colors group"
+                  className={`w-full text-left flex items-stretch gap-0 transition-colors group ${isAuto ? "hover:bg-rose-50/50" : "hover:bg-primary/[0.04]"}`}
                 >
-                  {/* Category color bar */}
-                  <div className={`w-1 flex-shrink-0 ${cat.bar} rounded-none first:rounded-tl-none`} />
+                  <div className={`w-1 flex-shrink-0 ${cat.bar} ${isAuto ? "opacity-50" : ""} rounded-none`} />
                   <div className="flex-1 px-4 py-3.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-foreground leading-snug">{evtTitle(evt)}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {isAuto && <Syringe className="h-3.5 w-3.5 text-rose-500 flex-shrink-0" />}
+                          {animal && (
+                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                              {animal.customTag || animal.name}
+                            </span>
+                          )}
+                          <p className="font-semibold text-sm text-foreground leading-snug">{evtTitle(evt)}</p>
+                        </div>
                         {evtDesc(evt) && (
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{evtDesc(evt)}</p>
                         )}
@@ -385,8 +431,13 @@ export function Calendar() {
                             {isEn ? "Until" : "Hasta"} {format(parseISO(evt.endDate), isEn ? "MMM d" : "d MMM", { locale: isEn ? undefined : es })}
                           </p>
                         )}
+                        {isAuto && (
+                          <p className="text-[10px] text-muted-foreground mt-1 italic">
+                            {isEn ? "From medical record — click to view animal" : "Desde registro médico — clic para ver el animal"}
+                          </p>
+                        )}
                       </div>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 mt-0.5 ${cat.pill}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 mt-0.5 ${cat.pill} ${isAuto ? "border-dashed" : ""}`}>
                         {catLabel(evt.category)}
                       </span>
                     </div>
@@ -399,13 +450,17 @@ export function Calendar() {
       </Card>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
         {Object.entries(CATEGORY_COLORS).map(([key, val]) => (
           <div key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className={`w-2 h-2 rounded-full ${val.dot}`} />
             {isEn ? val.label : val.labelEs}
           </div>
         ))}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Syringe className="h-3 w-3" />
+          {isEn ? "Auto-generated (medical due date)" : "Auto-generado (fecha próxima médica)"}
+        </div>
       </div>
 
       {/* Create / Edit Dialog */}
@@ -460,6 +515,38 @@ export function Calendar() {
                       ))}
                     </select>
                   </FormControl>
+                </FormItem>
+              )} />
+
+              {/* Animal selector */}
+              <FormField control={form.control} name="animalId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium">
+                    {isEn ? "Link to animal" : "Vincular animal"}
+                    <span className="text-muted-foreground font-normal"> ({isEn ? "opt." : "opc."})</span>
+                  </FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        if (e.target.value) {
+                          form.setValue("category", "health");
+                        }
+                      }}
+                      className="w-full border border-input bg-background rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">{isEn ? "— None —" : "— Ninguno —"}</option>
+                      {animals.map(a => (
+                        <option key={a.id} value={a.id}>{animalLabel(a)}</option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  {watchedAnimalId && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {isEn ? "This event will appear on the animal's profile." : "Este evento aparecerá en el perfil del animal."}
+                    </p>
+                  )}
                 </FormItem>
               )} />
 
