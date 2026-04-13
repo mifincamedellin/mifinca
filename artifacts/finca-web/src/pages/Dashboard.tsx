@@ -173,6 +173,15 @@ export function Dashboard() {
       tooltip: isEn ? "All animals registered on this farm, across all species." : "Total de animales registrados en esta finca, de todas las especies.",
     },
     {
+      title:   isEn ? "Pregnant" : "Preñadas",
+      value:   stats?.pregnantCount || 0,
+      icon:    Baby,
+      color:   "text-rose-600",
+      bg:      "bg-rose-100",
+      href:    "/animals",
+      tooltip: isEn ? "Active animals currently marked as pregnant." : "Animales activas actualmente marcadas como preñadas.",
+    },
+    {
       title:   t("dashboard.employees"),
       value:   stats?.employeeCount || 0,
       icon:    Users,
@@ -207,15 +216,6 @@ export function Dashboard() {
       bg:      "bg-secondary/10",
       href:    "/contacts",
       tooltip: isEn ? "Suppliers, vets, buyers, and other contacts." : "Proveedores, veterinarios, compradores y otros contactos.",
-    },
-    {
-      title:   isEn ? "Pregnant" : "Preñadas",
-      value:   stats?.pregnantCount || 0,
-      icon:    Baby,
-      color:   "text-rose-600",
-      bg:      "bg-rose-100",
-      href:    "/animals",
-      tooltip: isEn ? "Active animals currently marked as pregnant." : "Animales activas actualmente marcadas como preñadas.",
     },
   ];
 
