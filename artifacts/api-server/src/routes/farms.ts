@@ -249,13 +249,13 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
     const [pregnantCountResult] = await db.select({ count: count() }).from(animalsTable)
       .where(and(eq(animalsTable.farmId, farmId), eq(animalsTable.status, "active"), eq(animalsTable.isPregnant, true)));
 
-    // "Due soon" badge: only animals with events in the next 30 days
-    const thirtyDaysOut = new Date();
-    thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
-    const thirtyDaysOutStr = thirtyDaysOut.toISOString().split("T")[0]!;
+    // "Due soon" badge: only animals with events in the next 14 days
+    const fourteenDaysOut = new Date();
+    fourteenDaysOut.setDate(fourteenDaysOut.getDate() + 14);
+    const fourteenDaysOutStr = fourteenDaysOut.toISOString().split("T")[0]!;
     const upcomingMedicalAnimalIds = [...new Set(
       upcomingMedical
-        .filter(r => r.medical_records.nextDueDate != null && r.medical_records.nextDueDate <= thirtyDaysOutStr)
+        .filter(r => r.medical_records.nextDueDate != null && r.medical_records.nextDueDate <= fourteenDaysOutStr)
         .map(r => r.medical_records.animalId)
     )];
 

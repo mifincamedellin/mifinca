@@ -235,20 +235,21 @@ export async function seedDemoFarmData(farmId: string) {
     const v1 = pool[i % pool.length]!;
     const v2 = pool[(i + 1) % pool.length]!;
     const v3 = pool[(i + 2) % pool.length]!;
-    // Spread nextDueDate across 5–62 days so events appear in the dashboard
-    const daysUntilDue = 5 + (i * 17) % 57;
+    // Spread nextDueDate: prime-step across 7–119 days for vaccination/deworming only
+    const daysUntilDue = 7 + (i * 19) % 113;
+    const hasSchedule = (rt: string) => rt === "vaccination" || rt === "deworming";
     const records = [
       {
         animalId: animal.id, recordType: v1.recordType, title: v1.title,
         description: v1.description, costCop: v1.costCop,
         vetName: v1.vetName ?? undefined, recordDate: monthsAgo(v1.monthsBack),
-        nextDueDate: daysFromNow(daysUntilDue),
+        ...(hasSchedule(v1.recordType) ? { nextDueDate: daysFromNow(daysUntilDue) } : {}),
       },
       {
         animalId: animal.id, recordType: v2.recordType, title: v2.title,
         description: v2.description, costCop: v2.costCop,
         vetName: v2.vetName ?? undefined, recordDate: monthsAgo(v2.monthsBack + 1),
-        nextDueDate: daysFromNow(daysUntilDue + 30),
+        ...(hasSchedule(v2.recordType) ? { nextDueDate: daysFromNow(daysUntilDue + 30) } : {}),
       },
       {
         animalId: animal.id, recordType: v3.recordType, title: v3.title,

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull } from "lucide-react";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull } from "lucide-react";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -1240,21 +1240,40 @@ export function AnimalDetail() {
                 </div>
                 {animal.medicalRecords && animal.medicalRecords.length > 0 ? (
                   <div className="space-y-4">
-                    {animal.medicalRecords.map((record) => (
-                      <div key={record.id} className="p-4 rounded-xl border border-border/40 bg-black/[0.02] flex items-start gap-4">
-                        <div className="p-3 bg-white rounded-lg shadow-sm flex-shrink-0">
-                          <Syringe className="h-5 w-5 text-accent" />
+                    {[...animal.medicalRecords].sort((a, b) => {
+                      const ad = (a as any).nextDueDate, bd = (b as any).nextDueDate;
+                      if (ad && bd) return ad < bd ? -1 : ad > bd ? 1 : 0;
+                      if (ad) return -1;
+                      if (bd) return 1;
+                      return 0;
+                    }).map((record) => {
+                      const nextDue = (record as any).nextDueDate as string | undefined;
+                      const daysUntil = nextDue ? differenceInDays(new Date(nextDue + "T12:00:00"), new Date()) : null;
+                      const isUrgent = daysUntil !== null && daysUntil <= 14;
+                      return (
+                      <div key={record.id} className={`p-4 rounded-xl border flex items-start gap-4 ${isUrgent ? "border-amber-300/70 bg-amber-50/40" : "border-border/40 bg-black/[0.02]"}`}>
+                        <div className={`p-3 rounded-lg shadow-sm flex-shrink-0 ${isUrgent ? "bg-amber-100" : "bg-white"}`}>
+                          <Syringe className={`h-5 w-5 ${isUrgent ? "text-amber-600" : "text-accent"}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-primary">{record.title}</h4>
                           {record.description && <p className="text-sm text-muted-foreground mt-1">{record.description}</p>}
                           <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground font-medium flex-wrap">
                             <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3"/> {format(new Date(record.recordDate), 'dd MMM yyyy')}
+                              <Calendar className="h-3 w-3"/> {format(new Date(record.recordDate + "T12:00:00"), 'dd MMM yyyy', isEn ? {} : { locale: es })}
                             </span>
                             {record.vetName && <span>• {record.vetName}</span>}
                             {(record as any).costCop && <span>• {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number((record as any).costCop))}</span>}
                           </div>
+                          {nextDue && (
+                            <div className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg ${isUrgent ? "bg-amber-500 text-white" : "bg-secondary/10 text-secondary"}`}>
+                              <CalendarClock className="h-3 w-3" />
+                              {isEn ? "Next due:" : "Próximo:"} {format(new Date(nextDue + "T12:00:00"), isEn ? "MMM d, yyyy" : "d 'de' MMM yyyy", isEn ? {} : { locale: es })}
+                              {daysUntil !== null && daysUntil <= 14 && (
+                                <span className="ml-1 opacity-90">({daysUntil === 0 ? (isEn ? "today" : "hoy") : daysUntil === 1 ? (isEn ? "tomorrow" : "mañana") : isEn ? `in ${daysUntil} days` : `en ${daysUntil} días`})</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -1265,7 +1284,8 @@ export function AnimalDetail() {
                           <Edit className="h-4 w-4" />
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="py-16 text-center text-muted-foreground flex flex-col items-center">
