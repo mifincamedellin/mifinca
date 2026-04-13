@@ -3,12 +3,12 @@ import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useUpgradeStore } from "@/lib/upgradeStore";
-import { useListAnimals, useCreateAnimal } from "@workspace/api-client-react";
+import { useListAnimals, useCreateAnimal, useGetFarmStats } from "@workspace/api-client-react";
 import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Baby } from "lucide-react";
+import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Baby, Bell } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -66,6 +66,11 @@ export function AnimalList() {
     { search: search || undefined },
     { query: { enabled: !!activeFarmId } }
   );
+
+  const { data: farmStats } = useGetFarmStats(activeFarmId || '', {
+    query: { enabled: !!activeFarmId },
+  });
+  const upcomingMedicalSet = new Set<string>((farmStats as any)?.upcomingMedicalAnimalIds ?? []);
 
   const createAnimal = useCreateAnimal();
 
@@ -439,17 +444,25 @@ export function AnimalList() {
                   <div className="absolute top-3 right-3 bg-card/80 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-primary border border-border/50 shadow-sm">
                     {animal.customTag || 'S/N'}
                   </div>
-                  {(animal as any).status === "deceased" ? (
-                    <div className="absolute top-3 left-3 bg-stone-600/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
-                      <span>✝</span>
-                      {isEn ? "Deceased" : "Fallecida/o"}
-                    </div>
-                  ) : (animal as any).isPregnant && (
-                    <div className="absolute top-3 left-3 bg-rose-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
-                      <Baby className="h-3 w-3" />
-                      {isEn ? "Pregnant" : "Preñada"}
-                    </div>
-                  )}
+                  <div className="absolute top-3 left-3 flex flex-col gap-1">
+                    {(animal as any).status === "deceased" ? (
+                      <div className="bg-stone-600/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
+                        <span>✝</span>
+                        {isEn ? "Deceased" : "Fallecida/o"}
+                      </div>
+                    ) : (animal as any).isPregnant ? (
+                      <div className="bg-rose-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
+                        <Baby className="h-3 w-3" />
+                        {isEn ? "Pregnant" : "Preñada"}
+                      </div>
+                    ) : null}
+                    {upcomingMedicalSet.has(animal.id) && (
+                      <div className="bg-amber-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
+                        <Bell className="h-3 w-3" />
+                        {isEn ? "Due soon" : "Próximo"}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>

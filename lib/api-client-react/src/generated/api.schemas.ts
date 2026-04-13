@@ -169,6 +169,7 @@ export interface FarmStats {
   upcomingMedicalCount?: number;
   recentActivityCount?: number;
   upcomingMedical?: MedicalRecord[];
+  upcomingMedicalAnimalIds?: string[];
   lowStockItems?: InventoryItem[];
   employeeCount?: number;
   contactCount?: number;

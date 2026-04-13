@@ -434,11 +434,19 @@ export function Dashboard() {
               <Syringe className="h-4 w-4 text-accent" />
               {t("dashboard.upcomingTasks")}
             </h3>
-            {upcomingMedical.length > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
-                {upcomingMedical.length}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {upcomingMedical.length > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
+                  {upcomingMedical.length}
+                </span>
+              )}
+              <button
+                onClick={() => navigate("/calendar")}
+                className="text-xs text-primary/70 hover:text-primary font-medium flex items-center gap-0.5 transition-colors"
+              >
+                {isEn ? "View all" : "Ver todo"} <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
           </div>
           <div className="flex-1">
           {upcomingMedical.length === 0 ? (
@@ -485,6 +493,7 @@ export function Dashboard() {
             <ArrowRight className="h-3 w-3" />
             {isEn ? "View all animals" : "Ver todos los animales"}
           </button>
+
         </Card>
 
         {/* Low stock items */}

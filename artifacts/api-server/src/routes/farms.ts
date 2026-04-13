@@ -227,8 +227,7 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
 
     const upcomingMedical = await db.select().from(medicalRecordsTable)
       .innerJoin(animalsTable, eq(medicalRecordsTable.animalId, animalsTable.id))
-      .where(eq(animalsTable.farmId, farmId))
-      .limit(10);
+      .where(eq(animalsTable.farmId, farmId));
 
     const recentActivity = await db.select({ count: count() }).from(activityLogTable)
       .where(eq(activityLogTable.farmId, farmId));
@@ -242,6 +241,8 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
     const [pregnantCountResult] = await db.select({ count: count() }).from(animalsTable)
       .where(and(eq(animalsTable.farmId, farmId), eq(animalsTable.status, "active"), eq(animalsTable.isPregnant, true)));
 
+    const upcomingMedicalAnimalIds = [...new Set(upcomingMedical.map(r => r.medical_records.animalId))];
+
     return res.json({
       totalAnimals: animalCountResult?.count ?? 0,
       animalsBySpecies,
@@ -251,6 +252,7 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
       employeeCount: employeeCountResult?.count ?? 0,
       contactCount: contactCountResult?.count ?? 0,
       pregnantCount: pregnantCountResult?.count ?? 0,
+      upcomingMedicalAnimalIds,
       upcomingMedical: upcomingMedical.slice(0, 5).map(r => ({
         ...r.medical_records,
         animalName: r.animals.name,
