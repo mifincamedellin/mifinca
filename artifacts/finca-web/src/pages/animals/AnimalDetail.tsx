@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull } from "lucide-react";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -61,6 +61,18 @@ type PregnancyForm = z.infer<typeof pregnancySchema>;
 
 const CATTLE_GESTATION_DAYS = 283;
 
+const DEATH_CAUSES = [
+  "disease", "accident", "old_age", "difficult_birth", "predator", "unknown", "other",
+] as const;
+type DeathCause = typeof DEATH_CAUSES[number];
+
+const deathSchema = z.object({
+  deathDate: z.string().min(1),
+  deathCause: z.enum(DEATH_CAUSES).optional(),
+  deathCauseOther: z.string().optional(),
+});
+type DeathForm = z.infer<typeof deathSchema>;
+
 const editSchema = z.object({
   name: z.string().optional(),
   customTag: z.string().optional(),
@@ -107,6 +119,7 @@ export function AnimalDetail() {
   const [milkOpen, setMilkOpen] = useState(false);
   const [editingMilk, setEditingMilk] = useState<any | null>(null);
   const [pregnancyOpen, setPregnancyOpen] = useState(false);
+  const [deathOpen, setDeathOpen] = useState(false);
 
   const { data: milkRecords = [], refetch: refetchMilk } = useQuery<any[]>({
     queryKey: [`/api/farms/${activeFarmId}/animals/${id}/milk`],
@@ -192,6 +205,45 @@ export function AnimalDetail() {
 
   const clearPregnancy = () => {
     setPregnancy.mutate({ isPregnant: false, pregnancyStartDate: null, pregnancyDueDate: null });
+  };
+
+  const deathForm = useForm<DeathForm>({
+    resolver: zodResolver(deathSchema),
+    defaultValues: { deathDate: new Date().toISOString().split("T")[0], deathCause: undefined, deathCauseOther: "" },
+  });
+  const watchedDeathCause = deathForm.watch("deathCause");
+
+  const recordDeath = useMutation({
+    mutationFn: async (payload: { deathDate: string; deathCause?: string }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/animals/${id}/death`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("record death failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      setDeathOpen(false);
+      deathForm.reset();
+      refetch();
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/animals`] });
+    },
+  });
+
+  const onDeathSubmit = (data: DeathForm) => {
+    const cause = data.deathCause === "other" ? (data.deathCauseOther || "other") : data.deathCause;
+    recordDeath.mutate({ deathDate: data.deathDate, deathCause: cause });
+  };
+
+  const DEATH_CAUSE_LABELS: Record<string, { es: string; en: string }> = {
+    disease:        { es: "Enfermedad", en: "Disease" },
+    accident:       { es: "Accidente", en: "Accident" },
+    old_age:        { es: "Vejez", en: "Old age" },
+    difficult_birth:{ es: "Parto difícil", en: "Difficult birth" },
+    predator:       { es: "Depredador", en: "Predator" },
+    unknown:        { es: "Desconocida", en: "Unknown" },
+    other:          { es: "Otra", en: "Other" },
   };
 
   const updateMedicalRecord = useMutation({
@@ -361,6 +413,16 @@ export function AnimalDetail() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {(animal as any).status !== "deceased" && (
+            <Button
+              variant="outline"
+              className="rounded-xl border-red-200 text-red-700 hover:bg-red-50 hover-elevate"
+              onClick={() => setDeathOpen(true)}
+            >
+              <Skull className="h-4 w-4 mr-2" />
+              {isEn ? "Record death" : "Registrar muerte"}
+            </Button>
+          )}
           <Button
             variant="outline"
             className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover-elevate"
@@ -378,6 +440,26 @@ export function AnimalDetail() {
           </Button>
         </div>
       </div>
+
+      {/* Deceased banner */}
+      {(animal as any).status === "deceased" && (
+        <div className="rounded-2xl bg-stone-100 border border-stone-300 p-4 flex items-start gap-3">
+          <Skull className="h-5 w-5 text-stone-500 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-stone-700">
+              {isEn ? "Deceased" : "Fallecida/o"}
+            </p>
+            <p className="text-sm text-stone-500 mt-0.5">
+              {(animal as any).deathDate
+                ? `${isEn ? "Date" : "Fecha"}: ${format(parseISO((animal as any).deathDate), "d MMMM yyyy", { locale: isEn ? undefined : es })}`
+                : (isEn ? "Date not recorded" : "Fecha no registrada")}
+              {(animal as any).deathCause
+                ? ` · ${isEn ? "Cause" : "Causa"}: ${(animal as any).deathCause}`
+                : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirmation */}
       <Dialog open={deleteConfirm} onOpenChange={(v) => { if (!v) setDeleteConfirm(false); }}>
@@ -1324,6 +1406,99 @@ export function AnimalDetail() {
                   ? (isEn ? "Saving..." : "Guardando...")
                   : (isEn ? "Confirm pregnancy" : "Confirmar preñez")}
               </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Death dialog */}
+      <Dialog open={deathOpen} onOpenChange={(v) => { setDeathOpen(v); if (!v) deathForm.reset(); }}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl text-primary flex items-center gap-2">
+              <Skull className="h-5 w-5 text-stone-500" />
+              {isEn ? "Record death" : "Registrar muerte"}
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...deathForm}>
+            <form onSubmit={deathForm.handleSubmit(onDeathSubmit)} className="space-y-4 pt-1">
+              <FormField
+                control={deathForm.control}
+                name="deathDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">
+                      {isEn ? "Date of death" : "Fecha de muerte"}
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="date" className="rounded-xl" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={deathForm.control}
+                name="deathCause"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">
+                      {isEn ? "Cause of death" : "Causa de muerte"}{" "}
+                      <span className="text-muted-foreground font-normal text-xs">({isEn ? "optional" : "opcional"})</span>
+                    </FormLabel>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {DEATH_CAUSES.map((cause) => (
+                        <button
+                          key={cause}
+                          type="button"
+                          onClick={() => field.onChange(field.value === cause ? undefined : cause)}
+                          className={`px-3 py-2 rounded-xl border text-sm font-medium transition-all text-left ${
+                            field.value === cause
+                              ? "bg-stone-700 text-white border-stone-700 shadow-sm"
+                              : "bg-muted/30 border-border/40 text-muted-foreground hover:border-stone-400 hover:text-stone-700"
+                          }`}
+                        >
+                          {isEn ? DEATH_CAUSE_LABELS[cause]?.en : DEATH_CAUSE_LABELS[cause]?.es}
+                        </button>
+                      ))}
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {watchedDeathCause === "other" && (
+                <FormField
+                  control={deathForm.control}
+                  name="deathCauseOther"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        {isEn ? "Specify cause" : "Especifica la causa"}
+                      </FormLabel>
+                      <FormControl>
+                        <Input className="rounded-xl" placeholder={isEn ? "Describe the cause..." : "Describe la causa..."} {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <div className="pt-1 space-y-2">
+                <Button
+                  type="submit"
+                  disabled={recordDeath.isPending}
+                  className="w-full rounded-xl py-6 bg-stone-700 hover:bg-stone-800 text-white"
+                >
+                  {recordDeath.isPending
+                    ? (isEn ? "Saving..." : "Guardando...")
+                    : (isEn ? "Confirm death" : "Confirmar muerte")}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  {isEn
+                    ? "The animal will be marked as deceased. This can be undone by editing its status."
+                    : "El animal será marcado como fallecido. Puedes revertirlo editando su estado."}
+                </p>
+              </div>
             </form>
           </Form>
         </DialogContent>

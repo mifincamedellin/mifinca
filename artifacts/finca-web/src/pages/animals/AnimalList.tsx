@@ -402,7 +402,12 @@ export function AnimalList() {
                   <div className="absolute top-3 right-3 bg-card/80 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-primary border border-border/50 shadow-sm">
                     {animal.customTag || 'S/N'}
                   </div>
-                  {(animal as any).isPregnant && (
+                  {(animal as any).status === "deceased" ? (
+                    <div className="absolute top-3 left-3 bg-stone-600/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
+                      <span>✝</span>
+                      {isEn ? "Deceased" : "Fallecida/o"}
+                    </div>
+                  ) : (animal as any).isPregnant && (
                     <div className="absolute top-3 left-3 bg-rose-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
                       <Baby className="h-3 w-3" />
                       {isEn ? "Pregnant" : "Preñada"}

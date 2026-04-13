@@ -211,6 +211,45 @@ router.patch("/farms/:farmId/animals/:animalId/pregnancy", requireAuth, requireF
   }
 });
 
+router.patch("/farms/:farmId/animals/:animalId/death", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+    const { deathDate, deathCause } = req.body as { deathDate: string; deathCause?: string };
+
+    const [updated] = await db.update(animalsTable)
+      .set({
+        status: "deceased",
+        deathDate: deathDate || null,
+        deathCause: deathCause || null,
+        isPregnant: false,
+        pregnancyStartDate: null,
+        pregnancyDueDate: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId)))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "not_found" });
+
+    const label = updated.name ?? updated.customTag ?? animalId;
+    const causeLabel = deathCause ? ` (${deathCause})` : "";
+    await db.insert(activityLogTable).values({
+      farmId,
+      userId,
+      actionType: "updated",
+      entityType: "animal",
+      entityId: animalId,
+      description: `Recorded death of ${label}${causeLabel} on ${deathDate}`,
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Record death error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 router.patch("/farms/:farmId/animals/:animalId/lineage", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };

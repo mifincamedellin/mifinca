@@ -29,6 +29,8 @@ export const animalsTable = pgTable("animals", {
   isPregnant: boolean("is_pregnant").notNull().default(false),
   pregnancyStartDate: date("pregnancy_start_date"),
   pregnancyDueDate: date("pregnancy_due_date"),
+  deathDate: date("death_date"),
+  deathCause: text("death_cause"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
