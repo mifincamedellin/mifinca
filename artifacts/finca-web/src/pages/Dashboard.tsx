@@ -103,6 +103,46 @@ const RECORD_TYPE_LABELS: Record<string, { es: string; en: string }> = {
   other:       { es: "Otro",         en: "Other"      },
 };
 
+const MEDICAL_TITLE_EN: Record<string, string> = {
+  "Vacuna Aftosa":                  "FMD Vaccine",
+  "Desparasitación interna":        "Internal Deworming",
+  "Vacuna Brucelosis":              "Brucellosis Vaccine",
+  "Desparasitación externa":        "External Deworming",
+  "Vacuna Rabia Bovina":            "Bovine Rabies Vaccine",
+  "Revisión sanitaria":             "Sanitary Check-up",
+  "Control de condición corporal":  "Body Condition Score",
+  "Vacuna Peste Porcina":           "CSF Vaccine",
+  "Desparasitación piara":          "Pig Deworming",
+  "Vacuna Aftosa porcinos":         "FMD Vaccine (Pigs)",
+  "Vacuna Tétano equino":           "Equine Tetanus Vaccine",
+  "Desparasitación equina":         "Equine Deworming",
+  "Vacuna Influenza equina":        "Equine Influenza Vaccine",
+  "Vacuna Clostridiosis":           "Clostridial Vaccine",
+  "Desparasitación caprinos":       "Goat Deworming",
+};
+
+const ACTIVITY_LABELS: Record<string, Record<string, { es: string; en: string }>> = {
+  create: {
+    animal:         { en: "Animal added",          es: "Animal añadido"        },
+    weight_record:  { en: "Weight recorded",        es: "Peso registrado"       },
+    medical_record: { en: "Medical record added",   es: "Registro médico"       },
+    inventory:      { en: "Inventory added",        es: "Inventario añadido"    },
+    inventory_added:{ en: "Inventory added",        es: "Inventario añadido"    },
+    finance:        { en: "Transaction recorded",   es: "Transacción registrada"},
+    contact:        { en: "Contact added",          es: "Contacto añadido"      },
+    employee:       { en: "Employee added",         es: "Empleado añadido"      },
+  },
+  update: {
+    animal:         { en: "Animal updated",         es: "Animal actualizado"    },
+    inventory:      { en: "Inventory updated",      es: "Inventario actualizado"},
+    finance:        { en: "Transaction updated",    es: "Transacción actualizada"},
+  },
+  deleted: {
+    animal:         { en: "Animal removed",         es: "Animal eliminado"      },
+    inventory:      { en: "Inventory removed",      es: "Inventario eliminado"  },
+  },
+};
+
 export function Dashboard() {
   const { t, i18n } = useTranslation();
   const { activeFarmId } = useStore();
@@ -420,7 +460,9 @@ export function Dashboard() {
                     >
                       <div className="w-2 h-2 rounded-full bg-accent flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground leading-tight truncate">{evt.title}</p>
+                        <p className="text-sm font-medium text-foreground leading-tight truncate">
+                          {isEn ? (MEDICAL_TITLE_EN[evt.title] ?? evt.title) : evt.title}
+                        </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {evtAny.animalName || "—"} · {dateStr}
                         </p>
@@ -534,7 +576,14 @@ export function Dashboard() {
                   <div className="absolute left-[7px] top-6 bottom-[-20px] w-0.5 bg-border/60" />
                 )}
                 <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-background ${dotColor}`} />
-                <p className="text-sm font-medium text-foreground">{item.description || item.actionType}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {(() => {
+                    const label = ACTIVITY_LABELS[item.actionType ?? ""]?.[item.entityType ?? ""];
+                    if (isEn && label) return label.en;
+                    if (!isEn && label) return label.es;
+                    return item.description || item.actionType;
+                  })()}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {format(new Date(item.createdAt || ""), "dd MMM, HH:mm")} · {item.profile?.fullName || (isEn ? "User" : "Usuario")}
                 </p>

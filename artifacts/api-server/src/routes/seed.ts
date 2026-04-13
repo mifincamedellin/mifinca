@@ -202,26 +202,26 @@ export async function seedDemoFarmData(farmId: string) {
 
   // ── MEDICAL RECORDS — all animals, 2–3 records each ──────────────────────
   const cattleVaccines = [
-    { recordType: "vaccination" as const, title: "Vacuna Aftosa",             description: "Dosis semestral fiebre aftosa — reglamentaria ICA",    costCop: "45000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 4 },
-    { recordType: "deworming"   as const, title: "Desparasitación interna",   description: "Ivermectina 1% — control nematodos y ectoparásitos",    costCop: "28000", vetName: "Dr. Carlos Medina", monthsBack: 1, nextMonths: 3 },
-    { recordType: "vaccination" as const, title: "Vacuna Brucelosis",         description: "Cepa RB51 — control oficial FEDEGAN",                   costCop: "35000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
-    { recordType: "deworming"   as const, title: "Desparasitación externa",   description: "Garrapaticida Amitraz — potrero 2 y 3",                 costCop: "32000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 2 },
-    { recordType: "vaccination" as const, title: "Vacuna Rabia Bovina",       description: "Vacunación anual reglamentaria Ministerio Agricultura",  costCop: "38000", vetName: "Dr. Carlos Medina", monthsBack: 4, nextMonths: 8 },
-    { recordType: "checkup"     as const, title: "Revisión sanitaria",        description: "Control sanitario rutinario — peso y condición corporal", costCop: "55000", vetName: "Dr. Carlos Medina", monthsBack: 1, nextMonths: 3 },
+    { recordType: "vaccination" as const, title: "FMD Vaccine",               description: "Biannual FMD dose — ICA regulation",                    costCop: "45000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 4 },
+    { recordType: "deworming"   as const, title: "Internal Deworming",        description: "Ivermectin 1% — nematode and ectoparasite control",      costCop: "28000", vetName: "Dr. Carlos Medina", monthsBack: 1, nextMonths: 3 },
+    { recordType: "vaccination" as const, title: "Brucellosis Vaccine",       description: "Strain RB51 — FEDEGAN official control",                 costCop: "35000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
+    { recordType: "deworming"   as const, title: "External Deworming",        description: "Amitraz acaricide — paddocks 2 and 3",                   costCop: "32000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 2 },
+    { recordType: "vaccination" as const, title: "Bovine Rabies Vaccine",     description: "Annual vaccination — Ministry of Agriculture",           costCop: "38000", vetName: "Dr. Carlos Medina", monthsBack: 4, nextMonths: 8 },
+    { recordType: "checkup"     as const, title: "Sanitary Check-up",         description: "Routine health check — weight and body condition",        costCop: "55000", vetName: "Dr. Carlos Medina", monthsBack: 1, nextMonths: 3 },
   ];
   const pigVaccines = [
-    { recordType: "vaccination" as const, title: "Vacuna Peste Porcina",      description: "Dosis semestral PPC — reglamentaria",                   costCop: "38000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 6 },
-    { recordType: "deworming"   as const, title: "Desparasitación piara",     description: "Fenbendazol preventivo — ciclo trimestral",              costCop: "22000", vetName: undefined,            monthsBack: 1, nextMonths: 3 },
-    { recordType: "vaccination" as const, title: "Vacuna Aftosa porcinos",    description: "Control fiebre aftosa en porcinos",                     costCop: "32000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
+    { recordType: "vaccination" as const, title: "CSF Vaccine",               description: "Biannual CSF dose — regulatory requirement",             costCop: "38000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 6 },
+    { recordType: "deworming"   as const, title: "Pig Deworming",             description: "Preventive Fenbendazole — quarterly cycle",              costCop: "22000", vetName: undefined,            monthsBack: 1, nextMonths: 3 },
+    { recordType: "vaccination" as const, title: "FMD Vaccine (Pigs)",        description: "FMD control in pigs",                                    costCop: "32000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
   ];
   const horseVaccines = [
-    { recordType: "vaccination" as const, title: "Vacuna Tétano equino",      description: "Toxoide tetánico anual — Criollo Colombiano",            costCop: "48000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 9 },
-    { recordType: "deworming"   as const, title: "Desparasitación equina",    description: "Ivermectina + Praziquantel — semestral",                 costCop: "35000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 4 },
-    { recordType: "vaccination" as const, title: "Vacuna Influenza equina",   description: "Control influenza — vacuna bivalente",                   costCop: "62000", vetName: "Dr. Carlos Medina", monthsBack: 4, nextMonths: 8 },
+    { recordType: "vaccination" as const, title: "Equine Tetanus Vaccine",    description: "Annual tetanus toxoid — Criollo Colombiano",             costCop: "48000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 9 },
+    { recordType: "deworming"   as const, title: "Equine Deworming",          description: "Ivermectin + Praziquantel — biannual",                   costCop: "35000", vetName: "Dr. Carlos Medina", monthsBack: 2, nextMonths: 4 },
+    { recordType: "vaccination" as const, title: "Equine Influenza Vaccine",  description: "Influenza control — bivalent vaccine",                   costCop: "62000", vetName: "Dr. Carlos Medina", monthsBack: 4, nextMonths: 8 },
   ];
   const goatVaccines = [
-    { recordType: "vaccination" as const, title: "Vacuna Clostridiosis",      description: "Polivalente clostridiosis caprina",                      costCop: "28000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
-    { recordType: "deworming"   as const, title: "Desparasitación caprinos",  description: "Levamisol + Albendazol — control gastrointestinal",      costCop: "18000", vetName: undefined,            monthsBack: 1, nextMonths: 3 },
+    { recordType: "vaccination" as const, title: "Clostridial Vaccine",       description: "Polyvalent clostridial vaccine (goats)",                 costCop: "28000", vetName: "Dr. Carlos Medina", monthsBack: 3, nextMonths: 6 },
+    { recordType: "deworming"   as const, title: "Goat Deworming",            description: "Levamisole + Albendazole — gastrointestinal control",    costCop: "18000", vetName: undefined,            monthsBack: 1, nextMonths: 3 },
   ];
 
   const medicalRecords = animalRows.flatMap((animal, i) => {
@@ -251,8 +251,8 @@ export async function seedDemoFarmData(farmId: string) {
     if (i % 3 === 0 && animal.species === "cattle") {
       records.push({
         animalId: animal.id, recordType: "checkup" as const,
-        title: "Control de condición corporal",
-        description: "Evaluación nutricional y condición corporal — escala 1–5",
+        title: "Body Condition Score",
+        description: "Nutritional assessment and body condition — scale 1–5",
         costCop: "40000", vetName: "Dr. Carlos Medina",
         recordDate: daysAgo(8 + (i % 20)),
       });
@@ -331,14 +331,14 @@ export async function seedDemoFarmData(farmId: string) {
   ]);
 
   await db.insert(activityLogTable).values([
-    { farmId, actionType: "create", entityType: "animal",        description: "Animal Reina (BOV-001) añadida al sistema" },
-    { farmId, actionType: "create", entityType: "weight_record", description: "Peso registrado para Reina: 418 kg" },
-    { farmId, actionType: "create", entityType: "medical_record",description: "Vacuna Aftosa aplicada a Reina" },
-    { farmId, actionType: "create", entityType: "medical_record",description: "Revisión prenatal — Luna, mes 5" },
-    { farmId, actionType: "create", entityType: "inventory",     description: "Concentrado Bovino añadido: 18 bultos" },
-    { farmId, actionType: "update", entityType: "inventory",     description: "Sal Mineralizada: stock bajo alerta" },
-    { farmId, actionType: "create", entityType: "finance",       description: "Ingreso registrado: Venta leche $1.850.000" },
-    { farmId, actionType: "create", entityType: "contact",       description: "Contacto añadido: Dr. Carlos Medina (Veterinario)" },
+    { farmId, actionType: "create", entityType: "animal",        description: "Animal Reina (BOV-001) added to system" },
+    { farmId, actionType: "create", entityType: "weight_record", description: "Weight recorded for Reina: 418 kg" },
+    { farmId, actionType: "create", entityType: "medical_record",description: "FMD Vaccine applied to Reina" },
+    { farmId, actionType: "create", entityType: "medical_record",description: "Prenatal checkup — Luna, month 5" },
+    { farmId, actionType: "create", entityType: "inventory",     description: "Bovine Feed added: 18 bags" },
+    { farmId, actionType: "update", entityType: "inventory",     description: "Mineral Salt: low stock alert" },
+    { farmId, actionType: "create", entityType: "finance",       description: "Income recorded: Milk sale $1,850,000" },
+    { farmId, actionType: "create", entityType: "contact",       description: "Contact added: Dr. Carlos Medina (Veterinarian)" },
   ]);
 
   // ── MILK RECORDS (30 days for main dairy cows) ───────────────────────────
