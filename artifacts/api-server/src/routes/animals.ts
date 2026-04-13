@@ -497,6 +497,7 @@ router.put("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, re
 router.delete("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
+    await db.delete(farmEventsTable).where(eq(farmEventsTable.medicalRecordId, recordId));
     await db.delete(medicalRecordsTable)
       .where(and(eq(medicalRecordsTable.id, recordId), eq(medicalRecordsTable.animalId, animalId)));
     return res.status(204).send();

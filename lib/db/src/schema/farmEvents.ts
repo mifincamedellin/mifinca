@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, date, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, date, boolean, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { animalsTable } from "./animals";
 import { medicalRecordsTable } from "./medicalRecords";
 
@@ -19,6 +20,10 @@ export const farmEventsTable = pgTable("farm_events", {
   medicalRecordId: uuid("medical_record_id").references(() => medicalRecordsTable.id, { onDelete: "cascade" }),
   createdBy: uuid("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+}, (table) => ({
+  medicalRecordUnique: uniqueIndex("farm_events_medical_record_id_unique")
+    .on(table.medicalRecordId)
+    .where(sql`medical_record_id IS NOT NULL`),
+}));
 
 export type FarmEvent = typeof farmEventsTable.$inferSelect;

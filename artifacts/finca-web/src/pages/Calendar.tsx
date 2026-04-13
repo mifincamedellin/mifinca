@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   isSameDay, isToday, isSameMonth, addMonths, subMonths, parseISO,
@@ -72,13 +72,30 @@ export function Calendar() {
   const qc = useQueryClient();
   const isEn = i18n.language === "en";
   const [, setLocation] = useLocation();
+  const search = useSearch();
 
   const evtTitle = (evt: FarmEvent) => (isEn && evt.titleEn) ? evt.titleEn : evt.title;
   const evtDesc  = (evt: FarmEvent) => (isEn && evt.descriptionEn) ? evt.descriptionEn : evt.description;
 
   const today = useMemo(() => new Date(), []);
-  const [currentDate, setCurrentDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
-  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [currentDate, setCurrentDate] = useState(() => {
+    const params = new URLSearchParams(search);
+    const dateParam = params.get("date");
+    if (dateParam) {
+      const parsed = new Date(dateParam + "T12:00:00");
+      if (!isNaN(parsed.getTime())) return new Date(parsed.getFullYear(), parsed.getMonth(), 1);
+    }
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const params = new URLSearchParams(search);
+    const dateParam = params.get("date");
+    if (dateParam) {
+      const parsed = new Date(dateParam + "T12:00:00");
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return today;
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<FarmEvent | null>(null);
 
@@ -145,8 +162,9 @@ export function Calendar() {
   };
 
   const openEdit = (event: FarmEvent) => {
-    if (event.medicalRecordId) {
-      if (event.animalId) setLocation(`/animals/${event.animalId}?tab=medical`);
+    if (event.animalId) {
+      const tab = event.medicalRecordId ? "?tab=medical" : "";
+      setLocation(`/animals/${event.animalId}${tab}`);
       return;
     }
     setEditingEvent(event);
@@ -157,7 +175,7 @@ export function Calendar() {
       endDate: event.endDate || "",
       category: (event.category as any) || "other",
       assignedTo: event.assignedTo || "",
-      animalId: event.animalId || "",
+      animalId: "",
     });
     setDialogOpen(true);
   };

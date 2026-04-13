@@ -1324,7 +1324,7 @@ export function AnimalDetail() {
                             </div>
                             <button
                               type="button"
-                              onClick={() => setLocation(`/calendar`)}
+                              onClick={() => setLocation(`/calendar?date=${evt.startDate}`)}
                               className="text-xs text-primary hover:underline flex-shrink-0 ml-4 font-medium"
                             >
                               {isEn ? "View" : "Ver"}
