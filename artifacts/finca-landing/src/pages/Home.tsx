@@ -451,10 +451,11 @@ export default function Home() {
                   <span className="text-xs text-muted-foreground/70 font-medium">app.mifinca.com</span>
                 </div>
               </div>
-              {/* Screenshot */}
+              {/* Screenshot — switches with language */}
               <div className="overflow-hidden rounded-b-[20px] border border-t-0 border-border/60 shadow-[0_40px_100px_-12px_rgba(0,0,0,0.22)]">
                 <img
-                  src={`${getBaseUrl()}/images/dashboard-ui.png`}
+                  key={lang}
+                  src={`${getBaseUrl()}/images/${lang === "en" ? "dashboard-ui-en.png" : "dashboard-ui.png"}`}
                   alt="miFinca dashboard"
                   className="w-full block"
                 />
