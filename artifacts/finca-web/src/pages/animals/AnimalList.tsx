@@ -29,12 +29,12 @@ const createAnimalSchema = z.object({
 });
 
 const ANIMAL_TYPE_SUGGESTIONS: Record<string, string[]> = {
-  cattle:  ["Carne", "Leche", "Doble propósito"],
-  pig:     ["Carne", "Cría", "Engorde"],
-  horse:   ["Trabajo", "Silla", "Deporte", "Carga"],
-  goat:    ["Carne", "Leche"],
-  sheep:   ["Carne", "Lana", "Leche"],
-  chicken: ["Huevo", "Carne (Broiler)"],
+  cattle:  ["animals.types.meat", "animals.types.milk", "animals.types.dual"],
+  pig:     ["animals.types.meat", "animals.types.breeding", "animals.types.fattening"],
+  horse:   ["animals.types.work", "animals.types.saddle", "animals.types.sport", "animals.types.pack"],
+  goat:    ["animals.types.meat", "animals.types.milk"],
+  sheep:   ["animals.types.meat", "animals.types.wool", "animals.types.milk"],
+  chicken: ["animals.types.egg", "animals.types.broiler"],
   other:   [],
 };
 
@@ -258,7 +258,7 @@ export function AnimalList() {
                         </FormControl>
                         <SelectContent>
                           {(ANIMAL_TYPE_SUGGESTIONS[watchedSpecies] ?? []).map(opt => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            <SelectItem key={opt} value={opt}>{t(opt)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
