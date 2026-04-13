@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { farmEventsTable, animalsTable } from "@workspace/db";
-import { eq, and, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
 const router = Router();
