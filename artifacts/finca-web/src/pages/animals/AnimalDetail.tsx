@@ -957,7 +957,7 @@ export function AnimalDetail() {
 
         <div className="md:col-span-3">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="bg-transparent md:bg-card/50 p-0 md:p-1 rounded-none md:rounded-xl mb-6 flex justify-start gap-2 overflow-x-auto w-full -mx-6 pl-6 pr-2 md:mx-0 md:px-1 md:space-x-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="bg-transparent md:bg-card/50 p-0 md:p-1 rounded-none md:rounded-xl mb-6 flex justify-start gap-2 overflow-x-auto w-[calc(100%+3rem)] md:w-full -mx-6 pl-6 pr-2 md:mx-0 md:px-1 md:space-x-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <TabsTrigger value="overview" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
                 {t('animals.tab.overview')}
               </TabsTrigger>
