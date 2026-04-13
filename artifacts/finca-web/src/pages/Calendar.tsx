@@ -480,7 +480,7 @@ export function Calendar() {
                       type="button"
                       title={isEn ? "Edit event" : "Editar evento"}
                       onClick={() => openEditModal(evt)}
-                      className="flex-shrink-0 px-3 flex items-center text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="flex-shrink-0 px-3 flex items-center text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
