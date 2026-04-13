@@ -224,8 +224,13 @@ router.get("/auth/me", requireAuth, async (req, res) => {
     const profile = await db.select().from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
     if (!profile[0]) return res.status(404).json({ error: "not_found" });
 
+    // Demo accounts always show a fixed email
+    if (profile[0].clerkId?.startsWith("demo:")) {
+      return res.json({ ...profile[0], email: "demo@mifinca.co" });
+    }
+
     let email = profile[0].email;
-    // Fallback to auth_users table for legacy/demo users
+    // Fallback to auth_users table for legacy users
     if (!email) {
       try {
         const authUser = await pool.query<{ email: string }>(
