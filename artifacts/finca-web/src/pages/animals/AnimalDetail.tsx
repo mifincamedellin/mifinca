@@ -957,22 +957,22 @@ export function AnimalDetail() {
 
         <div className="md:col-span-3">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="bg-card/50 p-1 rounded-xl mb-6 flex space-x-2">
-              <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-1">
+            <TabsList className="bg-transparent md:bg-card/50 p-0 md:p-1 rounded-none md:rounded-xl mb-6 flex gap-2 overflow-x-auto -mx-6 pl-6 pr-2 md:mx-0 md:px-1 md:space-x-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <TabsTrigger value="overview" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
                 {t('animals.tab.overview')}
               </TabsTrigger>
-              <TabsTrigger value="weight" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-1">
+              <TabsTrigger value="weight" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
                 {t('animals.tab.weight')}
               </TabsTrigger>
-              <TabsTrigger value="medical" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-1">
+              <TabsTrigger value="medical" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
                 {t('animals.tab.medical')}
               </TabsTrigger>
-              <TabsTrigger value="lineage" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-1 flex items-center gap-1.5">
+              <TabsTrigger value="lineage" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1 flex items-center gap-1.5">
                 <GitBranch className="h-3.5 w-3.5" />
                 {t('animals.tab.lineage')}
               </TabsTrigger>
               {animal.species === "cattle" && (
-                <TabsTrigger value="milk" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex-1 flex items-center gap-1.5">
+                <TabsTrigger value="milk" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1 flex items-center gap-1.5">
                   <Droplets className="h-3.5 w-3.5" />
                   {t('animals.tab.milk')}
                 </TabsTrigger>
