@@ -246,7 +246,7 @@ export function Settings() {
       {/* ── FARM DETAILS ── */}
       <Card className="p-8 rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm">
         <h2 className="text-2xl font-serif text-primary mb-6 border-b border-border/50 pb-4">{t("settings.farmDetails")}</h2>
-        <form onSubmit={farmForm.handleSubmit(onFarmSubmit)} className="space-y-6 max-w-2xl">
+        <form onSubmit={farmForm.handleSubmit(onFarmSubmit)} className="space-y-6">
           <div className="space-y-2">
             <Label className="text-foreground">{t("settings.farmName")}</Label>
             <Input {...farmForm.register("name")} className="rounded-xl py-6 bg-white/50" />
@@ -278,7 +278,7 @@ export function Settings() {
           <h2 className="text-2xl font-serif text-primary">{t("settings.account")}</h2>
         </div>
 
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6">
           {/* Name */}
           <form onSubmit={accountForm.handleSubmit((d) => updateProfile.mutate(d))} className="space-y-4">
             <div className="space-y-2">
@@ -320,7 +320,7 @@ export function Settings() {
           <Coins className="h-5 w-5 text-primary" />
           <h2 className="text-2xl font-serif text-primary">{i18n.language === "en" ? "Preferences" : "Preferencias"}</h2>
         </div>
-        <div className="max-w-2xl space-y-5">
+        <div className="space-y-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-foreground">{i18n.language === "en" ? "Currency" : "Moneda"}</p>
@@ -357,7 +357,7 @@ export function Settings() {
           <h2 className="text-2xl font-serif text-primary">{t("settings.plan")}</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {PLAN_DEFS.map((plan) => {
             const isCurrent = plan.key === currentPlanKey;
             const limits = planLimits[plan.key as keyof typeof planLimits];
