@@ -70,7 +70,7 @@ export function AnimalList() {
   const { data: farmStats } = useGetFarmStats(activeFarmId || '', {
     query: { enabled: !!activeFarmId },
   });
-  const upcomingMedicalSet = new Set<string>((farmStats as any)?.upcomingMedicalAnimalIds ?? []);
+  const upcomingMedicalSet = new Set<string>(farmStats?.upcomingMedicalAnimalIds ?? []);
 
   const createAnimal = useCreateAnimal();
 

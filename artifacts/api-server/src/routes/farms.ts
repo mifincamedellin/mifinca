@@ -6,7 +6,7 @@ import {
   animalsTable, inventoryItemsTable, medicalRecordsTable, activityLogTable,
   employeesTable, contactsTable,
 } from "@workspace/db";
-import { eq, and, count, lt, lte } from "drizzle-orm";
+import { eq, and, count, lt, lte, isNotNull } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 import { getPlanLimits } from "../lib/plans.js";
 
@@ -225,9 +225,17 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
       return item.expirationDate < today!;
     });
 
+    const thirtyDaysOut = new Date();
+    thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
+    const thirtyDaysOutStr = thirtyDaysOut.toISOString().split("T")[0]!;
+
     const upcomingMedical = await db.select().from(medicalRecordsTable)
       .innerJoin(animalsTable, eq(medicalRecordsTable.animalId, animalsTable.id))
-      .where(eq(animalsTable.farmId, farmId));
+      .where(and(
+        eq(animalsTable.farmId, farmId),
+        isNotNull(medicalRecordsTable.nextDueDate),
+        lte(medicalRecordsTable.nextDueDate, thirtyDaysOutStr),
+      ));
 
     const recentActivity = await db.select({ count: count() }).from(activityLogTable)
       .where(eq(activityLogTable.farmId, farmId));
