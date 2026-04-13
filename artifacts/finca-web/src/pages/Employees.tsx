@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
@@ -1008,7 +1007,7 @@ export function Employees() {
       )}
 
       {/* Add / Edit dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) closeDialog(); }}>
+      <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) closeDialog(); }} modal={!cropSrc}>
         <DialogContent
           className="rounded-2xl max-w-lg max-h-[90vh] overflow-y-auto"
           onInteractOutside={(e) => { if (cropSrc) e.preventDefault(); }}
@@ -1190,14 +1189,13 @@ export function Employees() {
         </DialogContent>
       </Dialog>
 
-      {/* Photo crop modal — rendered via portal so Radix Dialog's DismissableLayer doesn't intercept pointer events */}
-      {cropSrc && createPortal(
+      {/* Photo crop modal — shown when a photo is selected; dialog is set to modal={false} at this point so pointer events are not blocked */}
+      {cropSrc && (
         <PhotoCropModal
           src={cropSrc}
           onConfirm={(dataUrl) => { setForm(f => ({ ...f, photoUrl: dataUrl })); setCropSrc(null); }}
           onCancel={() => setCropSrc(null)}
-        />,
-        document.body
+        />
       )}
 
       {/* Delete confirmation */}
