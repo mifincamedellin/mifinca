@@ -376,7 +376,7 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <section className="relative pt-40 pb-16 md:pb-0 md:pt-52 px-6">
+        <section className="relative pt-40 pb-16 md:pb-20 md:pt-52 px-6">
           {/* Background glow — centred */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/3 w-[900px] h-[700px] bg-secondary/15 rounded-full blur-3xl pointer-events-none"></div>
 
