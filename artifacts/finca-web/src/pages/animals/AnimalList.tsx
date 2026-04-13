@@ -8,7 +8,7 @@ import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload } from "lucide-react";
+import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Baby } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -49,7 +49,8 @@ const SPECIES_EMOJI: Record<string, string> = {
 };
 
 export function AnimalList() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === "en";
   const { activeFarmId } = useStore();
   const { openUpgradeModal } = useUpgradeStore();
   const [search, setSearch] = useState("");
@@ -401,6 +402,12 @@ export function AnimalList() {
                   <div className="absolute top-3 right-3 bg-card/80 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-primary border border-border/50 shadow-sm">
                     {animal.customTag || 'S/N'}
                   </div>
+                  {(animal as any).isPregnant && (
+                    <div className="absolute top-3 left-3 bg-rose-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
+                      <Baby className="h-3 w-3" />
+                      {isEn ? "Pregnant" : "Preñada"}
+                    </div>
+                  )}
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
