@@ -182,15 +182,6 @@ export function Dashboard() {
       tooltip: isEn ? "Active animals currently marked as pregnant." : "Animales activas actualmente marcadas como preñadas.",
     },
     {
-      title:   t("dashboard.employees"),
-      value:   stats?.employeeCount || 0,
-      icon:    Users,
-      color:   "text-primary",
-      bg:      "bg-primary/10",
-      href:    "/employees",
-      tooltip: isEn ? "Total employees registered on this farm." : "Total de empleados registrados en esta finca.",
-    },
-    {
       title:   t("dashboard.upcomingTasks"),
       value:   stats?.upcomingMedicalCount || 0,
       icon:    Syringe,
@@ -207,6 +198,15 @@ export function Dashboard() {
       bg:      "bg-destructive/10",
       href:    "/inventory",
       tooltip: isEn ? "Items that have fallen below their minimum stock level." : "Artículos por debajo del nivel mínimo de inventario.",
+    },
+    {
+      title:   t("dashboard.employees"),
+      value:   stats?.employeeCount || 0,
+      icon:    Users,
+      color:   "text-primary",
+      bg:      "bg-primary/10",
+      href:    "/employees",
+      tooltip: isEn ? "Total employees registered on this farm." : "Total de empleados registrados en esta finca.",
     },
     {
       title:   t("dashboard.contacts"),
