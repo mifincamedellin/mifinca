@@ -175,7 +175,7 @@ export function UpgradeModal() {
           </Button>
           <Button
             className="flex-1 rounded-xl gap-2 font-semibold"
-            onClick={() => { closeUpgradeModal(); setLocation("/settings"); }}
+            onClick={() => { closeUpgradeModal(); setLocation("/settings?section=plan"); }}
           >
             {isEn ? "See plans" : "Ver planes"} <ArrowRight className="h-4 w-4" />
           </Button>

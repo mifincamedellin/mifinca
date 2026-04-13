@@ -1,3 +1,4 @@
+import { useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useGetFarm, useUpdateFarm } from "@workspace/api-client-react";
@@ -91,6 +92,14 @@ export function Settings() {
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
   const [cardSaving, setCardSaving] = useState(false);
+
+  const search = useSearch();
+  useEffect(() => {
+    if (search.includes("section=plan")) {
+      const el = document.getElementById("subscription-plan");
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+    }
+  }, [search]);
 
   const formatCardNumber = (val: string) =>
     val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
@@ -371,7 +380,7 @@ export function Settings() {
       </Card>
 
       {/* ── SUBSCRIPTION PLAN ── */}
-      <Card className="p-8 rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm">
+      <Card id="subscription-plan" className="p-8 rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm">
         <div className="flex items-center gap-3 mb-6 border-b border-border/50 pb-4">
           <Star className="h-5 w-5 text-secondary" />
           <h2 className="text-2xl font-serif text-primary">{t("settings.plan")}</h2>
