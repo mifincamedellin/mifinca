@@ -25,6 +25,8 @@ const createAnimalSchema = z.object({
   sex: z.enum(["male", "female", "unknown"]).optional(),
   animalType: z.string().optional(),
   initialWeight: z.coerce.number().positive().optional().or(z.literal("")),
+  purchaseDate: z.string().optional(),
+  purchasePrice: z.coerce.number().positive().optional().or(z.literal("")),
   photoUrl: z.string().optional(),
 });
 
@@ -80,7 +82,7 @@ export function AnimalList() {
 
   const form = useForm<z.infer<typeof createAnimalSchema>>({
     resolver: zodResolver(createAnimalSchema),
-    defaultValues: { species: "cattle", customTag: "", name: "", breed: "", animalType: "", initialWeight: "", photoUrl: "" }
+    defaultValues: { species: "cattle", customTag: "", name: "", breed: "", animalType: "", initialWeight: "", purchaseDate: "", purchasePrice: "", photoUrl: "" }
   });
 
   const watchedSpecies = form.watch("species");
@@ -99,10 +101,15 @@ export function AnimalList() {
 
   const onSubmit = async (data: z.infer<typeof createAnimalSchema>) => {
     if (!activeFarmId) return;
-    const { initialWeight, ...animalData } = data;
+    const { initialWeight, purchaseDate, purchasePrice, ...animalData } = data;
     createAnimal.mutate({
       farmId: activeFarmId,
-      data: { ...animalData, status: "active" } as CreateAnimalRequest
+      data: {
+        ...animalData,
+        status: "active",
+        purchaseDate: purchaseDate || null,
+        purchasePrice: purchasePrice !== "" && purchasePrice != null ? Number(purchasePrice) : null,
+      } as any
     }, {
       onSuccess: async (created) => {
         if (initialWeight && Number(initialWeight) > 0 && created?.id) {
@@ -293,6 +300,36 @@ export function AnimalList() {
                     <FormMessage />
                   </FormItem>
                 )} />
+
+                {/* ── PURCHASE DATE + PRICE ── */}
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField control={form.control} name="purchaseDate" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('animals.purchaseDate')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                      <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="purchasePrice" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('animals.purchasePrice')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1000"
+                            {...field}
+                            className="rounded-xl pr-14"
+                            placeholder="0"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">COP</span>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
 
                 <Button type="submit" disabled={createAnimal.isPending || addWeight.isPending} className="w-full rounded-xl py-6 bg-primary hover:bg-primary/90">
                   {(createAnimal.isPending || addWeight.isPending) ? t('common.saving') : t('common.save')}
