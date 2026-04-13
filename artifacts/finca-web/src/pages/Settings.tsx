@@ -440,14 +440,9 @@ export function Settings() {
 
       {/* ── PAYMENT METHODS ── */}
       <Card className="p-8 rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-6 border-b border-border/50 pb-4">
-          <div className="flex items-center gap-3">
-            <CreditCard className="h-5 w-5 text-primary" />
-            <h2 className="text-2xl font-serif text-primary">{t("settings.paymentMethods")}</h2>
-          </div>
-          <Button variant="outline" onClick={() => setAddCardOpen(true)} className="rounded-xl border-secondary/40 text-secondary hover:bg-secondary/5 gap-2">
-            <Plus className="h-4 w-4" /> {t("settings.addCard")}
-          </Button>
+        <div className="flex items-center gap-3 mb-6 border-b border-border/50 pb-4">
+          <CreditCard className="h-5 w-5 text-primary" />
+          <h2 className="text-2xl font-serif text-primary">{t("settings.paymentMethods")}</h2>
         </div>
 
         {paymentMethods.length === 0 ? (
