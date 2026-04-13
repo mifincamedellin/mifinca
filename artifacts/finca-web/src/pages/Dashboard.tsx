@@ -446,7 +446,7 @@ export function Dashboard() {
           ) : (
             <ul className="space-y-1.5">
               {upcomingMedical.map((evt) => {
-                const evtAny = evt as typeof evt & { animalName?: string; animalId?: string };
+                const evtAny = evt as typeof evt & { animalName?: string; animalTag?: string; animalId?: string };
                 const dueDate = evt.nextDueDate || evt.recordDate;
                 const dateStr = dueDate
                   ? format(new Date(dueDate), isEn ? "MMM d" : "d 'de' MMM", isEn ? {} : { locale: es })
@@ -464,7 +464,7 @@ export function Dashboard() {
                           {isEn ? (MEDICAL_TITLE_EN[evt.title] ?? evt.title) : evt.title}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {evtAny.animalName || "—"} · {dateStr}
+                          {evtAny.animalTag || evtAny.animalName || "—"} · {dateStr}
                         </p>
                       </div>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent/80 flex-shrink-0 capitalize">
