@@ -291,7 +291,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <SeedButton />
+              <span className="hidden md:block"><SeedButton /></span>
               <SidebarThemePicker placement="header" />
               <button
                 onClick={toggleLanguage}
