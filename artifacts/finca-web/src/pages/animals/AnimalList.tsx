@@ -470,7 +470,7 @@ export function AnimalList() {
                       {animal.customTag && animal.name ? (
                         <>
                           {animal.customTag}
-                          <span className="opacity-50"> | {animal.name}</span>
+                          <span className="text-muted-foreground"> | {animal.name}</span>
                         </>
                       ) : (
                         animal.customTag || animal.name || t('animals.noName')
