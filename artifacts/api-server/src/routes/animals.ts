@@ -17,12 +17,12 @@ async function syncMedicalCalendarEvent(
   if (nextDueDate) {
     const existing = await db.select({ id: farmEventsTable.id })
       .from(farmEventsTable)
-      .where(eq(farmEventsTable.medicalRecordId, recordId))
+      .where(and(eq(farmEventsTable.medicalRecordId, recordId), eq(farmEventsTable.farmId, farmId)))
       .limit(1);
     if (existing[0]) {
       await db.update(farmEventsTable)
         .set({ title, startDate: nextDueDate, animalId, category: "health" })
-        .where(eq(farmEventsTable.id, existing[0].id));
+        .where(and(eq(farmEventsTable.id, existing[0].id), eq(farmEventsTable.farmId, farmId)));
     } else {
       await db.insert(farmEventsTable).values({
         farmId,
@@ -36,7 +36,7 @@ async function syncMedicalCalendarEvent(
     }
   } else {
     await db.delete(farmEventsTable)
-      .where(eq(farmEventsTable.medicalRecordId, recordId));
+      .where(and(eq(farmEventsTable.medicalRecordId, recordId), eq(farmEventsTable.farmId, farmId)));
   }
 }
 
