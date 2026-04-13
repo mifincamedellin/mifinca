@@ -146,7 +146,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
         .where(and(
           eq(farmEventsTable.farmId, farmId),
           eq(farmEventsTable.animalId, animalId),
-          isNull(farmEventsTable.medicalRecordId),
+          isNull(farmEventsTable.medicalRecordId), // exclude auto-generated medical events to avoid duplication with medical records tab
         ))
         .orderBy(asc(farmEventsTable.startDate)),
     ]);
