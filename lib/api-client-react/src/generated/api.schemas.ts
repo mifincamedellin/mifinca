@@ -231,12 +231,22 @@ export interface WeightRecord {
   createdAt?: string;
 }
 
+export interface LinkedCalendarEvent {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate?: string | null;
+  category?: string | null;
+  assignedTo?: string | null;
+}
+
 export type AnimalDetail = Animal & {
   weightRecords?: WeightRecord[];
   medicalRecords?: MedicalRecord[];
   offspring?: Animal[];
   mother?: Animal;
   father?: Animal;
+  linkedCalendarEvents?: LinkedCalendarEvent[];
 };
 
 export type CreateAnimalRequestSpecies =

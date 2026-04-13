@@ -1300,10 +1300,7 @@ export function AnimalDetail() {
 
                 {/* Scheduled Calendar Events */}
                 {(() => {
-                  const calEvents = (animal as any).linkedCalendarEvents as Array<{
-                    id: string; title: string; startDate: string; endDate?: string | null;
-                    category?: string | null; assignedTo?: string | null;
-                  }> | undefined;
+                  const calEvents = animal.linkedCalendarEvents;
                   if (!calEvents || calEvents.length === 0) return null;
                   return (
                     <div className="mt-8 pt-6 border-t border-border/40">
