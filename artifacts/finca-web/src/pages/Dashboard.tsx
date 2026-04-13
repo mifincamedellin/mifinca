@@ -500,7 +500,7 @@ export function Dashboard() {
               </span>
             )}
             <button
-              onClick={() => setLocation("/activity")}
+              onClick={() => navigate("/activity")}
               className="text-xs text-primary/70 hover:text-primary font-medium flex items-center gap-0.5 transition-colors"
             >
               {isEn ? "View all" : "Ver todo"} <ArrowRight className="h-3 w-3" />
