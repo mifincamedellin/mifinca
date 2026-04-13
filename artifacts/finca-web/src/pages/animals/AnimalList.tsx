@@ -467,9 +467,14 @@ export function AnimalList() {
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="font-serif font-bold text-lg text-primary truncate">
-                      {animal.customTag && animal.name
-                        ? `${animal.customTag} | ${animal.name}`
-                        : animal.customTag || animal.name || t('animals.noName')}
+                      {animal.customTag && animal.name ? (
+                        <>
+                          {animal.customTag}
+                          <span className="opacity-50"> | {animal.name}</span>
+                        </>
+                      ) : (
+                        animal.customTag || animal.name || t('animals.noName')
+                      )}
                     </h3>
                     <p className="text-muted-foreground text-sm capitalize mt-1 flex items-center gap-2">
                       <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
