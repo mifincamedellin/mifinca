@@ -1,29 +1,47 @@
-import { LIFECYCLE_STAGES, type LifecycleStage } from "@/lib/lifecycle";
+import { useTranslation } from "react-i18next";
+import { LIFECYCLE_STAGES, getStageIcon, type LifecycleStage } from "@/lib/lifecycle";
 
 interface Props {
   currentStage: LifecycleStage;
 }
 
+const STAGE_LABELS: Record<LifecycleStage, [string, string]> = {
+  growing:   ["Crecimiento",      "Growing"],
+  can_breed: ["Puede reproducir", "Can Breed"],
+  in_heat:   ["En celo",          "In Heat"],
+  pregnant:  ["Preñada",          "Pregnant"],
+  nursing:   ["Lactancia",        "Nursing"],
+};
+
 export function LifecycleBar({ currentStage }: Props) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language === "en";
   const currentIdx = LIFECYCLE_STAGES.indexOf(currentStage);
 
   return (
-    <div className="flex items-center gap-1 w-full">
+    <div className="flex items-start gap-1 w-full">
       {LIFECYCLE_STAGES.map((stage, idx) => {
         const isCurrent = stage === currentStage;
         const isPast = idx < currentIdx;
+        const [labelEs, labelEn] = STAGE_LABELS[stage];
 
         return (
-          <div
-            key={stage}
-            className={`h-2 flex-1 rounded-full transition-all ${
-              isCurrent
-                ? "bg-primary"
-                : isPast
-                  ? "bg-primary/30"
-                  : "bg-muted/40"
-            }`}
-          />
+          <div key={stage} className="flex-1 flex flex-col items-center gap-1.5">
+            <div
+              className={`h-2 w-full rounded-full transition-all ${
+                isCurrent
+                  ? "bg-primary"
+                  : isPast
+                    ? "bg-primary/30"
+                    : "bg-muted/40"
+              }`}
+            />
+            <span className={`text-[10px] leading-tight text-center font-medium ${
+              isCurrent ? "text-foreground" : "text-muted-foreground/60"
+            }`}>
+              {isEn ? labelEn : labelEs}
+            </span>
+          </div>
         );
       })}
     </div>
