@@ -85,17 +85,29 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
               {isEn ? "Pregnancy" : "Preñez"}
             </p>
           </div>
-          {!animal.pregnancyCheckCompletedAt && (
+          <div className="flex items-center gap-2 shrink-0">
+            {!animal.pregnancyCheckCompletedAt && (
+              <Button
+                size="sm"
+                className="rounded-xl h-8 px-3 text-xs bg-amber-500 hover:bg-amber-600 text-white"
+                disabled={loading}
+                onClick={() => { setNotesInput(""); setDialogAction("record-check"); }}
+              >
+                <Stethoscope className="h-3.5 w-3.5 mr-1" />
+                {isEn ? "Record Check" : "Registrar chequeo"}
+              </Button>
+            )}
             <Button
               size="sm"
-              className="rounded-xl h-8 px-3 text-xs bg-amber-500 hover:bg-amber-600 text-white shrink-0"
+              variant="outline"
+              className="rounded-xl h-8 px-3 text-xs border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
               disabled={loading}
-              onClick={() => { setNotesInput(""); setDialogAction("record-check"); }}
+              onClick={() => { setDateInput(new Date().toISOString().split("T")[0]!); setDialogAction("mark-delivered"); }}
             >
-              <Stethoscope className="h-3.5 w-3.5 mr-1" />
-              {isEn ? "Record Check" : "Registrar chequeo"}
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+              {isEn ? "Mark Delivered" : "Registrar parto"}
             </Button>
-          )}
+          </div>
         </div>
 
         <div>
@@ -111,15 +123,15 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
           </div>
         </div>
 
-        <div className="flex gap-3 mt-3 items-stretch">
-          <div className="flex-1 bg-rose-50/70 rounded-xl px-3 py-2.5">
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="bg-rose-50/70 rounded-xl px-3 py-2.5">
             <p className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-0.5">
               {isEn ? "Confirmed" : "Confirmada"}
             </p>
             <p className="text-sm font-semibold text-rose-700">{dateFmt(pregStart)}</p>
           </div>
           {delivery && (
-            <div className="flex-1 bg-pink-50/70 rounded-xl px-3 py-2.5">
+            <div className="bg-pink-50/70 rounded-xl px-3 py-2.5">
               <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-wide mb-0.5">
                 {isEn ? "Due date" : "Fecha probable"}
               </p>
@@ -133,16 +145,6 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
               )}
             </div>
           )}
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-xl px-3 text-xs border-rose-200 text-rose-600 hover:bg-rose-50 h-auto flex-col gap-1 py-2"
-            disabled={loading}
-            onClick={() => { setDateInput(new Date().toISOString().split("T")[0]!); setDialogAction("mark-delivered"); }}
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            <span>{isEn ? "Mark Delivered" : "Registrar parto"}</span>
-          </Button>
         </div>
       </Card>
 
