@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull } from "lucide-react";
 import { LifecycleActionCard } from "@/components/lifecycle/LifecycleActionCard";
-import { hasLifecycle, type LifecycleAnimal } from "@/lib/lifecycle";
+import { MarkInHeatCard, MarkPregnantCard } from "@/components/lifecycle/LifecycleHeatPregnancyCards";
+import { hasLifecycle, deriveLifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -1027,13 +1028,33 @@ export function AnimalDetail() {
                 </Card>
               </div>
 
-              {hasLifecycle(animal as unknown as LifecycleAnimal) && activeFarmId && (
-                <LifecycleActionCard
-                  animal={{ ...(animal as any), id: id! }}
-                  farmId={activeFarmId}
-                  onUpdate={() => refetch()}
-                />
-              )}
+              {hasLifecycle(animal as unknown as LifecycleAnimal) && activeFarmId && (() => {
+                const la = animal as unknown as LifecycleAnimal;
+                const stage = deriveLifecycleStage(la);
+                return (
+                  <>
+                    <LifecycleActionCard
+                      animal={{ ...(animal as any), id: id! }}
+                      farmId={activeFarmId}
+                      onUpdate={() => refetch()}
+                    />
+                    {(stage === "can_breed") && (
+                      <MarkInHeatCard
+                        animalId={id!}
+                        farmId={activeFarmId}
+                        onUpdate={() => refetch()}
+                      />
+                    )}
+                    {(stage === "can_breed" || stage === "in_heat") && (
+                      <MarkPregnantCard
+                        animalId={id!}
+                        farmId={activeFarmId}
+                        onUpdate={() => refetch()}
+                      />
+                    )}
+                  </>
+                );
+              })()}
 
               {/* ── Death card — all animals ── */}
               {(() => {

@@ -34,14 +34,31 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
     return c;
   }, [animals]);
 
-  const totalFemales = useMemo(() =>
+  const totalTracked = useMemo(() =>
     animals.filter(a => hasLifecycle(a)).length,
   [animals]);
 
-  if (totalFemales === 0) return null;
+  if (totalTracked === 0) return null;
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-6 pl-6 pr-2 md:mx-0 md:pl-0 md:pr-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      {/* All chip */}
+      <button
+        onClick={() => onSelect(null)}
+        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
+          selectedStage === null
+            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+            : "bg-card border-border/50 text-muted-foreground hover:border-border"
+        }`}
+      >
+        <span>{isEn ? "All" : "Todas"}</span>
+        <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+          selectedStage === null ? "bg-white/20" : "bg-muted text-muted-foreground"
+        }`}>
+          {totalTracked}
+        </span>
+      </button>
+
       {LIFECYCLE_STAGES.map(stage => {
         const count = counts[stage] ?? 0;
         const active = selectedStage === stage;
@@ -51,7 +68,7 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
           <button
             key={stage}
             onClick={() => onSelect(active ? null : stage)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all shrink-0 ${
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
               active
                 ? `${colors} border-current shadow-sm`
                 : count === 0
@@ -61,8 +78,8 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
           >
             <span>{getStageIcon(stage)}</span>
             <span>{isEn ? labelEn : labelEs}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-              active ? "bg-current/10" : "bg-muted/50"
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+              active ? "bg-current/10" : "bg-muted text-muted-foreground"
             }`}>
               {count}
             </span>

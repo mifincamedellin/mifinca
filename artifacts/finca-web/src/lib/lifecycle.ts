@@ -94,7 +94,8 @@ const SUPPORTED_LIFECYCLE_SPECIES = ["cattle", "goat", "sheep", "horse", "pig"];
 export function hasLifecycle(animal: LifecycleAnimal): boolean {
   return animal.sex === "female" &&
     SUPPORTED_LIFECYCLE_SPECIES.includes(animal.species) &&
-    animal.status === "active";
+    animal.status === "active" &&
+    !!animal.lifecycleStage;
 }
 
 function toMs(v: string | Date | null | undefined): number | null {

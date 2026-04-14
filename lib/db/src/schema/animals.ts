@@ -57,6 +57,8 @@ export const animalsTable = pgTable("animals", {
   nursingEndsAt: timestamp("nursing_ends_at", { withTimezone: true }),
   weaningDueAt: timestamp("weaning_due_at", { withTimezone: true }),
 
+  conceptionMethod: text("conception_method"),
+
   latestOffspringId: uuid("latest_offspring_id"),
   nextLifecycleEventType: text("next_lifecycle_event_type"),
   nextLifecycleEventAt: timestamp("next_lifecycle_event_at", { withTimezone: true }),

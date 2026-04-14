@@ -356,7 +356,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-pregnant", require
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
-    const { date, dueDate } = req.body as { date?: string; dueDate?: string };
+    const { date, dueDate, conceptionMethod } = req.body as { date?: string; dueDate?: string; conceptionMethod?: string };
 
     const [animal] = await db.select().from(animalsTable)
       .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
@@ -382,6 +382,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-pregnant", require
       pregnancyCheckCompletedAt: null,
       heatStartedAt: null,
       heatEndsAt: null,
+      ...(conceptionMethod ? { conceptionMethod } : {}),
       updatedAt: new Date(),
     }).where(eq(animalsTable.id, animalId)).returning();
 
