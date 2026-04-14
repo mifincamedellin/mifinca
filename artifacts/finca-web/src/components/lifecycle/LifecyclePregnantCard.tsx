@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Stethoscope, CheckCircle2, Baby } from "lucide-react";
+import { Stethoscope, CheckCircle2, Baby, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { getConfigForSpecies, type LifecycleAnimal } from "@/lib/lifecycle";
@@ -16,6 +16,14 @@ interface Props {
   onUpdate: () => void;
 }
 
+interface MaleAnimal {
+  id: string;
+  name?: string | null;
+  customTag?: string | null;
+  species: string;
+  sex: string;
+}
+
 async function lifecycleAction(farmId: string, animalId: string, action: string, body: Record<string, unknown> = {}) {
   const res = await fetch(`/api/farms/${farmId}/animals/${animalId}/lifecycle/${action}`, {
     method: "PATCH",
@@ -23,6 +31,16 @@ async function lifecycleAction(farmId: string, animalId: string, action: string,
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`lifecycle action failed: ${action}`);
+  return res.json();
+}
+
+async function createAnimal(farmId: string, body: Record<string, unknown>) {
+  const res = await fetch(`/api/farms/${farmId}/animals`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error("failed to create animal");
   return res.json();
 }
 
@@ -45,6 +63,14 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
   const [dateInput, setDateInput] = useState("");
   const [notesInput, setNotesInput] = useState("");
 
+  // Newborn state
+  const [registerNewborn, setRegisterNewborn] = useState(false);
+  const [newbornSex, setNewbornSex] = useState<"female" | "male" | "unknown" | "">("");
+  const [newbornName, setNewbornName] = useState("");
+  const [newbornTag, setNewbornTag] = useState("");
+  const [newbornFatherId, setNewbornFatherId] = useState("");
+  const [maleAnimals, setMaleAnimals] = useState<MaleAnimal[]>([]);
+
   const now = new Date();
   const pregStart = toDate(animal.pregnancyStartedAt);
   const delivery = toDate(animal.expectedDeliveryAt);
@@ -58,6 +84,29 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
   const pct = clamp(Math.round((daysAlong / total) * 100), 0, 100);
   const dateFmt = (d: Date) => format(d, isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es });
 
+  // Fetch male animals of same species when dialog opens
+  useEffect(() => {
+    if (dialogAction !== "mark-delivered") return;
+    fetch(`/api/farms/${farmId}/animals?species=${animal.species}`)
+      .then(r => r.ok ? r.json() : { animals: [] })
+      .then(data => {
+        const list: MaleAnimal[] = (data.animals ?? data ?? []).filter(
+          (a: MaleAnimal) => a.sex === "male" && a.id !== animal.id
+        );
+        setMaleAnimals(list);
+      })
+      .catch(() => setMaleAnimals([]));
+  }, [dialogAction, farmId, animal.species, animal.id]);
+
+  const resetDeliveryDialog = () => {
+    setRegisterNewborn(false);
+    setNewbornSex("");
+    setNewbornName("");
+    setNewbornTag("");
+    setNewbornFatherId("");
+    setMaleAnimals([]);
+  };
+
   const doAction = async (action: string, body: Record<string, unknown> = {}) => {
     setLoading(true);
     try {
@@ -70,8 +119,52 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
       setDialogAction(null);
       setDateInput("");
       setNotesInput("");
+      resetDeliveryDialog();
     }
   };
+
+  const handleMarkDelivered = async () => {
+    setLoading(true);
+    try {
+      let offspringId: string | undefined;
+
+      if (registerNewborn && newbornSex) {
+        const newAnimal = await createAnimal(farmId, {
+          species: animal.species,
+          sex: newbornSex,
+          name: newbornName.trim() || undefined,
+          customTag: newbornTag.trim() || undefined,
+          dateOfBirth: dateInput,
+          motherId: animal.id,
+          fatherId: newbornFatherId || undefined,
+        });
+        offspringId = newAnimal.id ?? newAnimal.animal?.id;
+      }
+
+      await lifecycleAction(farmId, animal.id, "mark-delivered", {
+        date: dateInput,
+        offspringId,
+      });
+
+      qc.invalidateQueries({ queryKey: [`/api/farms/${farmId}/animals/${animal.id}`] });
+      qc.invalidateQueries({ queryKey: [`/api/farms/${farmId}/animals`] });
+      onUpdate();
+    } finally {
+      setLoading(false);
+      setDialogAction(null);
+      setDateInput("");
+      resetDeliveryDialog();
+    }
+  };
+
+  const confirmDisabled =
+    !dateInput || loading || (registerNewborn && !newbornSex);
+
+  const sexOptions = [
+    { value: "female", label: isEn ? "Female" : "Hembra" },
+    { value: "male", label: isEn ? "Male" : "Macho" },
+    { value: "unknown", label: isEn ? "Unknown" : "Desconocido" },
+  ] as const;
 
   return (
     <>
@@ -102,7 +195,11 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
               variant="outline"
               className="rounded-xl h-8 px-3 text-xs border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
               disabled={loading}
-              onClick={() => { setDateInput(new Date().toISOString().split("T")[0]!); setDialogAction("mark-delivered"); }}
+              onClick={() => {
+                setDateInput(new Date().toISOString().split("T")[0]!);
+                resetDeliveryDialog();
+                setDialogAction("mark-delivered");
+              }}
             >
               <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
               {isEn ? "Mark Delivered" : "Registrar parto"}
@@ -147,35 +244,151 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
         </div>
       </Card>
 
-      <Dialog open={dialogAction === "mark-delivered"} onOpenChange={(o) => !o && setDialogAction(null)}>
+      {/* Mark Delivered Dialog */}
+      <Dialog
+        open={dialogAction === "mark-delivered"}
+        onOpenChange={(o) => { if (!o) { setDialogAction(null); resetDeliveryDialog(); } }}
+      >
         <DialogContent className="sm:max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl">{isEn ? "Record Delivery" : "Registrar parto"}</DialogTitle>
+            <DialogTitle className="font-serif text-xl">
+              {isEn ? "Record Delivery" : "Registrar parto"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {/* Delivery date */}
             <div>
-              <label className="text-sm font-medium">{isEn ? "Delivery date" : "Fecha de parto"}</label>
-              <Input type="date" value={dateInput} onChange={e => setDateInput(e.target.value)} className="mt-1 rounded-xl" />
+              <label className="text-sm font-medium">
+                {isEn ? "Delivery date" : "Fecha de parto"}
+              </label>
+              <div className="relative mt-1">
+                <Input
+                  type="date"
+                  value={dateInput}
+                  onChange={e => setDateInput(e.target.value)}
+                  className="rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
             </div>
-            <Button
-              className="w-full rounded-xl bg-purple-500 hover:bg-purple-600"
-              disabled={!dateInput || loading}
-              onClick={() => doAction("mark-delivered", { date: dateInput })}
+
+            {/* Register newborn toggle */}
+            <button
+              type="button"
+              onClick={() => setRegisterNewborn(v => !v)}
+              className="w-full flex items-center justify-between rounded-xl border border-rose-100 bg-rose-50/50 px-3 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-50 transition-colors"
             >
-              {isEn ? "Confirm" : "Confirmar"}
+              <span className="flex items-center gap-2">
+                <Baby className="h-4 w-4" />
+                {isEn ? "Register newborn?" : "¿Registrar la cría?"}
+              </span>
+              {registerNewborn
+                ? <ChevronUp className="h-4 w-4 text-rose-400" />
+                : <ChevronDown className="h-4 w-4 text-rose-400" />}
+            </button>
+
+            {registerNewborn && (
+              <div className="rounded-xl border border-rose-100 bg-rose-50/30 p-3 space-y-3">
+                {/* Sex selector */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
+                    {isEn ? "Sex" : "Sexo"} <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    {sexOptions.map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setNewbornSex(opt.value)}
+                        className={`flex-1 rounded-lg py-1.5 text-xs font-medium border transition-colors ${
+                          newbornSex === opt.value
+                            ? "bg-rose-500 text-white border-rose-500"
+                            : "bg-white text-muted-foreground border-border hover:border-rose-200 hover:text-rose-600"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">
+                    {isEn ? "Name (optional)" : "Nombre (opcional)"}
+                  </label>
+                  <Input
+                    value={newbornName}
+                    onChange={e => setNewbornName(e.target.value)}
+                    className="rounded-xl h-8 text-sm"
+                    placeholder={isEn ? "e.g. Bella" : "ej. Bella"}
+                  />
+                </div>
+
+                {/* Tag */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">
+                    {isEn ? "Ear tag (optional)" : "Arete (opcional)"}
+                  </label>
+                  <Input
+                    value={newbornTag}
+                    onChange={e => setNewbornTag(e.target.value)}
+                    className="rounded-xl h-8 text-sm"
+                    placeholder={isEn ? "e.g. BOV-042" : "ej. BOV-042"}
+                  />
+                </div>
+
+                {/* Father */}
+                {maleAnimals.length > 0 && (
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">
+                      {isEn ? "Father (optional)" : "Padre (opcional)"}
+                    </label>
+                    <select
+                      value={newbornFatherId}
+                      onChange={e => setNewbornFatherId(e.target.value)}
+                      className="w-full rounded-xl border border-input bg-background px-3 h-8 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-rose-300"
+                    >
+                      <option value="">
+                        {isEn ? "No father recorded" : "Sin padre registrado"}
+                      </option>
+                      {maleAnimals.map(m => (
+                        <option key={m.id} value={m.id}>
+                          {[m.customTag, m.name].filter(Boolean).join(" · ") || m.id.slice(0, 8)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Button
+              className="w-full rounded-xl bg-rose-500 hover:bg-rose-600 text-white"
+              disabled={confirmDisabled}
+              onClick={handleMarkDelivered}
+            >
+              {registerNewborn
+                ? (isEn ? "Confirm & Register Calf" : "Confirmar y registrar cría")
+                : (isEn ? "Confirm" : "Confirmar")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Record Pregnancy Check Dialog */}
       <Dialog open={dialogAction === "record-check"} onOpenChange={(o) => !o && setDialogAction(null)}>
         <DialogContent className="sm:max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl">{isEn ? "Record Pregnancy Check" : "Registrar chequeo"}</DialogTitle>
+            <DialogTitle className="font-serif text-xl">
+              {isEn ? "Record Pregnancy Check" : "Registrar chequeo"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
-              <label className="text-sm font-medium">{isEn ? "Notes (optional)" : "Notas (opcional)"}</label>
+              <label className="text-sm font-medium">
+                {isEn ? "Notes (optional)" : "Notas (opcional)"}
+              </label>
               <Input
                 value={notesInput}
                 onChange={e => setNotesInput(e.target.value)}
