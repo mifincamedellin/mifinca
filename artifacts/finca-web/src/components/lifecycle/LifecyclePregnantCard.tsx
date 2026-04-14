@@ -174,9 +174,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
         toast({
           variant: "destructive",
           title: isEn ? "Could not record delivery" : "Error al registrar el parto",
-          description: isEn
-            ? "Please try again."
-            : "Intenta de nuevo.",
+          description: isEn ? "Please try again." : "Intenta de nuevo.",
         });
         return;
       }
@@ -203,10 +201,10 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
 
   return (
     <>
-      <Card className="rounded-2xl border shadow-sm border-rose-100 bg-gradient-to-br from-rose-50/60 to-pink-50/40 p-5">
+      <Card className="rounded-2xl border shadow-sm border-rose-200/50 dark:border-rose-800/30 bg-gradient-to-br from-rose-50/60 to-pink-50/40 dark:from-rose-950/40 dark:to-pink-950/20 p-5">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-rose-100/60 text-rose-500">
+            <div className="p-2.5 rounded-xl bg-rose-500/15 text-rose-500 dark:bg-rose-500/20 dark:text-rose-400">
               <Baby className="h-5 w-5" />
             </div>
             <p className="text-sm font-semibold text-foreground">
@@ -228,7 +226,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-xl h-8 px-3 text-xs border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+              className="rounded-xl h-8 px-3 text-xs border-rose-200 text-rose-700 hover:bg-rose-500/10 hover:text-rose-800 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300"
               disabled={loading}
               onClick={() => {
                 setDateInput(new Date().toISOString().split("T")[0]!);
@@ -245,7 +243,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
         <div>
           <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
             <span>{isEn ? `${daysAlong} of ${total} days` : `${daysAlong} de ${total} días`}</span>
-            <span className="font-semibold text-rose-600">
+            <span className="font-semibold text-rose-600 dark:text-rose-400">
               {daysLeft !== null && daysLeft > 0
                 ? (isEn ? `${daysLeft} days left` : `${daysLeft} días restantes`)
                 : daysLeft === 0
@@ -253,7 +251,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
                   : `${pct}%`}
             </span>
           </div>
-          <div className="h-2.5 bg-rose-100 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-rose-500/20 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-rose-400 to-pink-500 rounded-full transition-all duration-500"
               style={{ width: `${pct}%` }}
@@ -262,18 +260,18 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
         </div>
 
         <div className="grid grid-cols-2 gap-3 mt-3">
-          <div className="bg-rose-50/70 rounded-xl px-3 py-2.5">
-            <p className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-0.5">
+          <div className="bg-rose-500/10 dark:bg-rose-500/15 rounded-xl px-3 py-2.5">
+            <p className="text-[10px] font-semibold text-rose-500 dark:text-rose-400 uppercase tracking-wide mb-0.5">
               {isEn ? "Confirmed" : "Confirmada"}
             </p>
-            <p className="text-sm font-semibold text-rose-700">{dateFmt(pregStart)}</p>
+            <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">{dateFmt(pregStart)}</p>
           </div>
           {delivery && (
-            <div className="bg-pink-50/70 rounded-xl px-3 py-2.5 text-right">
-              <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-wide mb-0.5">
+            <div className="bg-pink-500/10 dark:bg-pink-500/15 rounded-xl px-3 py-2.5 text-right">
+              <p className="text-[10px] font-semibold text-pink-500 dark:text-pink-400 uppercase tracking-wide mb-0.5">
                 {isEn ? "Due date" : "Fecha probable"}
               </p>
-              <p className="text-sm font-semibold text-pink-700">{dateFmt(delivery)}</p>
+              <p className="text-sm font-semibold text-pink-700 dark:text-pink-300">{dateFmt(delivery)}</p>
             </div>
           )}
         </div>
@@ -311,7 +309,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
             <button
               type="button"
               onClick={() => setRegisterNewborn(v => !v)}
-              className="w-full flex items-center justify-between rounded-xl border border-rose-100 bg-rose-50/50 px-3 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-50 transition-colors"
+              className="w-full flex items-center justify-between rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-500/8 dark:bg-rose-500/10 px-3 py-2.5 text-sm font-medium text-rose-700 dark:text-rose-400 hover:bg-rose-500/12 dark:hover:bg-rose-500/15 transition-colors"
             >
               <span className="flex items-center gap-2">
                 <Baby className="h-4 w-4" />
@@ -323,7 +321,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
             </button>
 
             {registerNewborn && (
-              <div className="rounded-xl border border-rose-100 bg-rose-50/30 p-3 space-y-3">
+              <div className="rounded-xl border border-rose-200/60 dark:border-rose-800/40 bg-rose-500/5 dark:bg-rose-500/10 p-3 space-y-3">
                 {/* Sex selector */}
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
@@ -338,7 +336,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
                         className={`flex-1 rounded-lg py-1.5 text-xs font-medium border transition-colors ${
                           newbornSex === opt.value
                             ? "bg-rose-500 text-white border-rose-500"
-                            : "bg-white text-muted-foreground border-border hover:border-rose-200 hover:text-rose-600"
+                            : "bg-background text-muted-foreground border-border hover:border-rose-300 dark:hover:border-rose-700 hover:text-rose-600 dark:hover:text-rose-400"
                         }`}
                       >
                         {opt.label}
@@ -382,7 +380,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
                     <select
                       value={newbornFatherId}
                       onChange={e => setNewbornFatherId(e.target.value)}
-                      className="w-full rounded-xl border border-input bg-background px-3 h-8 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-rose-300"
+                      className="w-full rounded-xl border border-input bg-background px-3 h-8 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-rose-300 dark:focus:ring-rose-700"
                     >
                       <option value="">
                         {isEn ? "No father recorded" : "Sin padre registrado"}

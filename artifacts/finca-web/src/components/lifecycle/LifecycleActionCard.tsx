@@ -77,9 +77,9 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
             <div>
               <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                 <span>{isEn ? `${elapsed} days nursing` : `${elapsed} días de lactancia`}</span>
-                <span className="font-semibold text-purple-600">{pct}%</span>
+                <span className="font-semibold text-purple-600 dark:text-purple-400">{pct}%</span>
               </div>
-              <div className="h-2.5 bg-purple-100 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-purple-500/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-purple-400 to-violet-500 rounded-full transition-all duration-500"
                   style={{ width: `${pct}%` }}
@@ -88,19 +88,19 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
             </div>
             {remaining !== null && (
               <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="bg-purple-50/70 rounded-xl px-3 py-2.5">
-                  <p className="text-[10px] font-semibold text-purple-400 uppercase tracking-wide mb-0.5">
+                <div className="bg-purple-500/10 dark:bg-purple-500/15 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] font-semibold text-purple-500 dark:text-purple-400 uppercase tracking-wide mb-0.5">
                     {isEn ? "Nursing since" : "Desde"}
                   </p>
-                  <p className="text-sm font-semibold text-purple-700">
+                  <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">
                     {format(nursStart, isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es })}
                   </p>
                 </div>
-                <div className="bg-violet-50/70 rounded-xl px-3 py-2.5">
-                  <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-wide mb-0.5">
+                <div className="bg-violet-500/10 dark:bg-violet-500/15 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wide mb-0.5">
                     {isEn ? "Weaning in" : "Destete en"}
                   </p>
-                  <p className="text-sm font-semibold text-violet-700">
+                  <p className="text-sm font-semibold text-violet-700 dark:text-violet-300">
                     {remaining === 0
                       ? (isEn ? "Today" : "Hoy")
                       : isEn ? `${remaining} days` : `${remaining} días`}
@@ -125,20 +125,20 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
             <div>
               <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                 <span>{isEn ? `${remaining} day${remaining !== 1 ? "s" : ""} remaining` : `${remaining} día${remaining !== 1 ? "s" : ""} restante${remaining !== 1 ? "s" : ""}`}</span>
-                <span className="font-semibold text-orange-600">{pct}%</span>
+                <span className="font-semibold text-orange-600 dark:text-orange-400">{pct}%</span>
               </div>
-              <div className="h-2.5 bg-orange-100 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-orange-500/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full transition-all duration-500"
                   style={{ width: `${pct}%` }}
                 />
               </div>
             </div>
-            <div className="bg-orange-50/70 rounded-xl px-3 py-2.5">
-              <p className="text-[10px] font-semibold text-orange-400 uppercase tracking-wide mb-0.5">
+            <div className="bg-orange-500/10 dark:bg-orange-500/15 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] font-semibold text-orange-500 dark:text-orange-400 uppercase tracking-wide mb-0.5">
                 {isEn ? "Heat ends" : "Celo termina"}
               </p>
-              <p className="text-sm font-semibold text-orange-700">
+              <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">
                 {format(heatEnd, isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es })}
               </p>
             </div>
@@ -161,9 +161,9 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
             <div>
               <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                 <span>{isEn ? `${Math.round(w)} of ${Math.round(target)} kg` : `${Math.round(w)} de ${Math.round(target)} kg`}</span>
-                <span className="font-semibold text-blue-600">{pct}%</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{pct}%</span>
               </div>
-              <div className="h-2.5 bg-blue-100 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-blue-500/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-400 to-sky-500 rounded-full transition-all duration-500"
                   style={{ width: `${pct}%` }}
@@ -171,17 +171,17 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="bg-blue-50/70 rounded-xl px-3 py-2.5">
-                <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide mb-0.5">
+              <div className="bg-blue-500/10 dark:bg-blue-500/15 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wide mb-0.5">
                   {isEn ? "Current weight" : "Peso actual"}
                 </p>
-                <p className="text-sm font-semibold text-blue-700">{Math.round(w)} kg</p>
+                <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">{Math.round(w)} kg</p>
               </div>
-              <div className="bg-sky-50/70 rounded-xl px-3 py-2.5">
-                <p className="text-[10px] font-semibold text-sky-400 uppercase tracking-wide mb-0.5">
+              <div className="bg-sky-500/10 dark:bg-sky-500/15 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] font-semibold text-sky-500 dark:text-sky-400 uppercase tracking-wide mb-0.5">
                   {isEn ? "Still needs" : "Faltan"}
                 </p>
-                <p className="text-sm font-semibold text-sky-700">
+                <p className="text-sm font-semibold text-sky-700 dark:text-sky-300">
                   {remaining > 0 ? `${remaining} kg` : (isEn ? "Ready!" : "¡Lista!")}
                 </p>
               </div>
@@ -252,9 +252,11 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
         <div className="mt-4 space-y-1.5">
           {alerts.slice(0, 3).map((alert) => (
             <div key={alert.type} className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
-              alert.severity === "urgent" ? "bg-red-50 text-red-700" :
-              alert.severity === "warning" ? "bg-amber-50 text-amber-700" :
-              "bg-blue-50 text-blue-700"
+              alert.severity === "urgent"
+                ? "bg-red-500/10 text-red-700 dark:text-red-400"
+                : alert.severity === "warning"
+                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                  : "bg-blue-500/10 text-blue-700 dark:text-blue-400"
             }`}>
               <AlertTriangle className="h-3 w-3 shrink-0" />
               <span className="font-medium">{isEn ? alert.labelEn : alert.label}</span>
