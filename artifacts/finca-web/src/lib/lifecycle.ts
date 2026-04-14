@@ -66,6 +66,86 @@ export function getConfigForSpecies(species: string): LifecycleConfig {
   return LIFECYCLE_CONFIG[species]?.female ?? LIFECYCLE_CONFIG.cattle.female;
 }
 
+export interface SpeciesTerms {
+  offspringEn: string;
+  offspringEs: string;
+  birthEventEn: string;
+  birthEventEs: string;
+  deliverySoonEn: string;
+  deliverySoonEs: string;
+  weanButtonEn: string;
+  weanButtonEs: string;
+  readyToWeanEn: string;
+  readyToWeanEs: string;
+}
+
+export const SPECIES_TERMS: Record<string, SpeciesTerms> = {
+  cattle: {
+    offspringEn:    "calf",
+    offspringEs:    "ternero/a",
+    birthEventEn:   "Calving",
+    birthEventEs:   "Parto",
+    deliverySoonEn: "Calving soon",
+    deliverySoonEs: "Parto próximo",
+    weanButtonEn:   "Wean Calf",
+    weanButtonEs:   "Destetar",
+    readyToWeanEn:  "Ready to wean calf",
+    readyToWeanEs:  "Lista para destete",
+  },
+  pig: {
+    offspringEn:    "piglet",
+    offspringEs:    "lechón",
+    birthEventEn:   "Farrowing",
+    birthEventEs:   "Parto",
+    deliverySoonEn: "Farrowing soon",
+    deliverySoonEs: "Parto próximo",
+    weanButtonEn:   "Wean Piglet",
+    weanButtonEs:   "Destetar lechón",
+    readyToWeanEn:  "Ready to wean piglet",
+    readyToWeanEs:  "Lista para destete",
+  },
+  horse: {
+    offspringEn:    "foal",
+    offspringEs:    "potro/a",
+    birthEventEn:   "Foaling",
+    birthEventEs:   "Parto",
+    deliverySoonEn: "Foaling soon",
+    deliverySoonEs: "Parto próximo",
+    weanButtonEn:   "Wean Foal",
+    weanButtonEs:   "Destetar potro/a",
+    readyToWeanEn:  "Ready to wean foal",
+    readyToWeanEs:  "Lista para destete",
+  },
+  goat: {
+    offspringEn:    "kid",
+    offspringEs:    "cabrito/a",
+    birthEventEn:   "Kidding",
+    birthEventEs:   "Parto",
+    deliverySoonEn: "Kidding soon",
+    deliverySoonEs: "Parto próximo",
+    weanButtonEn:   "Wean Kid",
+    weanButtonEs:   "Destetar cabrito/a",
+    readyToWeanEn:  "Ready to wean kid",
+    readyToWeanEs:  "Lista para destete",
+  },
+  sheep: {
+    offspringEn:    "lamb",
+    offspringEs:    "cordero/a",
+    birthEventEn:   "Lambing",
+    birthEventEs:   "Parto",
+    deliverySoonEn: "Lambing soon",
+    deliverySoonEs: "Parto próximo",
+    weanButtonEn:   "Wean Lamb",
+    weanButtonEs:   "Destetar cordero/a",
+    readyToWeanEn:  "Ready to wean lamb",
+    readyToWeanEs:  "Lista para destete",
+  },
+};
+
+export function getSpeciesTerms(species: string): SpeciesTerms {
+  return SPECIES_TERMS[species] ?? SPECIES_TERMS.cattle;
+}
+
 export interface LifecycleAnimal {
   sex?: string | null;
   species: string;
@@ -190,6 +270,7 @@ export function getLifecycleAlerts(animal: LifecycleAnimal, now: Date = new Date
   if (!hasLifecycle(animal)) return [];
   const alerts: LifecycleAlert[] = [];
   const stage = deriveLifecycleStage(animal, now);
+  const terms = getSpeciesTerms(animal.species);
   const nowMs = now.getTime();
 
   if (stage === "in_heat") {
@@ -221,8 +302,8 @@ export function getLifecycleAlerts(animal: LifecycleAnimal, now: Date = new Date
     if (delivery && (delivery - nowMs) <= 30 * 86400000) {
       alerts.push({
         type: "delivery_soon",
-        label: "Parto próximo",
-        labelEn: "Delivery soon",
+        label: terms.deliverySoonEs,
+        labelEn: terms.deliverySoonEn,
         dueAt: animal.expectedDeliveryAt ? new Date(animal.expectedDeliveryAt) : null,
         severity: "urgent",
       });
@@ -234,8 +315,8 @@ export function getLifecycleAlerts(animal: LifecycleAnimal, now: Date = new Date
     if (weanDue && (weanDue - nowMs) <= 7 * 86400000) {
       alerts.push({
         type: "ready_to_wean",
-        label: "Lista para destete",
-        labelEn: "Ready to wean",
+        label: terms.readyToWeanEs,
+        labelEn: terms.readyToWeanEn,
         dueAt: animal.weaningDueAt ? new Date(animal.weaningDueAt) : null,
         severity: "warning",
       });
@@ -280,6 +361,7 @@ export function getLifecycleStatus(animal: LifecycleAnimal, now: Date = new Date
 
   const [stageLabel, stageLabelEn] = STAGE_LABELS[stage];
   const cfg = getConfigForSpecies(animal.species);
+  const terms = getSpeciesTerms(animal.species);
   const nowMs = now.getTime();
 
   let progress = "";
@@ -336,8 +418,8 @@ export function getLifecycleStatus(animal: LifecycleAnimal, now: Date = new Date
       }
       if (delivery) {
         const daysLeft = Math.max(0, daysBetween(nowMs, delivery));
-        nextEvent = `Parto en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}`;
-        nextEventEn = `Delivery in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
+        nextEvent = `${terms.birthEventEs} en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}`;
+        nextEventEn = `${terms.birthEventEn} in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
       }
       break;
     }
@@ -352,7 +434,7 @@ export function getLifecycleStatus(animal: LifecycleAnimal, now: Date = new Date
       if (nursEnd) {
         const daysLeft = Math.max(0, daysBetween(nowMs, nursEnd));
         nextEvent = `Destete en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}`;
-        nextEventEn = `Weaning in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
+        nextEventEn = `${terms.weanButtonEn.replace(/^Wean\s/, "Weaning ")} in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
       }
       break;
     }

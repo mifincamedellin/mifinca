@@ -7,7 +7,7 @@ import { Milk, AlertTriangle, TrendingUp, CheckCircle2, Flame, Baby } from "luci
 import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  deriveLifecycleStage, getLifecycleAlerts, getConfigForSpecies,
+  deriveLifecycleStage, getLifecycleAlerts, getConfigForSpecies, getSpeciesTerms,
   type LifecycleAnimal, type LifecycleStage,
 } from "@/lib/lifecycle";
 
@@ -53,6 +53,7 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
 
   const stage = deriveLifecycleStage(animal);
   const alerts = getLifecycleAlerts(animal);
+  const terms = getSpeciesTerms(animal.species);
 
   if (!stage || stage === "pregnant" || stage === "can_breed") return null;
 
@@ -227,7 +228,7 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
               onClick={() => doAction("wean")}
             >
               <Milk className="h-3.5 w-3.5 mr-1" />
-              {isEn ? "Wean Calf" : "Destetar"}
+              {isEn ? terms.weanButtonEn : terms.weanButtonEs}
             </Button>
           </div>
         );

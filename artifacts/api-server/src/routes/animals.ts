@@ -497,7 +497,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/wean", requireAuth, req
     await logLifecycleEvent(farmId, animalId, oldStage, newStage, "weaned", new Date());
     await db.insert(activityLogTable).values({
       farmId, userId, actionType: "lifecycle", entityType: "animal", entityId: animalId,
-      description: `Weaned calf for ${animal.name ?? animal.customTag}`,
+      description: `Weaned ${animal.species === "pig" ? "piglet" : animal.species === "horse" ? "foal" : animal.species === "goat" ? "kid" : animal.species === "sheep" ? "lamb" : "calf"} for ${animal.name ?? animal.customTag}`,
     });
 
     return res.json(updated);

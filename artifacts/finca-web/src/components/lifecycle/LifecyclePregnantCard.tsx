@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Stethoscope, CheckCircle2, Baby, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { getConfigForSpecies, type LifecycleAnimal } from "@/lib/lifecycle";
+import { getConfigForSpecies, getSpeciesTerms, type LifecycleAnimal } from "@/lib/lifecycle";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
@@ -80,6 +80,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
   if (!pregStart) return null;
 
   const cfg = getConfigForSpecies(animal.species);
+  const terms = getSpeciesTerms(animal.species);
   const daysAlong = Math.max(0, differenceInDays(now, pregStart));
   const total = delivery ? differenceInDays(delivery, pregStart) : cfg.pregnancyDurationDays;
   const daysLeft = delivery ? Math.max(0, differenceInDays(delivery, now)) : null;
@@ -147,7 +148,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
             variant: "destructive",
             title: isEn ? "Could not create newborn" : "Error al crear la cría",
             description: isEn
-              ? "Please try again or register the calf manually."
+              ? `Please try again or register the ${terms.offspringEn} manually.`
               : "Intenta de nuevo o registra la cría manualmente.",
           });
           return;
@@ -285,7 +286,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
         <DialogContent className="sm:max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl">
-              {isEn ? "Record Delivery" : "Registrar parto"}
+              {isEn ? `Record ${terms.birthEventEn}` : `Registrar parto`}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -402,7 +403,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
               onClick={handleMarkDelivered}
             >
               {registerNewborn
-                ? (isEn ? "Confirm & Register Calf" : "Confirmar y registrar cría")
+                ? (isEn ? `Confirm & Register ${terms.offspringEn}` : "Confirmar y registrar cría")
                 : (isEn ? "Confirm" : "Confirmar")}
             </Button>
           </div>
