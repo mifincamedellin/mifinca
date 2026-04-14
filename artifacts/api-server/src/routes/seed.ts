@@ -105,6 +105,24 @@ export async function seedDemoFarmData(farmId: string) {
     { farmId, customTag: "BOV-061", species: "cattle", breed: "Brahman",            name: "Cimarrona",  sex: "male",   dateOfBirth: "2022-03-03", status: "active", notes: "Toro joven en desarrollo" },
     { farmId, customTag: "BOV-062", species: "cattle", breed: "Cebú",               name: "Rosalba",    sex: "female", dateOfBirth: "2020-07-07", status: "active" },
     { farmId, customTag: "BOV-063", species: "cattle", breed: "Normando",           name: "Verano",     sex: "female", dateOfBirth: "2021-04-22", status: "active" },
+    // ── PIGS: extra females for full lifecycle coverage ──────────────────────
+    { farmId, customTag: "CER-005", species: "pig",   breed: "Yorkshire",          name: "Canelita",   sex: "female", dateOfBirth: "2025-09-15", status: "active", notes: "Lechona joven en crecimiento" },
+    { farmId, customTag: "CER-006", species: "pig",   breed: "Landrace",           name: "Petaca",     sex: "female", dateOfBirth: "2023-01-10", status: "active" },
+    { farmId, customTag: "CER-007", species: "pig",   breed: "Duroc",              name: "Tostada",    sex: "female", dateOfBirth: "2022-11-01", status: "active" },
+    // ── HORSES: add mares ────────────────────────────────────────────────────
+    { farmId, customTag: "CAB-003", species: "horse", breed: "Criollo Colombiano", name: "Brisa",      sex: "female", dateOfBirth: "2019-08-15", status: "active", notes: "Yegua de cría" },
+    { farmId, customTag: "CAB-004", species: "horse", breed: "Criollo Colombiano", name: "Estrella",   sex: "female", dateOfBirth: "2023-02-01", status: "active" },
+    { farmId, customTag: "CAB-005", species: "horse", breed: "Criollo Colombiano", name: "Palomita",   sex: "female", dateOfBirth: "2025-01-15", status: "active", notes: "Potranca en crecimiento" },
+    // ── GOATS: add male + more females for lifecycle ──────────────────────────
+    { farmId, customTag: "CAP-003", species: "goat",  breed: "Boer",               name: "Conquistador", sex: "male", dateOfBirth: "2021-05-20", status: "active", notes: "Macho reproductor" },
+    { farmId, customTag: "CAP-004", species: "goat",  breed: "Nubian",             name: "Menta",      sex: "female", dateOfBirth: "2025-10-15", status: "active", notes: "Cabrita en crecimiento" },
+    { farmId, customTag: "CAP-005", species: "goat",  breed: "Boer",               name: "Jazmín",     sex: "female", dateOfBirth: "2022-01-15", status: "active" },
+    { farmId, customTag: "CAP-006", species: "goat",  breed: "Nubian",             name: "Orquídea",   sex: "female", dateOfBirth: "2021-06-10", status: "active" },
+    // ── SHEEP: both sexes, full lifecycle spread ──────────────────────────────
+    { farmId, customTag: "OVE-001", species: "sheep", breed: "Dorper",             name: "Nieves",     sex: "female", dateOfBirth: "2021-03-15", status: "active" },
+    { farmId, customTag: "OVE-002", species: "sheep", breed: "Dorper",             name: "Pastor",     sex: "male",   dateOfBirth: "2020-11-10", status: "active", notes: "Carnero reproductor" },
+    { farmId, customTag: "OVE-003", species: "sheep", breed: "Corriedale",         name: "Candela",    sex: "female", dateOfBirth: "2022-08-20", status: "active" },
+    { farmId, customTag: "OVE-004", species: "sheep", breed: "Corriedale",         name: "Bebé",       sex: "female", dateOfBirth: "2025-11-15", status: "active", notes: "Oveja joven en crecimiento" },
 
 
 
@@ -244,6 +262,65 @@ export async function seedDemoFarmData(farmId: string) {
     lifecycleStage: "nursing", lifecycleStageStartedAt: dAgo(255), lifecycleStageEndsAt: dFwd(15),
     nursingStartedAt: dAgo(255), nursingEndsAt: dFwd(15), weaningDueAt: dFwd(15), isPregnant: false,
   }).where(inArray(animalsTable.id, nursLateIds));
+
+  // ── NON-CATTLE LIFECYCLE STAGES ───────────────────────────────────────────
+
+  // GROWING — young pig, horse, goat, sheep (below breeding age)
+  const growingOtherIds = ids("CER-005", "CAB-005", "CAP-004", "OVE-004");
+  if (growingOtherIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "growing", lifecycleStageStartedAt: dAgo(60),
+  }).where(inArray(animalsTable.id, growingOtherIds));
+
+  // CAN BREED — young adult mare (3.2 years old, past 3-year threshold)
+  const canBreedHorseIds = ids("CAB-004");
+  if (canBreedHorseIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "can_breed", lifecycleStageStartedAt: dAgo(30),
+  }).where(inArray(animalsTable.id, canBreedHorseIds));
+
+  // IN HEAT — sow + doe
+  const inHeatOtherIds = ids("CER-007", "CAP-006");
+  if (inHeatOtherIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "in_heat", lifecycleStageStartedAt: dAgo(1), lifecycleStageEndsAt: dFwd(2),
+    heatStartedAt: dAgo(1), heatEndsAt: dFwd(2),
+  }).where(inArray(animalsTable.id, inHeatOtherIds));
+
+  // PREGNANT — sow (45 days in, 114-day gestation → 69 days left)
+  const pregPigIds = ids("CER-006");
+  if (pregPigIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "pregnant", lifecycleStageStartedAt: dAgo(45), lifecycleStageEndsAt: dFwd(69),
+    isPregnant: true, pregnancyStartedAt: dAgo(45), expectedDeliveryAt: dFwd(69),
+    pregnancyConfirmedAt: dAgo(40), pregnancyCheckDueAt: dAgo(15), pregnancyCheckCompletedAt: dAgo(13),
+  }).where(inArray(animalsTable.id, pregPigIds));
+
+  // PREGNANT — doe (80 days in, 150-day gestation → 70 days left)
+  const pregGoatIds = ids("CAP-005");
+  if (pregGoatIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "pregnant", lifecycleStageStartedAt: dAgo(80), lifecycleStageEndsAt: dFwd(70),
+    isPregnant: true, pregnancyStartedAt: dAgo(80), expectedDeliveryAt: dFwd(70),
+    pregnancyConfirmedAt: dAgo(75), pregnancyCheckDueAt: dAgo(50), pregnancyCheckCompletedAt: dAgo(48),
+  }).where(inArray(animalsTable.id, pregGoatIds));
+
+  // PREGNANT — ewe (90 days in, 147-day gestation → 57 days left)
+  const pregSheepIds = ids("OVE-003");
+  if (pregSheepIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "pregnant", lifecycleStageStartedAt: dAgo(90), lifecycleStageEndsAt: dFwd(57),
+    isPregnant: true, pregnancyStartedAt: dAgo(90), expectedDeliveryAt: dFwd(57),
+    pregnancyConfirmedAt: dAgo(85), pregnancyCheckDueAt: dAgo(60), pregnancyCheckCompletedAt: dAgo(58),
+  }).where(inArray(animalsTable.id, pregSheepIds));
+
+  // NURSING — mare (45 days in, 180-day nursing → 135 days left)
+  const nursMareIds = ids("CAB-003");
+  if (nursMareIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "nursing", lifecycleStageStartedAt: dAgo(45), lifecycleStageEndsAt: dFwd(135),
+    nursingStartedAt: dAgo(45), nursingEndsAt: dFwd(135), weaningDueAt: dFwd(135), isPregnant: false,
+  }).where(inArray(animalsTable.id, nursMareIds));
+
+  // NURSING — ewe (30 days in, 90-day nursing → 60 days left)
+  const nursSheepIds = ids("OVE-001");
+  if (nursSheepIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "nursing", lifecycleStageStartedAt: dAgo(30), lifecycleStageEndsAt: dFwd(60),
+    nursingStartedAt: dAgo(30), nursingEndsAt: dFwd(60), weaningDueAt: dFwd(60), isPregnant: false,
+  }).where(inArray(animalsTable.id, nursSheepIds));
 
   // ── WEIGHT RECORDS — all animals, 4 records each ─────────────────────────
   const weightRecords = animalRows.flatMap((animal, i) => {
