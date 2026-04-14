@@ -140,6 +140,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
     }
   }, [farms, activeFarmId, setActiveFarmId]);
 
+  // Sync theme to <html> so Dialog/Sheet portals (rendered outside this div) inherit CSS variables and dark: variants
+  useEffect(() => {
+    document.documentElement.setAttribute("data-sidebar-theme", sidebarTheme);
+    if (sidebarTheme === "vaca") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    return () => {
+      document.documentElement.removeAttribute("data-sidebar-theme");
+      document.documentElement.classList.remove("dark");
+    };
+  }, [sidebarTheme]);
+
   // If we have a JWT token (Google OAuth / demo), show immediately — no need
   // to wait for Clerk to initialise.  Only gate on clerkLoaded when the user
   // relies on a Clerk session rather than our own JWT.

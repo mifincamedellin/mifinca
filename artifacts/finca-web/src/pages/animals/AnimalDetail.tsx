@@ -1228,8 +1228,8 @@ export function AnimalDetail() {
                       const daysUntil = nextDue ? differenceInDays(new Date(nextDue + "T12:00:00"), new Date()) : null;
                       const isUrgent = daysUntil !== null && daysUntil <= 14;
                       return (
-                      <div key={record.id} className={`p-4 rounded-xl border flex items-start gap-4 ${isUrgent ? "border-amber-300/70 bg-amber-50/40" : "border-border/40 bg-black/[0.02]"}`}>
-                        <div className={`p-3 rounded-lg shadow-sm flex-shrink-0 ${isUrgent ? "bg-amber-100" : "bg-white"}`}>
+                      <div key={record.id} className={`p-4 rounded-xl border flex items-start gap-4 ${isUrgent ? "border-amber-300/70 bg-amber-500/10 dark:bg-amber-500/15" : "border-border/40 bg-muted/30"}`}>
+                        <div className={`p-3 rounded-lg shadow-sm flex-shrink-0 ${isUrgent ? "bg-amber-500/20" : "bg-card"}`}>
                           <Syringe className={`h-5 w-5 ${isUrgent ? "text-amber-600" : "text-accent"}`} />
                         </div>
                         <div className="flex-1 min-w-0">

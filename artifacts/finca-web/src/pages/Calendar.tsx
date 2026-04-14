@@ -44,12 +44,12 @@ type Animal = {
 };
 
 const CATEGORY_COLORS: Record<string, { pill: string; dot: string; bar: string; label: string; labelEs: string }> = {
-  feeding:     { pill: "bg-green-100 text-green-800 border-green-200",    dot: "bg-green-500",   bar: "bg-green-500",   label: "Feeding",     labelEs: "Alimentación" },
-  health:      { pill: "bg-rose-100 text-rose-800 border-rose-200",       dot: "bg-rose-500",    bar: "bg-rose-500",    label: "Health",      labelEs: "Salud" },
-  harvest:     { pill: "bg-amber-100 text-amber-800 border-amber-200",    dot: "bg-amber-500",   bar: "bg-amber-500",   label: "Harvest",     labelEs: "Cosecha" },
-  maintenance: { pill: "bg-blue-100 text-blue-800 border-blue-200",       dot: "bg-blue-500",    bar: "bg-blue-500",    label: "Maintenance", labelEs: "Mantenimiento" },
-  meeting:     { pill: "bg-violet-100 text-violet-800 border-violet-200", dot: "bg-violet-500",  bar: "bg-violet-500",  label: "Meeting",     labelEs: "Reunión" },
-  other:       { pill: "bg-slate-100 text-slate-700 border-slate-200",    dot: "bg-slate-400",   bar: "bg-slate-400",   label: "Other",       labelEs: "Otro" },
+  feeding:     { pill: "bg-green-500/15 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-700/50",    dot: "bg-green-500",   bar: "bg-green-500",   label: "Feeding",     labelEs: "Alimentación" },
+  health:      { pill: "bg-rose-500/15 text-rose-700 border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-700/50",          dot: "bg-rose-500",    bar: "bg-rose-500",    label: "Health",      labelEs: "Salud" },
+  harvest:     { pill: "bg-amber-500/15 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-700/50",    dot: "bg-amber-500",   bar: "bg-amber-500",   label: "Harvest",     labelEs: "Cosecha" },
+  maintenance: { pill: "bg-blue-500/15 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-700/50",          dot: "bg-blue-500",    bar: "bg-blue-500",    label: "Maintenance", labelEs: "Mantenimiento" },
+  meeting:     { pill: "bg-violet-500/15 text-violet-700 border-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-700/50", dot: "bg-violet-500",  bar: "bg-violet-500",  label: "Meeting",     labelEs: "Reunión" },
+  other:       { pill: "bg-muted text-muted-foreground border-border",                                                                          dot: "bg-muted-foreground",   bar: "bg-muted-foreground",   label: "Other",       labelEs: "Otro" },
 };
 
 const eventSchema = z.object({
