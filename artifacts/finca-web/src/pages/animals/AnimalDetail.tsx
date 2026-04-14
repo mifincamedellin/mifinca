@@ -3,7 +3,7 @@ import { useParams, Link, useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
-import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord } from "@workspace/api-client-react";
+import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord, useGetFarmStats } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,6 +122,11 @@ export function AnimalDetail() {
   const { data: weights } = useListWeightRecords(activeFarmId || '', id || '', {
     query: { enabled: !!(activeFarmId && id) }
   });
+
+  const { data: farmStats } = useGetFarmStats(activeFarmId || '', {
+    query: { enabled: !!activeFarmId }
+  });
+  const hasUpcomingMedical = !!(id && farmStats?.upcomingMedicalAnimalIds?.includes(id));
 
   const updateAnimal = useUpdateAnimal();
   const createWeightRecord = useCreateWeightRecord();
@@ -987,8 +992,14 @@ export function AnimalDetail() {
               <TabsTrigger value="weight" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
                 {t('animals.tab.weight')}
               </TabsTrigger>
-              <TabsTrigger value="medical" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
+              <TabsTrigger value="medical" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1 relative">
                 {t('animals.tab.medical')}
+                {hasUpcomingMedical && activeTab !== "medical" && (
+                  <span className="absolute top-1 right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="lineage" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1 flex items-center gap-1.5">
                 <GitBranch className="h-3.5 w-3.5" />
