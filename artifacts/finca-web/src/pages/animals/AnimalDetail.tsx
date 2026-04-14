@@ -1037,9 +1037,14 @@ export function AnimalDetail() {
                   <>
                     {/* Cycle card — always shows just the stage bar */}
                     <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                        {isEn ? "Cycle" : "Ciclo"}
-                      </p>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2.5 rounded-xl bg-muted/50 text-muted-foreground leading-none text-base">
+                          ♾️
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">
+                          {isEn ? "Cycle" : "Ciclo"}
+                        </p>
+                      </div>
                       <LifecycleBar currentStage={stage!} />
                     </Card>
 
