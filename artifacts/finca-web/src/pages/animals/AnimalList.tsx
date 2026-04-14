@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Baby, Bell } from "lucide-react";
+import { LifecycleSummaryChips } from "@/components/lifecycle/LifecycleSummaryChips";
+import { deriveLifecycleStage, getCardStatusLine, hasLifecycle, getStageColor, type LifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -59,6 +61,7 @@ export function AnimalList() {
   const { openUpgradeModal } = useUpgradeStore();
   const [search, setSearch] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<string>("all");
+  const [selectedLifecycle, setSelectedLifecycle] = useState<LifecycleStage | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -146,9 +149,18 @@ export function AnimalList() {
 
   const filtered = useMemo(() => {
     if (!animals) return [];
-    if (selectedSpecies === "all") return animals;
-    return animals.filter((a: Animal) => a.species === selectedSpecies);
-  }, [animals, selectedSpecies]);
+    let result = animals as (Animal & LifecycleAnimal)[];
+    if (selectedSpecies !== "all") {
+      result = result.filter(a => a.species === selectedSpecies);
+    }
+    if (selectedLifecycle) {
+      result = result.filter(a => {
+        const stage = deriveLifecycleStage(a as LifecycleAnimal);
+        return stage === selectedLifecycle;
+      });
+    }
+    return result;
+  }, [animals, selectedSpecies, selectedLifecycle]);
 
   if (!activeFarmId) return null;
 
@@ -419,6 +431,13 @@ export function AnimalList() {
         </div>
       )}
 
+      {!isLoading && animals && (
+        <LifecycleSummaryChips
+          animals={animals as LifecycleAnimal[]}
+          selectedStage={selectedLifecycle}
+          onSelect={setSelectedLifecycle}
+        />
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -486,6 +505,19 @@ export function AnimalList() {
                       {t(`animals.sp.${animal.species}`)} {animal.breed ? `• ${animal.breed}` : ''}
                     </p>
                   </div>
+                  {(() => {
+                    const statusLine = getCardStatusLine(animal as unknown as LifecycleAnimal, isEn);
+                    if (statusLine) {
+                      const stage = deriveLifecycleStage(animal as unknown as LifecycleAnimal);
+                      const colors = stage ? getStageColor(stage) : "";
+                      return (
+                        <p className={`mt-2 text-xs font-medium px-2 py-1 rounded-lg inline-block border ${colors}`}>
+                          {statusLine}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                   <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
                     <div className="text-sm">
                       <span className="text-muted-foreground block text-xs">{t('animals.weight')}</span>

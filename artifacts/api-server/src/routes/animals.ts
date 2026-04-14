@@ -1,7 +1,7 @@
 import { Router, Request } from "express";
 import { db } from "@workspace/db";
 import {
-  animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable, milkRecordsTable, profilesTable, farmEventsTable,
+  animalsTable, weightRecordsTable, medicalRecordsTable, farmMembersTable, activityLogTable, milkRecordsTable, profilesTable, farmEventsTable, animalLifecycleEventsTable,
 } from "@workspace/db";
 import { eq, and, desc, asc, ilike, or, count, sql, isNull } from "drizzle-orm";
 import { getPlanLimits } from "../lib/plans.js";
@@ -75,7 +75,8 @@ router.get("/farms/:farmId/animals", requireAuth, requireFarmAccess, async (req,
         .where(eq(weightRecordsTable.animalId, a.id))
         .orderBy(desc(weightRecordsTable.recordedAt))
         .limit(1);
-      return { ...a, currentWeight: weights[0] ? parseFloat(weights[0].weightKg) : undefined };
+      const cw = weights[0] ? parseFloat(weights[0].weightKg) : undefined;
+      return { ...a, currentWeight: cw, currentWeightKg: cw != null ? String(cw) : a.currentWeightKg };
     }));
 
     return res.json(withWeights);
@@ -171,6 +172,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
     return res.json({
       ...animal[0],
       currentWeight,
+      currentWeightKg: currentWeight != null ? String(currentWeight) : animal[0].currentWeightKg,
       weightRecords: weights.map(w => ({ ...w, weightKg: parseFloat(w.weightKg) })),
       medicalRecords: medical,
       offspring: offspringList,
@@ -248,6 +250,271 @@ router.patch("/farms/:farmId/animals/:animalId/pregnancy", requireAuth, requireF
     return res.json(updated);
   } catch (err) {
     req.log.error({ err }, "Update pregnancy error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+async function logLifecycleEvent(
+  farmId: string, animalId: string, fromStage: string | null, toStage: string | null,
+  eventType: string, eventAt: Date, notes?: string | null,
+) {
+  await db.insert(animalLifecycleEventsTable).values({
+    animalId, farmId, fromStage, toStage, eventType,
+    eventAt, notes: notes ?? null,
+  });
+}
+
+const LIFECYCLE_CONFIG: Record<string, { heatDurationDays: number; pregnancyDurationDays: number; pregnancyHealthCheckDays: number; nursingDurationDays: number }> = {
+  cattle: { heatDurationDays: 3, pregnancyDurationDays: 283, pregnancyHealthCheckDays: 30, nursingDurationDays: 270 },
+  goat: { heatDurationDays: 2, pregnancyDurationDays: 150, pregnancyHealthCheckDays: 30, nursingDurationDays: 90 },
+  sheep: { heatDurationDays: 2, pregnancyDurationDays: 147, pregnancyHealthCheckDays: 30, nursingDurationDays: 90 },
+  horse: { heatDurationDays: 5, pregnancyDurationDays: 340, pregnancyHealthCheckDays: 30, nursingDurationDays: 180 },
+  pig: { heatDurationDays: 3, pregnancyDurationDays: 114, pregnancyHealthCheckDays: 30, nursingDurationDays: 28 },
+};
+
+function getCfg(species: string) {
+  return LIFECYCLE_CONFIG[species] ?? LIFECYCLE_CONFIG.cattle;
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-in-heat", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+    const { date } = req.body as { date?: string };
+
+    const [animal] = await db.select().from(animalsTable)
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
+    if (!animal) return res.status(404).json({ error: "not_found" });
+
+    const cfg = getCfg(animal.species);
+    const heatStart = date ? new Date(date + "T12:00:00") : new Date();
+    const heatEnd = addDays(heatStart, cfg.heatDurationDays);
+
+    const oldStage = animal.lifecycleStage;
+    const [updated] = await db.update(animalsTable).set({
+      lifecycleStage: "in_heat",
+      lifecycleStageStartedAt: heatStart,
+      lifecycleStageEndsAt: heatEnd,
+      heatStartedAt: heatStart,
+      heatEndsAt: heatEnd,
+      lastHeatRecordedAt: heatStart,
+      updatedAt: new Date(),
+    }).where(eq(animalsTable.id, animalId)).returning();
+
+    await logLifecycleEvent(farmId, animalId, oldStage, "in_heat", "marked_in_heat", heatStart);
+    await db.insert(activityLogTable).values({
+      farmId, userId, actionType: "lifecycle", entityType: "animal", entityId: animalId,
+      description: `Marked ${animal.name ?? animal.customTag} in heat`,
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Mark in heat error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/end-heat", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+
+    const [animal] = await db.select().from(animalsTable)
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
+    if (!animal) return res.status(404).json({ error: "not_found" });
+
+    const oldStage = animal.lifecycleStage;
+    const [updated] = await db.update(animalsTable).set({
+      lifecycleStage: "can_breed",
+      lifecycleStageStartedAt: new Date(),
+      lifecycleStageEndsAt: null,
+      heatStartedAt: null,
+      heatEndsAt: null,
+      updatedAt: new Date(),
+    }).where(eq(animalsTable.id, animalId)).returning();
+
+    await logLifecycleEvent(farmId, animalId, oldStage, "can_breed", "heat_ended", new Date());
+    await db.insert(activityLogTable).values({
+      farmId, userId, actionType: "lifecycle", entityType: "animal", entityId: animalId,
+      description: `Ended heat for ${animal.name ?? animal.customTag}`,
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "End heat error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-pregnant", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+    const { date, dueDate } = req.body as { date?: string; dueDate?: string };
+
+    const [animal] = await db.select().from(animalsTable)
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
+    if (!animal) return res.status(404).json({ error: "not_found" });
+
+    const cfg = getCfg(animal.species);
+    const pregStart = date ? new Date(date + "T12:00:00") : new Date();
+    const expectedDel = dueDate ? new Date(dueDate + "T12:00:00") : addDays(pregStart, cfg.pregnancyDurationDays);
+    const checkDue = addDays(pregStart, cfg.pregnancyHealthCheckDays);
+
+    const oldStage = animal.lifecycleStage;
+    const [updated] = await db.update(animalsTable).set({
+      lifecycleStage: "pregnant",
+      lifecycleStageStartedAt: pregStart,
+      lifecycleStageEndsAt: expectedDel,
+      isPregnant: true,
+      pregnancyStartDate: pregStart.toISOString().split("T")[0],
+      pregnancyDueDate: expectedDel.toISOString().split("T")[0],
+      pregnancyStartedAt: pregStart,
+      expectedDeliveryAt: expectedDel,
+      pregnancyConfirmedAt: new Date(),
+      pregnancyCheckDueAt: checkDue,
+      pregnancyCheckCompletedAt: null,
+      heatStartedAt: null,
+      heatEndsAt: null,
+      updatedAt: new Date(),
+    }).where(eq(animalsTable.id, animalId)).returning();
+
+    await logLifecycleEvent(farmId, animalId, oldStage, "pregnant", "marked_pregnant", pregStart);
+    await db.insert(activityLogTable).values({
+      farmId, userId, actionType: "lifecycle", entityType: "animal", entityId: animalId,
+      description: `Marked ${animal.name ?? animal.customTag} as pregnant`,
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Mark pregnant error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/record-check", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+    const { notes } = req.body as { notes?: string };
+
+    const [animal] = await db.select().from(animalsTable)
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
+    if (!animal) return res.status(404).json({ error: "not_found" });
+
+    const [updated] = await db.update(animalsTable).set({
+      pregnancyCheckCompletedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(animalsTable.id, animalId)).returning();
+
+    await logLifecycleEvent(farmId, animalId, animal.lifecycleStage, animal.lifecycleStage, "pregnancy_check", new Date(), notes);
+    await db.insert(activityLogTable).values({
+      farmId, userId, actionType: "lifecycle", entityType: "animal", entityId: animalId,
+      description: `Recorded pregnancy check for ${animal.name ?? animal.customTag}`,
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Record check error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-delivered", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+    const { date, offspringId } = req.body as { date?: string; offspringId?: string };
+
+    const [animal] = await db.select().from(animalsTable)
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
+    if (!animal) return res.status(404).json({ error: "not_found" });
+
+    const cfg = getCfg(animal.species);
+    const deliveryDate = date ? new Date(date + "T12:00:00") : new Date();
+    const nursingEnd = addDays(deliveryDate, cfg.nursingDurationDays);
+
+    const oldStage = animal.lifecycleStage;
+    const [updated] = await db.update(animalsTable).set({
+      lifecycleStage: "nursing",
+      lifecycleStageStartedAt: deliveryDate,
+      lifecycleStageEndsAt: nursingEnd,
+      isPregnant: false,
+      pregnancyStartDate: null,
+      pregnancyDueDate: null,
+      pregnancyStartedAt: null,
+      expectedDeliveryAt: null,
+      pregnancyCheckDueAt: null,
+      pregnancyCheckCompletedAt: null,
+      nursingStartedAt: deliveryDate,
+      nursingEndsAt: nursingEnd,
+      weaningDueAt: nursingEnd,
+      latestOffspringId: offspringId ?? null,
+      updatedAt: new Date(),
+    }).where(eq(animalsTable.id, animalId)).returning();
+
+    await logLifecycleEvent(farmId, animalId, oldStage, "nursing", "delivered", deliveryDate);
+    await db.insert(activityLogTable).values({
+      farmId, userId, actionType: "lifecycle", entityType: "animal", entityId: animalId,
+      description: `Recorded delivery for ${animal.name ?? animal.customTag}`,
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Mark delivered error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/wean", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { farmId, animalId } = req.params as { farmId: string; animalId: string };
+    const userId = (req as AuthedReq).userId;
+
+    const [animal] = await db.select().from(animalsTable)
+      .where(and(eq(animalsTable.id, animalId), eq(animalsTable.farmId, farmId))).limit(1);
+    if (!animal) return res.status(404).json({ error: "not_found" });
+
+    const newStage = "can_breed";
+    const oldStage = animal.lifecycleStage;
+    const [updated] = await db.update(animalsTable).set({
+      lifecycleStage: newStage,
+      lifecycleStageStartedAt: new Date(),
+      lifecycleStageEndsAt: null,
+      nursingStartedAt: null,
+      nursingEndsAt: null,
+      weaningDueAt: null,
+      updatedAt: new Date(),
+    }).where(eq(animalsTable.id, animalId)).returning();
+
+    await logLifecycleEvent(farmId, animalId, oldStage, newStage, "weaned", new Date());
+    await db.insert(activityLogTable).values({
+      farmId, userId, actionType: "lifecycle", entityType: "animal", entityId: animalId,
+      description: `Weaned calf for ${animal.name ?? animal.customTag}`,
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Wean error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.get("/farms/:farmId/animals/:animalId/lifecycle-history", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const { animalId } = req.params as { animalId: string };
+    const events = await db.select().from(animalLifecycleEventsTable)
+      .where(eq(animalLifecycleEventsTable.animalId, animalId))
+      .orderBy(desc(animalLifecycleEventsTable.eventAt));
+    return res.json(events);
+  } catch (err) {
+    req.log.error({ err }, "Lifecycle history error");
     return res.status(500).json({ error: "internal" });
   }
 });

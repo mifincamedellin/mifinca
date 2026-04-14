@@ -1,0 +1,572 @@
+Implement a clean female livestock lifecycle system in miFinca for the Animals list page and individual Animal profile page.
+
+GOAL:
+Keep the UX extremely simple for farmers while allowing the system to track stage duration, countdowns, alerts, and automatic stage transitions over time.
+
+STACK / STYLE:
+- Match the current miFinca visual style exactly
+- Keep UI minimal and clean
+- Do not clutter cards with too much info
+- Prioritize readability and simple farmer-first language
+- Build this in a reusable way so it can support cattle first, and later other species if needed
+
+========================================
+1. LIFECYCLE MODEL
+========================================
+
+Create a female reproductive lifecycle with these 5 stages:
+
+1. growing
+2. can_breed
+3. in_heat
+4. pregnant
+5. nursing
+
+This should be the main lifecycle shown in the product.
+
+Definitions:
+- growing = female animal is not yet eligible to breed
+- can_breed = eligible to breed now
+- in_heat = currently in heat for a short breeding window
+- pregnant = confirmed pregnant
+- nursing = has delivered and is currently nursing offspring
+
+Important:
+- This lifecycle is only for female animals
+- Male animals should not show this lifecycle
+- Females too young to breed should show growing
+- Adult females should move through the loop:
+  growing -> can_breed -> in_heat -> pregnant -> nursing -> can_breed
+
+========================================
+2. DATA MODEL CHANGES
+========================================
+
+Add fields to the animal model. Use naming that fits the current codebase, but include this logic:
+
+Core lifecycle fields:
+- sex: 'male' | 'female'
+- lifecycleStage: 'growing' | 'can_breed' | 'in_heat' | 'pregnant' | 'nursing' | null
+- lifecycleStageStartedAt: datetime | null
+- lifecycleStageEndsAt: datetime | null
+- lifecycleAutoManaged: boolean default true
+
+Breeding / maturity fields:
+- birthDate: date | null
+- currentWeightKg: number | null
+- minimumBreedingAgeDays: number | null
+- minimumBreedingWeightKg: number | null
+
+Heat tracking:
+- heatStartedAt: datetime | null
+- heatEndsAt: datetime | null
+- lastHeatRecordedAt: datetime | null
+
+Pregnancy tracking:
+- pregnancyStartedAt: datetime | null
+- expectedDeliveryAt: datetime | null
+- pregnancyConfirmedAt: datetime | null
+- pregnancyCheckDueAt: datetime | null
+
+Nursing tracking:
+- nursingStartedAt: datetime | null
+- nursingEndsAt: datetime | null
+- weaningDueAt: datetime | null
+
+Optional linkage:
+- latestOffspringId: string | null
+
+Alert fields / derived helpers:
+- nextLifecycleEventType: string | null
+- nextLifecycleEventAt: datetime | null
+
+Also create a lifecycle history table if not too heavy:
+animal_lifecycle_events
+- id
+- animalId
+- fromStage
+- toStage
+- eventType
+- eventAt
+- notes
+- createdAt
+
+This should log stage changes and important events for audit/history.
+
+========================================
+3. DEFAULT BUSINESS RULES
+========================================
+
+Implement configurable defaults for cattle females:
+
+- minimum breeding age = 730 days
+- minimum breeding weight = 400 kg
+- heat duration = 3 days
+- pregnancy duration = 283 days
+- pregnancy health check = 30 days after pregnancy starts
+- nursing/weaning duration = 270 days
+
+Use constants/config so these can be changed later by species or farm.
+
+Example config object:
+LIFECYCLE_CONFIG = {
+  cattle: {
+    female: {
+      minimumBreedingAgeDays: 730,
+      minimumBreedingWeightKg: 400,
+      heatDurationDays: 3,
+      pregnancyDurationDays: 283,
+      pregnancyHealthCheckDays: 30,
+      nursingDurationDays: 270
+    }
+  }
+}
+
+========================================
+4. DERIVED LOGIC
+========================================
+
+Build reusable helper functions for lifecycle status.
+
+Create helper functions like:
+
+- getAnimalAgeDays(animal)
+- isEligibleByAge(animal)
+- isEligibleByWeight(animal)
+- isEligibleToBreed(animal)
+- getLifecycleStage(animal, now)
+- getLifecycleCountdown(animal, now)
+- getNextLifecycleEvent(animal, now)
+- getLifecycleAlerts(animal, now)
+
+Rules:
+
+A) growing
+A female animal is in growing if:
+- not pregnant
+- not nursing
+- not in heat
+- and not eligible to breed yet
+
+Eligibility to breed is true when:
+- ageDays >= minimumBreedingAgeDays
+OR currentWeightKg >= minimumBreedingWeightKg
+
+Use OR here because the user specifically wants:
+“If calf weighs 400kg or is 2 years old it can breed”
+
+B) can_breed
+A female animal is can_breed if:
+- not pregnant
+- not nursing
+- not in heat
+- and eligible to breed
+
+C) in_heat
+A female animal is in_heat if:
+- heatStartedAt exists
+- now < heatEndsAt
+- not pregnant
+
+When heatStartedAt is set:
+- auto set heatEndsAt = heatStartedAt + heatDurationDays
+- lifecycleStage = in_heat
+- lifecycleStageStartedAt = heatStartedAt
+- lifecycleStageEndsAt = heatEndsAt
+
+Auto transition:
+- when now >= heatEndsAt
+- if animal was not marked pregnant or bred, auto move to can_breed
+
+D) pregnant
+A female animal is pregnant if:
+- pregnancyStartedAt exists
+- now < expectedDeliveryAt
+- not marked delivered yet
+
+When pregnancy starts:
+- expectedDeliveryAt = pregnancyStartedAt + pregnancyDurationDays
+- pregnancyCheckDueAt = pregnancyStartedAt + pregnancyHealthCheckDays
+- lifecycleStage = pregnant
+- lifecycleStageStartedAt = pregnancyStartedAt
+- lifecycleStageEndsAt = expectedDeliveryAt
+
+Auto transition:
+- when now >= expectedDeliveryAt
+- auto move to nursing
+- set nursingStartedAt = expectedDeliveryAt
+- set nursingEndsAt = nursingStartedAt + nursingDurationDays
+- set weaningDueAt = nursingEndsAt
+
+Important:
+Also allow a manual “Mark Delivered” action that moves to nursing immediately, in case real delivery date is known and different from estimate.
+
+E) nursing
+A female animal is nursing if:
+- nursingStartedAt exists
+- now < nursingEndsAt
+
+When nursing starts:
+- lifecycleStage = nursing
+- lifecycleStageStartedAt = nursingStartedAt
+- lifecycleStageEndsAt = nursingEndsAt
+
+Auto transition:
+- when now >= nursingEndsAt
+- auto move to can_breed IF animal is still eligible to breed
+- else move to growing
+
+========================================
+5. AUTOMATIC STAGE TRANSITIONS
+========================================
+
+Implement lifecycle auto-transition logic.
+
+Need 2 levels:
+
+1. Derived front-end logic:
+- UI should always display the correct stage based on timestamps and current time even before database cleanup jobs run
+
+2. Persistent background updater:
+- create a service/job that scans animals and writes stage transitions when thresholds are crossed
+- this can run periodically (ex: every hour or daily depending on architecture)
+- do not rely only on cron for UI correctness
+
+Create something like:
+- syncAnimalLifecycle(animal, now)
+- syncAllAnimalLifecycles(now)
+
+This should:
+- determine expected stage based on timestamps + weight + age
+- compare with stored lifecycleStage
+- if different, persist the new stage
+- update lifecycleStageStartedAt / EndsAt
+- create lifecycle history event
+- update nextLifecycleEventAt / nextLifecycleEventType
+
+Important:
+Never auto move male animals into this lifecycle.
+
+========================================
+6. ALERT LOGIC
+========================================
+
+Create simple farmer-facing alerts.
+
+Alerts to support:
+- in_heat_ending_soon
+- pregnancy_check_due
+- delivery_soon
+- ready_to_wean
+- eligible_to_breed
+
+Rules:
+- In heat ending soon: show when less than 1 day remains in heat
+- Pregnancy check due: show at or after 30 days pregnant until completed/dismissed
+- Delivery soon: show when <= 30 days until expected delivery
+- Ready to wean: show when nursing has reached 270 days or less than 7 days remain
+- Eligible to breed: show when growing animal becomes eligible
+
+Return alerts in a clean structure:
+[
+  {
+    type: 'pregnancy_check_due',
+    label: 'Pregnancy check due',
+    dueAt: ...
+    severity: 'warning'
+  }
+]
+
+========================================
+7. ANIMALS PAGE UI
+========================================
+
+Update the main Animals list page.
+
+A) Add a new lifecycle summary row under the animal type filters and above the animal cards.
+
+Show summary chips:
+- Growing
+- Can Breed
+- In Heat
+- Pregnant
+- Nursing
+
+Each chip shows count.
+
+These counts should only include female animals where this lifecycle applies.
+
+B) Update each animal card
+
+Currently cards already show:
+- name / ID
+- species / breed
+- weight
+
+Add ONE lifecycle line only.
+
+Format:
+[Stage Label] • [one key countdown or progress metric]
+
+Examples:
+- In Heat • 2 days left
+- Pregnant • 181 days
+- Nursing • 34 days left
+- Can Breed • Ready
+- Growing • 372kg / 400kg
+
+Rules:
+- Do not add a full timeline on the card
+- Keep it to a single line
+- If there is a high-priority alert, replace the countdown with the alert label:
+  - Pregnancy check due
+  - Ready to wean
+  - Heat ending soon
+
+For non-female animals or animals where lifecycle doesn’t apply:
+- keep current card layout without lifecycle line, or show a neutral status only if needed
+
+========================================
+8. ANIMAL PROFILE PAGE UI
+========================================
+
+Update the individual animal profile page.
+
+A) Add a lifecycle section near the top of the overview area.
+
+Show a horizontal lifecycle bar:
+Growing -> Can Breed -> In Heat -> Pregnant -> Nursing
+
+Design rules:
+- current stage highlighted strongly
+- past stages muted but completed
+- future stages lighter
+- maintain miFinca aesthetic, very minimal
+
+B) Directly under the lifecycle bar, add a compact lifecycle summary block with only 3 main pieces of information:
+
+1. Current Stage
+2. Key Progress
+3. Next Event
+
+Examples for each state:
+
+Growing:
+- Current Stage: Growing
+- Key Progress: 357kg / 400kg
+- Next Event: Can breed when 400kg or 2 years old
+
+Can Breed:
+- Current Stage: Can Breed
+- Key Progress: Ready now
+- Next Event: Awaiting heat / breeding
+
+In Heat:
+- Current Stage: In Heat
+- Key Progress: 2 days left
+- Next Event: Heat ends on [date]
+
+Pregnant:
+- Current Stage: Pregnant
+- Key Progress: 212 days pregnant
+- Next Event: Delivery in 58 days
+
+Nursing:
+- Current Stage: Nursing
+- Key Progress: 120 days nursing
+- Next Event: Weaning in 150 days
+
+C) Replace the current static pregnancy card with a smart lifecycle action card
+
+This card should change based on stage.
+
+If stage = growing:
+- show “Growing”
+- no breeding actions yet
+
+If stage = can_breed:
+- primary action: “Mark In Heat”
+- optional secondary action: “Mark Pregnant”
+
+If stage = in_heat:
+- primary action: “Mark Pregnant”
+- secondary action: “End Heat”
+
+If stage = pregnant:
+- primary action: “Record Check”
+- secondary action: “Mark Delivered”
+
+If stage = nursing:
+- primary action: “Wean Calf”
+- secondary action: optional “Record Offspring”
+
+Keep this very clean and not overcrowded.
+
+D) Add a small alerts section below lifecycle summary/card
+Show max 2–3 active alerts.
+
+========================================
+9. ACTION BEHAVIOR
+========================================
+
+Implement the actions.
+
+Mark In Heat:
+- set heatStartedAt = now or chosen date
+- set heatEndsAt based on config
+- move lifecycle to in_heat
+- create lifecycle history event
+
+Mark Pregnant:
+- allow choosing pregnancy start date
+- clear heat if needed
+- set pregnancyStartedAt
+- set expectedDeliveryAt
+- set pregnancyCheckDueAt
+- move lifecycle to pregnant
+- create lifecycle history event
+
+Record Check:
+- mark pregnancy check as completed
+- store completion date and optional notes
+
+Mark Delivered:
+- allow actual delivery date
+- end pregnancy
+- start nursing from delivery date
+- calculate nursingEndsAt and weaningDueAt
+- move lifecycle to nursing
+- create lifecycle history event
+
+Wean Calf:
+- end nursing
+- move animal to can_breed if eligible, otherwise growing
+- create lifecycle history event
+
+End Heat:
+- clear heat dates or mark heat completed
+- move back to can_breed if eligible, otherwise growing
+
+========================================
+10. COUNTDOWN / TIMER DISPLAY LOGIC
+========================================
+
+Create reusable display helpers.
+
+Examples:
+- formatDaysRemaining(targetDate, now)
+- formatDaysElapsed(startDate, now)
+- formatLifecycleStatusLine(animal, now)
+
+Desired outputs:
+- “2 days left”
+- “181 days”
+- “34 days left”
+- “Ready”
+- “372kg / 400kg”
+
+For pregnant:
+- on cards, prefer elapsed pregnancy days
+- on detail page, show both elapsed days and days until delivery if space allows
+
+For nursing:
+- on cards, prefer days left until weaning
+- on detail page, show elapsed + remaining
+
+For growing:
+- if weight exists, prefer weight progress like Xkg / 400kg
+- otherwise use age progress
+
+========================================
+11. FILTERING / SUMMARY COUNTS
+========================================
+
+Add lifecycle-based filtering on Animals page if possible:
+- clicking a lifecycle chip filters cards to that lifecycle stage
+
+Counts should be computed from derived lifecycle stage, not only stored field, so UI is always accurate.
+
+========================================
+12. EDGE CASES
+========================================
+
+Handle these safely:
+
+- animal is male -> no female lifecycle
+- animal has no birth date -> use weight only when available
+- animal has no weight -> use age only when available
+- animal has neither age nor weight -> cannot determine breeding eligibility, show neutral fallback
+- pregnancy manually recorded before heat -> allow it
+- actual delivery date differs from expected date -> use actual delivery date and recalculate nursing
+- overdue pregnancy or overdue nursing should still display correctly and raise alert state instead of breaking
+- if lifecycleAutoManaged is false, preserve manual stage unless user explicitly changes it, but still show warnings if dates imply inconsistency
+
+========================================
+13. TECHNICAL IMPLEMENTATION NOTES
+========================================
+
+Please implement this with:
+- reusable pure lifecycle helper functions
+- clean TypeScript types/interfaces
+- minimal duplication
+- derived UI state separated from persistence logic
+- small clean components for:
+  - LifecycleSummaryChips
+  - AnimalLifecycleStatusLine
+  - AnimalLifecycleBar
+  - AnimalLifecycleCard
+  - AnimalLifecycleAlerts
+
+Also:
+- seed/mock enough example female animals in each stage for testing
+- ensure stage transitions can be tested by changing dates
+- comment code where business rules are important
+
+========================================
+14. ACCEPTANCE CRITERIA
+========================================
+
+The feature is complete when:
+
+1. Female cattle can show one of 5 stages:
+- growing
+- can_breed
+- in_heat
+- pregnant
+- nursing
+
+2. The Animals page shows:
+- lifecycle summary chips with counts
+- one simple lifecycle line on each female card
+
+3. The Animal detail page shows:
+- horizontal lifecycle bar
+- current stage
+- progress
+- next event
+- dynamic lifecycle actions
+- active alerts
+
+4. The system can calculate:
+- days in current stage
+- days left in heat
+- days left until delivery
+- days left until weaning
+- whether the animal can breed based on 400kg OR 2 years old
+
+5. The system can auto transition:
+- in_heat -> can_breed when heat ends
+- pregnant -> nursing when delivery date arrives
+- nursing -> can_breed or growing when nursing ends
+
+6. Manual actions also work:
+- mark in heat
+- mark pregnant
+- record check
+- mark delivered
+- wean calf
+- end heat
+
+7. UI stays clean, minimal, and visually aligned with the existing miFinca design
+
+Please implement end-to-end and keep the result farmer-simple.

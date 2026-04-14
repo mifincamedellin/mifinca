@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull } from "lucide-react";
+import { LifecycleActionCard } from "@/components/lifecycle/LifecycleActionCard";
+import { hasLifecycle, type LifecycleAnimal } from "@/lib/lifecycle";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -1025,117 +1027,13 @@ export function AnimalDetail() {
                 </Card>
               </div>
 
-              {/* ── Pregnancy card — female cattle only ── */}
-              {(animal as any).species === "cattle" && (animal as any).sex === "female" && (() => {
-                const isPregnant = !!(animal as any).isPregnant;
-                const startDate = (animal as any).pregnancyStartDate as string | null;
-                const dueDate = (animal as any).pregnancyDueDate as string | null;
-                const today = new Date();
-                const daysAlong = startDate ? Math.max(0, differenceInDays(today, parseISO(startDate))) : 0;
-                const pct = Math.min(100, Math.round((daysAlong / CATTLE_GESTATION_DAYS) * 100));
-                const dueFmt = dueDate ? format(parseISO(dueDate), isEn ? "MMMM d, yyyy" : "d 'de' MMMM yyyy", { locale: isEn ? undefined : es }) : null;
-                const daysLeft = dueDate ? Math.max(0, differenceInDays(parseISO(dueDate), today)) : null;
-
-                return (
-                  <Card className={`p-5 rounded-2xl border shadow-sm ${isPregnant ? "border-rose-200 bg-gradient-to-br from-rose-50/60 to-pink-50/40" : "border-border/40 bg-card"}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${isPregnant ? "bg-rose-100 text-rose-600" : "bg-muted/50 text-muted-foreground"}`}>
-                          <Baby className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            {isEn ? "Pregnancy" : "Preñez"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {isPregnant
-                              ? isEn ? "Currently pregnant" : "Actualmente preñada"
-                              : isEn ? "Not currently pregnant" : "Sin preñez registrada"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {isPregnant && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={setPregnancy.isPending}
-                            onClick={clearPregnancy}
-                            className="rounded-xl h-8 px-3 text-xs border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                            {isEn ? "Record birth" : "Registrar parto"}
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            const today = new Date().toISOString().split("T")[0]!;
-                            const defaultDue = addDays(new Date(), CATTLE_GESTATION_DAYS).toISOString().split("T")[0];
-                            pregnancyForm.reset({
-                              pregnancyStartDate: startDate ?? today,
-                              pregnancyDueDate: dueDate ?? defaultDue,
-                            });
-                            setPregnancyOpen(true);
-                          }}
-                          className={`rounded-xl h-8 px-3 text-xs ${isPregnant ? "bg-rose-600 hover:bg-rose-700" : "bg-primary hover:bg-primary/90"}`}
-                        >
-                          <Baby className="h-3.5 w-3.5 mr-1" />
-                          {isPregnant
-                            ? (isEn ? "Edit" : "Editar")
-                            : (isEn ? "Mark pregnant" : "Marcar preñada")}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {isPregnant && (
-                      <div className="mt-4 space-y-3">
-                        {/* Progress bar */}
-                        <div>
-                          <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                            <span>{isEn ? `${daysAlong} of ${CATTLE_GESTATION_DAYS} days` : `${daysAlong} de ${CATTLE_GESTATION_DAYS} días`}</span>
-                            <span className="font-semibold text-rose-600">{pct}%</span>
-                          </div>
-                          <div className="h-2.5 bg-rose-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-rose-400 to-pink-500 rounded-full transition-all duration-500"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </div>
-                        {/* Due date + days left */}
-                        <div className="grid grid-cols-2 gap-3 pt-1">
-                          {startDate && (
-                            <div className="bg-rose-50/70 rounded-xl px-3 py-2.5">
-                              <p className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-0.5">
-                                {isEn ? "Confirmed" : "Confirmada"}
-                              </p>
-                              <p className="text-sm font-semibold text-rose-700">
-                                {format(parseISO(startDate), isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es })}
-                              </p>
-                            </div>
-                          )}
-                          {dueFmt && (
-                            <div className="bg-pink-50/70 rounded-xl px-3 py-2.5">
-                              <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-wide mb-0.5">
-                                {isEn ? "Due date" : "Fecha probable"}
-                              </p>
-                              <p className="text-sm font-semibold text-pink-700">{dueFmt}</p>
-                              {daysLeft !== null && (
-                                <p className="text-[10px] text-pink-500 mt-0.5">
-                                  {daysLeft === 0
-                                    ? (isEn ? "Due today!" : "¡Hoy!")
-                                    : isEn ? `${daysLeft} days left` : `${daysLeft} días restantes`}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </Card>
-                );
-              })()}
+              {hasLifecycle(animal as unknown as LifecycleAnimal) && activeFarmId && (
+                <LifecycleActionCard
+                  animal={{ ...(animal as any), id: id! }}
+                  farmId={activeFarmId}
+                  onUpdate={() => refetch()}
+                />
+              )}
 
               {/* ── Death card — all animals ── */}
               {(() => {

@@ -60,7 +60,18 @@ artifacts-monorepo/
 
 ## Database Schema
 
-Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`, `conversations`, `messages`, `finance_transactions`, `contacts`, `employees`, `employee_attachments`
+Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`, `conversations`, `messages`, `finance_transactions`, `contacts`, `employees`, `employee_attachments`, `animal_lifecycle_events`
+
+### Animal Lifecycle System
+Female livestock (cattle, goat, sheep, horse, pig) have a 5-stage reproductive lifecycle:
+`growing → can_breed → in_heat → pregnant → nursing → can_breed`
+
+Key lifecycle columns on `animals` table: `lifecycle_stage`, `lifecycle_stage_started_at`, `lifecycle_stage_ends_at`, `heat_started_at`, `heat_ends_at`, `pregnancy_started_at`, `expected_delivery_at`, `pregnancy_check_due_at`, `pregnancy_check_completed_at`, `nursing_started_at`, `nursing_ends_at`, `weaning_due_at`, `current_weight_kg`
+
+`animal_lifecycle_events` logs all stage transitions with `from_stage`, `to_stage`, `event_type`, `event_at`.
+
+Frontend helpers: `artifacts/finca-web/src/lib/lifecycle.ts` (config, derived stage logic, alerts, display formatters).
+Components: `LifecycleSummaryChips`, `LifecycleBar`, `LifecycleActionCard` in `src/components/lifecycle/`.
 
 Auth: Custom `auth_users` table created on first registration (id, email, password_hash).
 
@@ -108,6 +119,13 @@ All under `/api`:
 - `POST /api/chat/conversations` — create a new AI conversation
 - `POST /api/chat/conversations/:id/messages` — send message, stream SSE AI response
 - `GET /api/chat/conversations/:id/messages` — get conversation history
+- `PATCH /api/farms/:id/animals/:animalId/lifecycle/mark-in-heat` — start heat cycle
+- `PATCH /api/farms/:id/animals/:animalId/lifecycle/end-heat` — end heat cycle
+- `PATCH /api/farms/:id/animals/:animalId/lifecycle/mark-pregnant` — mark pregnant
+- `PATCH /api/farms/:id/animals/:animalId/lifecycle/record-check` — record pregnancy check
+- `PATCH /api/farms/:id/animals/:animalId/lifecycle/mark-delivered` — record delivery, start nursing
+- `PATCH /api/farms/:id/animals/:animalId/lifecycle/wean` — wean calf, return to can_breed
+- `GET /api/farms/:id/animals/:animalId/lifecycle-history` — lifecycle event audit log
 
 ## Development
 
