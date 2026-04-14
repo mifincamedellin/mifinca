@@ -493,7 +493,7 @@ export function AnimalList() {
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">{isEn ? "Age" : "Edad"}</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.weight')}</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Stage" : "Etapa"}</th>
-                    <th className="px-4 py-3 text-center w-10 hidden sm:table-cell" title={isEn ? "Medical reminder" : "Recordatorio médico"}><Bell className="h-3.5 w-3.5 text-muted-foreground mx-auto" /></th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Alert" : "Alerta"}</th>
                     <th className="px-4 py-3 w-8"></th>
                   </tr>
                 </thead>
@@ -616,7 +616,7 @@ export function AnimalList() {
                       {upcomingMedicalSet.has(animal.id) && (
                         <div className="bg-amber-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
                           <Bell className="h-3 w-3" />
-                          {isEn ? "Reminder" : "Recordatorio"}
+                          {isEn ? "Alert" : "Alerta"}
                         </div>
                       )}
                     </div>
