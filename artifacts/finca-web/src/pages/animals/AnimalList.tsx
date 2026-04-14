@@ -9,9 +9,9 @@ import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Baby, Bell } from "lucide-react";
+import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell } from "lucide-react";
 import { LifecycleSummaryChips } from "@/components/lifecycle/LifecycleSummaryChips";
-import { deriveLifecycleStage, getCardStatusLine, hasLifecycle, getStageColor, type LifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
+import { deriveLifecycleStage, hasLifecycle, type LifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -480,13 +480,28 @@ export function AnimalList() {
                       </div>
                     )}
                   </div>
-                  {/* Top-right: Pregnant */}
-                  {(animal as any).isPregnant && (
-                    <div className="absolute top-3 right-3 bg-rose-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
-                      <Baby className="h-3 w-3" />
-                      {isEn ? "Pregnant" : "Preñada"}
-                    </div>
-                  )}
+                  {/* Top-right: Lifecycle stage pill */}
+                  {(() => {
+                    const la = animal as unknown as LifecycleAnimal;
+                    if (!hasLifecycle(la)) return null;
+                    const stage = deriveLifecycleStage(la);
+                    if (!stage) return null;
+                    const cfg: Record<string, { bg: string; label: string; labelEn: string; icon: string }> = {
+                      growing:   { bg: "bg-blue-500",    label: "Crecimiento",        labelEn: "Growing",    icon: "🌱" },
+                      can_breed: { bg: "bg-emerald-500", label: "Puede reproducir",   labelEn: "Can Breed",  icon: "✓" },
+                      in_heat:   { bg: "bg-orange-500",  label: "En celo",            labelEn: "In Heat",    icon: "🔥" },
+                      pregnant:  { bg: "bg-rose-500",    label: "Preñada",            labelEn: "Pregnant",   icon: "🤰" },
+                      nursing:   { bg: "bg-purple-500",  label: "Lactancia",          labelEn: "Nursing",    icon: "🍼" },
+                    };
+                    const s = cfg[stage];
+                    if (!s) return null;
+                    return (
+                      <div className={`absolute top-3 right-3 ${s.bg} px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm`}>
+                        <span className="text-[10px] leading-none">{s.icon}</span>
+                        {isEn ? s.labelEn : s.label}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
@@ -505,19 +520,6 @@ export function AnimalList() {
                       {t(`animals.sp.${animal.species}`)} {animal.breed ? `• ${animal.breed}` : ''}
                     </p>
                   </div>
-                  {(() => {
-                    const statusLine = getCardStatusLine(animal as unknown as LifecycleAnimal, isEn);
-                    if (statusLine) {
-                      const stage = deriveLifecycleStage(animal as unknown as LifecycleAnimal);
-                      const colors = stage ? getStageColor(stage) : "";
-                      return (
-                        <p className={`mt-2 text-xs font-medium px-2 py-1 rounded-lg inline-block border ${colors}`}>
-                          {statusLine}
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
                   <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
                     <div className="text-sm">
                       <span className="text-muted-foreground block text-xs">{t('animals.weight')}</span>
