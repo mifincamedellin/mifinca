@@ -1038,7 +1038,7 @@ export function AnimalDetail() {
                     {/* Cycle card — always shows just the stage bar */}
                     <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 rounded-xl bg-muted/50 text-muted-foreground leading-none text-base">
+                        <div className="p-2.5 rounded-xl bg-stone-100 text-stone-500 leading-none text-base">
                           ♾️
                         </div>
                         <p className="text-sm font-semibold text-foreground">
@@ -1109,7 +1109,7 @@ export function AnimalDetail() {
                   <Card className={`p-5 rounded-2xl border shadow-sm ${isDeceased ? "border-stone-300 bg-gradient-to-br from-stone-50/80 to-stone-100/40" : "border-border/40 bg-card"}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${isDeceased ? "bg-stone-200 text-stone-600" : "bg-muted/50 text-muted-foreground"}`}>
+                        <div className={`p-2.5 rounded-xl ${isDeceased ? "bg-stone-200 text-stone-600" : "bg-stone-100 text-stone-500"}`}>
                           <Skull className="h-5 w-5" />
                         </div>
                         <div>
