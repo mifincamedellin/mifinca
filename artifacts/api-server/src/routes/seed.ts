@@ -6,7 +6,7 @@ import {
   contactsTable, activityLogTable, farmMembersTable, employeesTable,
   milkRecordsTable, farmEventsTable,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 
@@ -173,6 +173,77 @@ export async function seedDemoFarmData(farmId: string) {
 
 
   ]).returning();
+
+  // ── LIFECYCLE STAGES — female animals ─────────────────────────────────────
+  const now = new Date();
+  const dAgo = (n: number) => { const d = new Date(now); d.setDate(d.getDate() - n); return d; };
+  const dFwd = (n: number) => { const d = new Date(now); d.setDate(d.getDate() + n); return d; };
+  const tagId = (tag: string) => animalRows.find(a => a.customTag === tag)?.id;
+  const ids = (...tags: string[]) => tags.map(tagId).filter(Boolean) as string[];
+
+  // GROWING
+  const growingIds = ids("BOV-006","BOV-012","BOV-013","BOV-014","BOV-015","BOV-016","BOV-017","BOV-018","BOV-020");
+  if (growingIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "growing", lifecycleStageStartedAt: dAgo(200),
+  }).where(inArray(animalsTable.id, growingIds));
+
+  // CAN BREED
+  const canBreedIds = ids("BOV-005","BOV-009","BOV-021","BOV-022","BOV-023","BOV-024","BOV-025","BOV-026","BOV-027","BOV-028","BOV-030","BOV-031","CAP-001","CAP-002");
+  if (canBreedIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "can_breed", lifecycleStageStartedAt: dAgo(60),
+  }).where(inArray(animalsTable.id, canBreedIds));
+
+  // IN HEAT
+  const inHeatIds = ids("BOV-004","BOV-032","BOV-033","BOV-034","BOV-035","BOV-036");
+  if (inHeatIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "in_heat", lifecycleStageStartedAt: dAgo(1), lifecycleStageEndsAt: dFwd(2),
+    heatStartedAt: dAgo(1), heatEndsAt: dFwd(2),
+  }).where(inArray(animalsTable.id, inHeatIds));
+
+  // PREGNANT — early (60 days in)
+  const pregEarlyIds = ids("BOV-001","BOV-008","BOV-037","BOV-038","BOV-039");
+  if (pregEarlyIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "pregnant", lifecycleStageStartedAt: dAgo(60), lifecycleStageEndsAt: dFwd(223),
+    isPregnant: true, pregnancyStartedAt: dAgo(60), expectedDeliveryAt: dFwd(223),
+    pregnancyConfirmedAt: dAgo(55), pregnancyCheckDueAt: dAgo(30), pregnancyCheckCompletedAt: dAgo(28),
+  }).where(inArray(animalsTable.id, pregEarlyIds));
+
+  // PREGNANT — mid (120 days in)
+  const pregMidIds = ids("BOV-041","BOV-042","BOV-043");
+  if (pregMidIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "pregnant", lifecycleStageStartedAt: dAgo(120), lifecycleStageEndsAt: dFwd(163),
+    isPregnant: true, pregnancyStartedAt: dAgo(120), expectedDeliveryAt: dFwd(163),
+    pregnancyConfirmedAt: dAgo(115), pregnancyCheckDueAt: dAgo(90), pregnancyCheckCompletedAt: dAgo(88),
+  }).where(inArray(animalsTable.id, pregMidIds));
+
+  // PREGNANT — late (245 days in, delivery in ~38 days)
+  const pregLateIds = ids("BOV-044","BOV-045","BOV-046","BOV-047","BOV-049","BOV-050");
+  if (pregLateIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "pregnant", lifecycleStageStartedAt: dAgo(245), lifecycleStageEndsAt: dFwd(38),
+    isPregnant: true, pregnancyStartedAt: dAgo(245), expectedDeliveryAt: dFwd(38),
+    pregnancyConfirmedAt: dAgo(240), pregnancyCheckDueAt: dAgo(215), pregnancyCheckCompletedAt: dAgo(213),
+  }).where(inArray(animalsTable.id, pregLateIds));
+
+  // NURSING — fresh (30 days in)
+  const nursEarlyIds = ids("BOV-002","BOV-051","BOV-052","BOV-053","BOV-054");
+  if (nursEarlyIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "nursing", lifecycleStageStartedAt: dAgo(30), lifecycleStageEndsAt: dFwd(240),
+    nursingStartedAt: dAgo(30), nursingEndsAt: dFwd(240), weaningDueAt: dFwd(240), isPregnant: false,
+  }).where(inArray(animalsTable.id, nursEarlyIds));
+
+  // NURSING — mid (150 days in)
+  const nursMidIds = ids("BOV-011","BOV-055","BOV-056","BOV-057","BOV-058");
+  if (nursMidIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "nursing", lifecycleStageStartedAt: dAgo(150), lifecycleStageEndsAt: dFwd(120),
+    nursingStartedAt: dAgo(150), nursingEndsAt: dFwd(120), weaningDueAt: dFwd(120), isPregnant: false,
+  }).where(inArray(animalsTable.id, nursMidIds));
+
+  // NURSING — late (255 days in, weaning due soon)
+  const nursLateIds = ids("BOV-059","BOV-060","BOV-062","BOV-063","CER-001","CER-003");
+  if (nursLateIds.length) await db.update(animalsTable).set({
+    lifecycleStage: "nursing", lifecycleStageStartedAt: dAgo(255), lifecycleStageEndsAt: dFwd(15),
+    nursingStartedAt: dAgo(255), nursingEndsAt: dFwd(15), weaningDueAt: dFwd(15), isPregnant: false,
+  }).where(inArray(animalsTable.id, nursLateIds));
 
   // ── WEIGHT RECORDS — all animals, 4 records each ─────────────────────────
   const weightRecords = animalRows.flatMap((animal, i) => {
