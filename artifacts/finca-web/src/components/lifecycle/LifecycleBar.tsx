@@ -16,28 +16,21 @@ const STAGE_LABELS: Record<LifecycleStage, [string, string]> = {
 export function LifecycleBar({ currentStage }: Props) {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
-  const currentIdx = LIFECYCLE_STAGES.indexOf(currentStage);
-
   return (
     <div className="flex items-start gap-1 w-full">
-      {LIFECYCLE_STAGES.map((stage, idx) => {
+      {LIFECYCLE_STAGES.map((stage) => {
         const isCurrent = stage === currentStage;
-        const isPast = idx < currentIdx;
         const [labelEs, labelEn] = STAGE_LABELS[stage];
 
         return (
           <div key={stage} className="flex-1 flex flex-col items-center gap-1.5">
             <div
               className={`h-2 w-full rounded-full transition-all ${
-                isCurrent
-                  ? "bg-primary"
-                  : isPast
-                    ? "bg-primary/30"
-                    : "bg-muted/40"
+                isCurrent ? "bg-primary" : "bg-primary/20"
               }`}
             />
             <span className={`text-[10px] leading-tight text-center font-medium ${
-              isCurrent ? "text-foreground" : "text-muted-foreground/60"
+              isCurrent ? "text-foreground" : "text-muted-foreground/50"
             }`}>
               {isEn ? labelEn : labelEs}
             </span>
