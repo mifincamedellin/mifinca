@@ -1038,7 +1038,7 @@ export function AnimalDetail() {
                     {/* Cycle card — always shows just the stage bar */}
                     <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 rounded-xl bg-stone-100 text-stone-500 leading-none text-base">
+                        <div className="p-2.5 rounded-xl bg-stone-500/15 text-stone-500 dark:bg-stone-500/20 dark:text-stone-400 leading-none text-base">
                           ♾️
                         </div>
                         <p className="text-sm font-semibold text-foreground">
@@ -1106,10 +1106,10 @@ export function AnimalDetail() {
                   : null;
 
                 return (
-                  <Card className={`p-5 rounded-2xl border shadow-sm ${isDeceased ? "border-stone-300 bg-gradient-to-br from-stone-50/80 to-stone-100/40" : "border-border/40 bg-card"}`}>
+                  <Card className={`p-5 rounded-2xl border shadow-sm ${isDeceased ? "border-stone-300/60 dark:border-stone-600/30 bg-gradient-to-br from-stone-50/80 to-stone-100/40 dark:from-stone-900/30 dark:to-stone-800/20" : "border-border/40 bg-card"}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${isDeceased ? "bg-stone-200 text-stone-600" : "bg-stone-100 text-stone-500"}`}>
+                        <div className={`p-2.5 rounded-xl ${isDeceased ? "bg-stone-500/20 text-stone-600 dark:bg-stone-500/25 dark:text-stone-300" : "bg-stone-500/15 text-stone-500 dark:bg-stone-500/20 dark:text-stone-400"}`}>
                           <Skull className="h-5 w-5" />
                         </div>
                         <div>
@@ -1131,7 +1131,7 @@ export function AnimalDetail() {
                             deathForm.reset({ deathDate: new Date().toISOString().split("T")[0], deathCause: undefined, deathCauseOther: "" });
                             setDeathOpen(true);
                           }}
-                          className="rounded-xl h-8 px-3 text-xs border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                          className="rounded-xl h-8 px-3 text-xs border-red-200 text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
                         >
                           <Skull className="h-3.5 w-3.5 mr-1" />
                           {isEn ? "Record death" : "Registrar muerte"}
@@ -1141,19 +1141,19 @@ export function AnimalDetail() {
 
                     {isDeceased && (
                       <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="bg-stone-100/70 rounded-xl px-3 py-2.5">
-                          <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wide mb-0.5">
+                        <div className="bg-stone-500/10 dark:bg-stone-500/15 rounded-xl px-3 py-2.5">
+                          <p className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-0.5">
                             {isEn ? "Date" : "Fecha"}
                           </p>
-                          <p className="text-sm font-semibold text-stone-700">
+                          <p className="text-sm font-semibold text-stone-700 dark:text-stone-300">
                             {deathDateFmt ?? (isEn ? "Not recorded" : "Sin registrar")}
                           </p>
                         </div>
-                        <div className="bg-stone-100/70 rounded-xl px-3 py-2.5">
-                          <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wide mb-0.5">
+                        <div className="bg-stone-500/10 dark:bg-stone-500/15 rounded-xl px-3 py-2.5">
+                          <p className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-0.5">
                             {isEn ? "Cause" : "Causa"}
                           </p>
-                          <p className="text-sm font-semibold text-stone-700 capitalize">
+                          <p className="text-sm font-semibold text-stone-700 dark:text-stone-300 capitalize">
                             {deathCauseStr
                               ? (DEATH_CAUSE_LABELS[deathCauseStr as DeathCause]
                                 ? (isEn ? DEATH_CAUSE_LABELS[deathCauseStr as DeathCause]!.en : DEATH_CAUSE_LABELS[deathCauseStr as DeathCause]!.es)
