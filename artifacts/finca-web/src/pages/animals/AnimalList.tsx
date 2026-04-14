@@ -476,7 +476,7 @@ export function AnimalList() {
                     {upcomingMedicalSet.has(animal.id) && (
                       <div className="bg-amber-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
                         <Bell className="h-3 w-3" />
-                        {isEn ? "Due soon" : "Próximo"}
+                        {isEn ? "Reminder" : "Recordatorio"}
                       </div>
                     )}
                   </div>
