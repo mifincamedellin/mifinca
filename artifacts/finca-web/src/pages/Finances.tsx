@@ -293,7 +293,7 @@ export function Finances() {
               <Tooltip formatter={(v: number) => formatCurrency(v, currency)} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} />
               <Legend />
               <Bar dataKey="income"  name={t("fin.income")}  fill="#4A6741" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="expense" name={t("fin.expense")} fill="#C4956A" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="expense" name={t("fin.expense")} fill="#ef4444" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
