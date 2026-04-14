@@ -665,6 +665,23 @@ export function AnimalList() {
                         <span className="text-muted-foreground block text-xs">{t('animals.weight')}</span>
                         <span className="font-semibold text-foreground">{animal.currentWeight ? `${animal.currentWeight} kg` : '-'}</span>
                       </div>
+                      {(() => {
+                        const dob = (animal as any).dateOfBirth;
+                        if (!dob) return null;
+                        const d = new Date(dob + "T12:00:00");
+                        if (isNaN(d.getTime())) return null;
+                        const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+                        let label: string;
+                        if (days < 30) label = isEn ? `${days}d` : `${days}d`;
+                        else if (days < 365) label = isEn ? `${Math.floor(days / 30)}mo` : `${Math.floor(days / 30)}m`;
+                        else { const yrs = (days / 365).toFixed(1).replace(/\.0$/, ""); label = isEn ? `${yrs}yr` : `${yrs}a`; }
+                        return (
+                          <div className="text-sm text-right">
+                            <span className="text-muted-foreground block text-xs">{isEn ? "Age" : "Edad"}</span>
+                            <span className="font-semibold text-foreground">{label}</span>
+                          </div>
+                        );
+                      })()}
                       <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-accent transition-colors transform group-hover:translate-x-1" />
                     </div>
                   </div>
