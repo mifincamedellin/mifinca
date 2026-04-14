@@ -98,7 +98,7 @@ export function Finances() {
   const [form, setForm]           = useState(EMPTY_FORM);
   const [filterType, setFilterType] = useState("all");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [period, setPeriod]       = useState<Period>("month");
+  const [period, setPeriod]       = useState<Period>("all");
 
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ["finances", activeFarmId],
