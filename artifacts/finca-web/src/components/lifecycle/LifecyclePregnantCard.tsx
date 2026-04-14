@@ -131,7 +131,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
             <p className="text-sm font-semibold text-rose-700">{dateFmt(pregStart)}</p>
           </div>
           {delivery && (
-            <div className="bg-pink-50/70 rounded-xl px-3 py-2.5">
+            <div className="bg-pink-50/70 rounded-xl px-3 py-2.5 text-right">
               <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-wide mb-0.5">
                 {isEn ? "Due date" : "Fecha probable"}
               </p>
