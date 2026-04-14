@@ -3,13 +3,21 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Milk, AlertTriangle } from "lucide-react";
+import { Milk, AlertTriangle, TrendingUp, CheckCircle2, Flame, Baby } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   deriveLifecycleStage, getLifecycleAlerts, getConfigForSpecies,
-  getStageIcon, type LifecycleAnimal,
+  type LifecycleAnimal, type LifecycleStage,
 } from "@/lib/lifecycle";
+
+const STAGE_ICONS: Record<LifecycleStage, React.FC<{ className?: string }>> = {
+  growing:   TrendingUp,
+  can_breed: CheckCircle2,
+  in_heat:   Flame,
+  pregnant:  Baby,
+  nursing:   Milk,
+};
 
 interface Props {
   animal: LifecycleAnimal & { id: string };
@@ -240,7 +248,7 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
   return (
     <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
       <div className="flex items-center gap-2">
-        <span className="text-lg">{getStageIcon(stage)}</span>
+        {(() => { const Icon = STAGE_ICONS[stage]; return Icon ? <Icon className="h-4 w-4 text-muted-foreground" /> : null; })()}
         <p className="text-sm font-semibold text-foreground">
           {isEn ? stageLabels[stage]?.en : stageLabels[stage]?.es}
         </p>

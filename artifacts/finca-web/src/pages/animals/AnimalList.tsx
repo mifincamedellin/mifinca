@@ -9,7 +9,7 @@ import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell } from "lucide-react";
+import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell, TrendingUp, CheckCircle2, Flame, Baby, Milk } from "lucide-react";
 import { LifecycleSummaryChips } from "@/components/lifecycle/LifecycleSummaryChips";
 import { deriveLifecycleStage, hasLifecycle, type LifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -486,18 +486,18 @@ export function AnimalList() {
                     if (!hasLifecycle(la)) return null;
                     const stage = deriveLifecycleStage(la);
                     if (!stage) return null;
-                    const cfg: Record<string, { bg: string; label: string; labelEn: string; icon: string }> = {
-                      growing:   { bg: "bg-blue-500",    label: "Crecimiento",        labelEn: "Growing",    icon: "🌱" },
-                      can_breed: { bg: "bg-emerald-500", label: "Puede reproducir",   labelEn: "Can Breed",  icon: "✓" },
-                      in_heat:   { bg: "bg-orange-500",  label: "En celo",            labelEn: "In Heat",    icon: "🔥" },
-                      pregnant:  { bg: "bg-rose-500",    label: "Preñada",            labelEn: "Pregnant",   icon: "🤰" },
-                      nursing:   { bg: "bg-purple-500",  label: "Lactancia",          labelEn: "Nursing",    icon: "🍼" },
+                    const cfg: Record<string, { bg: string; label: string; labelEn: string; icon: React.FC<{ className?: string }> }> = {
+                      growing:   { bg: "bg-blue-500",    label: "Crecimiento",        labelEn: "Growing",    icon: TrendingUp },
+                      can_breed: { bg: "bg-emerald-500", label: "Puede reproducir",   labelEn: "Can Breed",  icon: CheckCircle2 },
+                      in_heat:   { bg: "bg-orange-500",  label: "En celo",            labelEn: "In Heat",    icon: Flame },
+                      pregnant:  { bg: "bg-rose-500",    label: "Preñada",            labelEn: "Pregnant",   icon: Baby },
+                      nursing:   { bg: "bg-purple-500",  label: "Lactancia",          labelEn: "Nursing",    icon: Milk },
                     };
                     const s = cfg[stage];
                     if (!s) return null;
                     return (
                       <div className={`absolute top-3 right-3 ${s.bg} px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm`}>
-                        <span className="text-[10px] leading-none">{s.icon}</span>
+                        <s.icon className="h-3 w-3" />
                         {isEn ? s.labelEn : s.label}
                       </div>
                     );

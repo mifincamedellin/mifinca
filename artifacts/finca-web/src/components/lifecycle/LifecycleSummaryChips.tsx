@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { TrendingUp, CheckCircle2, Flame, Baby, Milk } from "lucide-react";
 import {
-  deriveLifecycleStage, hasLifecycle, LIFECYCLE_STAGES, getStageColor, getStageIcon,
+  deriveLifecycleStage, hasLifecycle, LIFECYCLE_STAGES, getStageColor,
   type LifecycleStage, type LifecycleAnimal,
 } from "@/lib/lifecycle";
 
@@ -17,6 +18,14 @@ const STAGE_LABELS: Record<LifecycleStage, [string, string]> = {
   in_heat: ["En celo", "In Heat"],
   pregnant: ["Preñada", "Pregnant"],
   nursing: ["Lactancia", "Nursing"],
+};
+
+const STAGE_ICONS: Record<LifecycleStage, React.FC<{ className?: string }>> = {
+  growing:   TrendingUp,
+  can_breed: CheckCircle2,
+  in_heat:   Flame,
+  pregnant:  Baby,
+  nursing:   Milk,
 };
 
 export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Props) {
@@ -64,6 +73,7 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
         const active = selectedStage === stage;
         const colors = getStageColor(stage);
         const [labelEs, labelEn] = STAGE_LABELS[stage];
+        const Icon = STAGE_ICONS[stage];
         return (
           <button
             key={stage}
@@ -76,7 +86,7 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
                   : "bg-card border-border/50 text-muted-foreground hover:border-border"
             }`}
           >
-            <span>{getStageIcon(stage)}</span>
+            <Icon className="h-3.5 w-3.5" />
             <span>{isEn ? labelEn : labelEs}</span>
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
               active ? "bg-current/10" : "bg-muted text-muted-foreground"
