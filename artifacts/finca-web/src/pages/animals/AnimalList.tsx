@@ -408,20 +408,20 @@ export function AnimalList() {
                 onClick={() => setSelectedSpecies(active ? "all" : sp)}
                 className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
                   active
-                    ? "bg-secondary text-white border-secondary shadow-sm"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
                     : isEmpty
-                      ? "bg-card border-border/30 text-muted-foreground/50 hover:border-secondary/30 hover:text-secondary/60"
-                      : "bg-card border-border/50 text-muted-foreground hover:border-secondary/50 hover:text-secondary"
+                      ? "bg-card border-border/30 text-muted-foreground/50 hover:border-primary/30 hover:text-primary/60"
+                      : "bg-card border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary"
                 }`}
               >
                 <span className={isEmpty && !active ? "opacity-50" : ""}>{SPECIES_EMOJI[sp] ?? "🐾"}</span>
                 <span>{t(`animals.sp.${sp}`)}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
                   active
-                    ? "bg-white/20 text-white"
+                    ? "bg-primary-foreground/20 text-primary-foreground"
                     : isEmpty
                       ? "bg-muted/50 text-muted-foreground/40"
-                      : "bg-muted text-muted-foreground"
+                      : "bg-foreground/10 text-muted-foreground"
                 }`}>
                   {count}
                 </span>
