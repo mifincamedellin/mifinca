@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -70,9 +69,6 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
   };
 
   const isPregnant = stage === "pregnant";
-  const cardClass = isPregnant
-    ? "p-5 rounded-2xl border shadow-sm border-rose-200 bg-gradient-to-br from-rose-50/60 to-pink-50/40"
-    : "p-5 rounded-2xl border shadow-sm border-border/40 bg-card";
 
   const renderStageInfo = () => {
     const now = new Date();
@@ -319,7 +315,7 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
 
   return (
     <>
-      <Card className={cardClass}>
+      <div className={isPregnant ? "rounded-xl bg-gradient-to-br from-rose-50/60 to-pink-50/40 border border-rose-100 p-4" : ""}>
         <div className="flex items-center gap-2">
           <span className="text-lg">{getStageIcon(stage)}</span>
           <p className="text-sm font-semibold text-foreground">
@@ -332,7 +328,7 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
 
         {stageInfo}
 
-        <div className={stageInfo ? "mt-4" : "mt-4"}>
+        <div className="mt-4">
           <LifecycleBar currentStage={stage} />
         </div>
 
@@ -356,7 +352,7 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
             {actions}
           </div>
         )}
-      </Card>
+      </div>
 
       <Dialog open={dialogAction === "mark-delivered"} onOpenChange={(o) => !o && setDialogAction(null)}>
         <DialogContent className="sm:max-w-sm rounded-2xl">

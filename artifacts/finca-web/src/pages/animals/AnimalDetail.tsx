@@ -1032,7 +1032,10 @@ export function AnimalDetail() {
                 const la = animal as unknown as LifecycleAnimal;
                 const stage = deriveLifecycleStage(la);
                 return (
-                  <>
+                  <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                      {isEn ? "Cycle" : "Ciclo"}
+                    </p>
                     <LifecycleActionCard
                       animal={{ ...(animal as any), id: id! }}
                       farmId={activeFarmId}
@@ -1053,7 +1056,7 @@ export function AnimalDetail() {
                         onUpdate={() => refetch()}
                       />
                     )}
-                  </>
+                  </Card>
                 );
               })()}
 

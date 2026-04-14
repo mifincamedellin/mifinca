@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -52,7 +51,7 @@ export function MarkInHeatCard({ animalId, farmId, onUpdate }: BaseProps) {
 
   return (
     <>
-      <Card className="p-5 rounded-2xl border border-border/40 bg-card shadow-sm">
+      <div className="pt-4 mt-4 border-t border-border/30">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600">
@@ -77,7 +76,7 @@ export function MarkInHeatCard({ animalId, farmId, onUpdate }: BaseProps) {
             {isEn ? "Mark In Heat" : "Marcar en celo"}
           </Button>
         </div>
-      </Card>
+      </div>
 
       <Dialog open={open} onOpenChange={(o) => !o && setOpen(false)}>
         <DialogContent className="sm:max-w-sm rounded-2xl">
@@ -164,7 +163,7 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
 
   return (
     <>
-      <Card className="p-5 rounded-2xl border border-border/40 bg-card shadow-sm">
+      <div className="pt-4 mt-4 border-t border-border/30">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600">
@@ -189,7 +188,7 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
             {isEn ? "Mark Pregnant" : "Marcar preñada"}
           </Button>
         </div>
-      </Card>
+      </div>
 
       <Dialog open={open} onOpenChange={(o) => !o && setOpen(false)}>
         <DialogContent className="sm:max-w-sm rounded-2xl">
