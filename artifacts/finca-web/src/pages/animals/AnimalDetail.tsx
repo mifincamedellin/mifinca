@@ -1049,6 +1049,7 @@ export function AnimalDetail() {
                       <MarkPregnantCard
                         animalId={id!}
                         farmId={activeFarmId}
+                        species={animal.species}
                         onUpdate={() => refetch()}
                       />
                     )}

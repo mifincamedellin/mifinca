@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Flame, Baby } from "lucide-react";
+import { LIFECYCLE_CONFIG } from "@/lib/lifecycle";
 
 async function lifecycleAction(farmId: string, animalId: string, action: string, body: Record<string, unknown> = {}) {
   const res = await fetch(`/api/farms/${farmId}/animals/${animalId}/lifecycle/${action}`, {
@@ -21,6 +22,10 @@ interface BaseProps {
   animalId: string;
   farmId: string;
   onUpdate: () => void;
+}
+
+interface PregnantProps extends BaseProps {
+  species: string;
 }
 
 export function MarkInHeatCard({ animalId, farmId, onUpdate }: BaseProps) {
@@ -115,7 +120,7 @@ const CONCEPTION_METHODS = [
 
 type ConceptionMethod = typeof CONCEPTION_METHODS[number]["value"];
 
-export function MarkPregnantCard({ animalId, farmId, onUpdate }: BaseProps) {
+export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: PregnantProps) {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
   const qc = useQueryClient();
@@ -124,6 +129,18 @@ export function MarkPregnantCard({ animalId, farmId, onUpdate }: BaseProps) {
   const [dueDateInput, setDueDateInput] = useState("");
   const [conception, setConception] = useState<ConceptionMethod | "">("");
   const [loading, setLoading] = useState(false);
+
+  const gestationDays = LIFECYCLE_CONFIG[species]?.female?.pregnancyDurationDays
+    ?? LIFECYCLE_CONFIG["cattle"]!.female.pregnancyDurationDays;
+
+  const handleConceptionDateChange = (val: string) => {
+    setDateInput(val);
+    if (val) {
+      const due = new Date(val + "T12:00:00");
+      due.setDate(due.getDate() + gestationDays);
+      setDueDateInput(due.toISOString().split("T")[0]!);
+    }
+  };
 
   const doAction = async () => {
     setLoading(true);
@@ -184,18 +201,21 @@ export function MarkPregnantCard({ animalId, farmId, onUpdate }: BaseProps) {
           <div className="space-y-4 pt-2">
             <div>
               <label className="text-sm font-medium">
-                {isEn ? "Pregnancy start date" : "Fecha de inicio de preñez"}
+                {isEn ? "Confirmation date" : "Fecha de confirmación"}
               </label>
               <Input
                 type="date"
                 value={dateInput}
-                onChange={e => setDateInput(e.target.value)}
+                onChange={e => handleConceptionDateChange(e.target.value)}
                 className="mt-1 rounded-xl"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                {isEn ? "When was the pregnancy confirmed?" : "¿Cuándo se confirmó la preñez?"}
+              </p>
             </div>
             <div>
               <label className="text-sm font-medium">
-                {isEn ? "Due date (optional)" : "Fecha probable de parto (opcional)"}
+                {isEn ? "Expected due date" : "Fecha probable de parto"}
               </label>
               <Input
                 type="date"
@@ -203,6 +223,11 @@ export function MarkPregnantCard({ animalId, farmId, onUpdate }: BaseProps) {
                 onChange={e => setDueDateInput(e.target.value)}
                 className="mt-1 rounded-xl"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                {isEn
+                  ? `Auto-calculated at ${gestationDays} days. Adjust if needed.`
+                  : `Calculada automáticamente a ${gestationDays} días. Ajusta si es necesario.`}
+              </p>
             </div>
             <div>
               <label className="text-sm font-medium block mb-2">
