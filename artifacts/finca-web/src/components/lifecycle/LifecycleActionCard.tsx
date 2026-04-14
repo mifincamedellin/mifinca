@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Stethoscope, Milk, CheckCircle2, AlertTriangle } from "lucide-react";
+import { format, parseISO, differenceInDays } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   deriveLifecycleStage, getLifecycleAlerts, getConfigForSpecies,
   getStageIcon, type LifecycleAnimal,
@@ -28,14 +30,10 @@ async function lifecycleAction(farmId: string, animalId: string, action: string,
   return res.json();
 }
 
-function toMs(v?: string | Date | null): number | null {
+function toDate(v?: string | Date | null): Date | null {
   if (!v) return null;
-  const ms = new Date(v).getTime();
-  return isNaN(ms) ? null : ms;
-}
-
-function daysBetween(a: number, b: number) {
-  return Math.round(Math.abs(b - a) / 86400000);
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 function clamp(n: number, min: number, max: number) {
@@ -71,97 +69,142 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
     }
   };
 
+  const isPregnant = stage === "pregnant";
+  const cardClass = isPregnant
+    ? "p-5 rounded-2xl border shadow-sm border-rose-200 bg-gradient-to-br from-rose-50/60 to-pink-50/40"
+    : "p-5 rounded-2xl border shadow-sm border-border/40 bg-card";
+
   const renderStageInfo = () => {
-    const now = Date.now();
+    const now = new Date();
     switch (stage) {
       case "pregnant": {
-        const pregStart = toMs(animal.pregnancyStartedAt);
-        const delivery = toMs(animal.expectedDeliveryAt);
+        const pregStart = toDate(animal.pregnancyStartedAt);
+        const delivery = toDate(animal.expectedDeliveryAt);
         if (!pregStart) return null;
-        const elapsed = daysBetween(pregStart, now);
         const cfg = getConfigForSpecies(animal.species);
-        const total = delivery
-          ? daysBetween(pregStart, delivery)
-          : cfg.pregnancyDurationDays;
-        const remaining = delivery ? Math.max(0, daysBetween(now, delivery)) : null;
-        const pct = clamp(Math.round((elapsed / total) * 100), 0, 100);
+        const daysAlong = Math.max(0, differenceInDays(now, pregStart));
+        const total = delivery ? differenceInDays(delivery, pregStart) : cfg.pregnancyDurationDays;
+        const daysLeft = delivery ? Math.max(0, differenceInDays(delivery, now)) : null;
+        const pct = clamp(Math.round((daysAlong / total) * 100), 0, 100);
+        const dateFmt = (d: Date) => format(d, isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es });
         return (
-          <div className="mb-4 rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 space-y-2.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-rose-700 font-semibold">
-                {isEn ? `${elapsed} days pregnant` : `${elapsed} días de preñez`}
-              </span>
-              {remaining !== null && (
-                <span className="text-rose-400 font-medium text-xs">
-                  {isEn ? `${remaining} days to delivery` : `${remaining} días para el parto`}
-                </span>
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                <span>{isEn ? `${daysAlong} of ${total} days` : `${daysAlong} de ${total} días`}</span>
+                <span className="font-semibold text-rose-600">{pct}%</span>
+              </div>
+              <div className="h-2.5 bg-rose-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-rose-400 to-pink-500 rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="bg-rose-50/70 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-0.5">
+                  {isEn ? "Confirmed" : "Confirmada"}
+                </p>
+                <p className="text-sm font-semibold text-rose-700">{dateFmt(pregStart)}</p>
+              </div>
+              {delivery && (
+                <div className="bg-pink-50/70 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-wide mb-0.5">
+                    {isEn ? "Due date" : "Fecha probable"}
+                  </p>
+                  <p className="text-sm font-semibold text-pink-700">{dateFmt(delivery)}</p>
+                  {daysLeft !== null && (
+                    <p className="text-[10px] text-pink-500 mt-0.5">
+                      {daysLeft === 0
+                        ? (isEn ? "Due today!" : "¡Hoy!")
+                        : isEn ? `${daysLeft} days left` : `${daysLeft} días restantes`}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
-            <div className="relative h-2 w-full rounded-full bg-rose-100 overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-rose-400 transition-all"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p className="text-xs text-rose-400 text-right font-medium">{pct}% {isEn ? "complete" : "completado"}</p>
           </div>
         );
       }
       case "nursing": {
-        const nursStart = toMs(animal.nursingStartedAt);
-        const nursEnd = toMs(animal.nursingEndsAt);
+        const nursStart = toDate(animal.nursingStartedAt);
+        const nursEnd = toDate(animal.nursingEndsAt);
         if (!nursStart) return null;
-        const elapsed = daysBetween(nursStart, now);
         const cfg = getConfigForSpecies(animal.species);
-        const total = nursEnd ? daysBetween(nursStart, nursEnd) : cfg.nursingDurationDays;
-        const remaining = nursEnd ? Math.max(0, daysBetween(now, nursEnd)) : null;
+        const elapsed = Math.max(0, differenceInDays(now, nursStart));
+        const total = nursEnd ? differenceInDays(nursEnd, nursStart) : cfg.nursingDurationDays;
+        const remaining = nursEnd ? Math.max(0, differenceInDays(nursEnd, now)) : null;
         const pct = clamp(Math.round((elapsed / total) * 100), 0, 100);
         return (
-          <div className="mb-4 rounded-xl bg-purple-50 border border-purple-100 px-4 py-3 space-y-2.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-purple-700 font-semibold">
-                {isEn ? `${elapsed} days nursing` : `${elapsed} días de lactancia`}
-              </span>
-              {remaining !== null && (
-                <span className="text-purple-400 font-medium text-xs">
-                  {isEn ? `${remaining} days to weaning` : `${remaining} días para el destete`}
-                </span>
-              )}
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                <span>{isEn ? `${elapsed} days nursing` : `${elapsed} días de lactancia`}</span>
+                <span className="font-semibold text-purple-600">{pct}%</span>
+              </div>
+              <div className="h-2.5 bg-purple-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-400 to-violet-500 rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
             </div>
-            <div className="relative h-2 w-full rounded-full bg-purple-100 overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-purple-400 transition-all"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p className="text-xs text-purple-400 text-right font-medium">{pct}% {isEn ? "complete" : "completado"}</p>
+            {remaining !== null && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="bg-purple-50/70 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] font-semibold text-purple-400 uppercase tracking-wide mb-0.5">
+                    {isEn ? "Nursing since" : "Desde"}
+                  </p>
+                  <p className="text-sm font-semibold text-purple-700">
+                    {format(nursStart, isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es })}
+                  </p>
+                </div>
+                <div className="bg-violet-50/70 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-wide mb-0.5">
+                    {isEn ? "Weaning in" : "Destete en"}
+                  </p>
+                  <p className="text-sm font-semibold text-violet-700">
+                    {remaining === 0
+                      ? (isEn ? "Today" : "Hoy")
+                      : isEn ? `${remaining} days` : `${remaining} días`}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         );
       }
       case "in_heat": {
-        const heatStart = toMs(animal.heatStartedAt);
-        const heatEnd = toMs(animal.heatEndsAt);
+        const heatStart = toDate(animal.heatStartedAt);
+        const heatEnd = toDate(animal.heatEndsAt);
         if (!heatEnd) return null;
-        const total = heatStart ? daysBetween(heatStart, heatEnd) : getConfigForSpecies(animal.species).heatDurationDays;
-        const remaining = Math.max(0, daysBetween(now, heatEnd));
+        const cfg = getConfigForSpecies(animal.species);
+        const total = heatStart ? differenceInDays(heatEnd, heatStart) : cfg.heatDurationDays;
+        const remaining = Math.max(0, differenceInDays(heatEnd, now));
         const elapsed = Math.max(0, total - remaining);
         const pct = clamp(Math.round((elapsed / total) * 100), 0, 100);
-        const endDate = new Date(heatEnd).toLocaleDateString(isEn ? "en-US" : "es-CO", { month: "short", day: "numeric" });
         return (
-          <div className="mb-4 rounded-xl bg-orange-50 border border-orange-100 px-4 py-3 space-y-2.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-orange-700 font-semibold">
-                {isEn ? `${remaining} day${remaining !== 1 ? "s" : ""} left in heat` : `${remaining} día${remaining !== 1 ? "s" : ""} restante${remaining !== 1 ? "s" : ""} en celo`}
-              </span>
-              <span className="text-orange-400 font-medium text-xs">
-                {isEn ? `Ends ${endDate}` : `Termina el ${endDate}`}
-              </span>
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                <span>{isEn ? `${remaining} day${remaining !== 1 ? "s" : ""} remaining` : `${remaining} día${remaining !== 1 ? "s" : ""} restante${remaining !== 1 ? "s" : ""}`}</span>
+                <span className="font-semibold text-orange-600">{pct}%</span>
+              </div>
+              <div className="h-2.5 bg-orange-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
             </div>
-            <div className="relative h-2 w-full rounded-full bg-orange-100 overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-orange-400 transition-all"
-                style={{ width: `${pct}%` }}
-              />
+            <div className="bg-orange-50/70 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] font-semibold text-orange-400 uppercase tracking-wide mb-0.5">
+                {isEn ? "Heat ends" : "Celo termina"}
+              </p>
+              <p className="text-sm font-semibold text-orange-700">
+                {format(heatEnd, isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es })}
+              </p>
             </div>
           </div>
         );
@@ -170,32 +213,43 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
         const w = animal.currentWeightKg != null
           ? (typeof animal.currentWeightKg === "string" ? parseFloat(animal.currentWeightKg) : animal.currentWeightKg)
           : null;
+        if (w == null) return null;
         const cfg = getConfigForSpecies(animal.species);
         const target = animal.minimumBreedingWeightKg != null
           ? (typeof animal.minimumBreedingWeightKg === "string" ? parseFloat(animal.minimumBreedingWeightKg as string) : animal.minimumBreedingWeightKg)
           : cfg.minimumBreedingWeightKg;
-        if (w == null) return null;
         const pct = clamp(Math.round((w / target) * 100), 0, 100);
         const remaining = Math.max(0, Math.round(target - w));
         return (
-          <div className="mb-4 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 space-y-2.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-blue-700 font-semibold">
-                {isEn ? `${Math.round(w)} kg current weight` : `${Math.round(w)} kg peso actual`}
-              </span>
-              <span className="text-blue-400 font-medium text-xs">
-                {remaining > 0
-                  ? (isEn ? `${remaining} kg to breed weight` : `${remaining} kg para reproducir`)
-                  : (isEn ? "Breed weight reached" : "Peso de reproducción alcanzado")}
-              </span>
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                <span>{isEn ? `${Math.round(w)} of ${Math.round(target)} kg` : `${Math.round(w)} de ${Math.round(target)} kg`}</span>
+                <span className="font-semibold text-blue-600">{pct}%</span>
+              </div>
+              <div className="h-2.5 bg-blue-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-400 to-sky-500 rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
             </div>
-            <div className="relative h-2 w-full rounded-full bg-blue-100 overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-blue-400 transition-all"
-                style={{ width: `${pct}%` }}
-              />
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="bg-blue-50/70 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide mb-0.5">
+                  {isEn ? "Current weight" : "Peso actual"}
+                </p>
+                <p className="text-sm font-semibold text-blue-700">{Math.round(w)} kg</p>
+              </div>
+              <div className="bg-sky-50/70 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] font-semibold text-sky-400 uppercase tracking-wide mb-0.5">
+                  {isEn ? "Still needs" : "Faltan"}
+                </p>
+                <p className="text-sm font-semibold text-sky-700">
+                  {remaining > 0 ? `${remaining} kg` : (isEn ? "Ready!" : "¡Lista!")}
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-blue-400 text-right font-medium">{pct}% {isEn ? "of breed weight" : "del peso de reproducción"}</p>
           </div>
         );
       }
@@ -265,8 +319,8 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
 
   return (
     <>
-      <Card className="p-5 rounded-2xl border shadow-sm border-border/40 bg-card">
-        <div className="flex items-center gap-2 mb-4">
+      <Card className={cardClass}>
+        <div className="flex items-center gap-2">
           <span className="text-lg">{getStageIcon(stage)}</span>
           <p className="text-sm font-semibold text-foreground">
             {isEn
@@ -278,7 +332,9 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
 
         {stageInfo}
 
-        <LifecycleBar currentStage={stage} />
+        <div className={stageInfo ? "mt-4" : "mt-4"}>
+          <LifecycleBar currentStage={stage} />
+        </div>
 
         {alerts.length > 0 && (
           <div className="mt-4 space-y-1.5">
