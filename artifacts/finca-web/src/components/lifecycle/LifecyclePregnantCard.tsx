@@ -76,9 +76,14 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
   return (
     <>
       <Card className="rounded-2xl border shadow-sm border-rose-100 bg-gradient-to-br from-rose-50/60 to-pink-50/40 p-5">
-        <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-4">
-          {isEn ? "Pregnancy" : "Preñez"}
-        </p>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2.5 rounded-xl bg-rose-100/70 leading-none text-base">
+            🤰
+          </div>
+          <p className="text-sm font-semibold text-foreground">
+            {isEn ? "Pregnancy" : "Preñez"}
+          </p>
+        </div>
 
         <div>
           <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
