@@ -343,7 +343,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Finances this-month card */}
         <Card
-          className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 flex flex-col cursor-pointer hover:shadow-md transition-all hover:border-border group"
+          className="lg:order-2 p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 flex flex-col cursor-pointer hover:shadow-md transition-all hover:border-border group"
           onClick={() => navigate("/finances")}
         >
           <h3 className="text-xl font-serif text-primary mb-5 flex items-center justify-between">
@@ -388,7 +388,7 @@ export function Dashboard() {
         </Card>
 
         {/* Species bar chart */}
-        <Card className="lg:col-span-2 p-6 border-border/50 shadow-sm rounded-2xl bg-card/40">
+        <Card className="lg:order-1 lg:col-span-2 p-6 border-border/50 shadow-sm rounded-2xl bg-card/40">
           <h3 className="text-xl font-serif text-primary mb-6 flex items-center">
             {t("dashboard.animalsBySpecies")}
             <InfoTooltip text={isEn ? "Number of animals per species on this farm." : "Cantidad de animales por especie en esta finca."} />
