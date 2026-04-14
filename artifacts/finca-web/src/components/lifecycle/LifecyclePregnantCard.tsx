@@ -9,6 +9,7 @@ import { Stethoscope, CheckCircle2, Baby, Calendar, ChevronDown, ChevronUp } fro
 import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { getConfigForSpecies, type LifecycleAnimal } from "@/lib/lifecycle";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   animal: LifecycleAnimal & { id: string };
@@ -58,6 +59,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [dialogAction, setDialogAction] = useState<string | null>(null);
   const [dateInput, setDateInput] = useState("");
@@ -129,31 +131,64 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
       let offspringId: string | undefined;
 
       if (registerNewborn && newbornSex) {
-        const newAnimal = await createAnimal(farmId, {
-          species: animal.species,
-          sex: newbornSex,
-          name: newbornName.trim() || undefined,
-          customTag: newbornTag.trim() || undefined,
-          dateOfBirth: dateInput,
-          motherId: animal.id,
-          fatherId: newbornFatherId || undefined,
-        });
-        offspringId = newAnimal.id ?? newAnimal.animal?.id;
+        let newAnimal: Record<string, unknown>;
+        try {
+          newAnimal = await createAnimal(farmId, {
+            species: animal.species,
+            sex: newbornSex,
+            name: newbornName.trim() || undefined,
+            customTag: newbornTag.trim() || undefined,
+            dateOfBirth: dateInput,
+            motherId: animal.id,
+            fatherId: newbornFatherId || undefined,
+          });
+        } catch {
+          toast({
+            variant: "destructive",
+            title: isEn ? "Could not create newborn" : "Error al crear la cría",
+            description: isEn
+              ? "Please try again or register the calf manually."
+              : "Intenta de nuevo o registra la cría manualmente.",
+          });
+          return;
+        }
+
+        offspringId = (newAnimal.id ?? (newAnimal.animal as Record<string, unknown>)?.id) as string | undefined;
+
+        if (!offspringId) {
+          toast({
+            variant: "destructive",
+            title: isEn ? "Could not create newborn" : "Error al crear la cría",
+            description: isEn ? "Unexpected response from server." : "Respuesta inesperada del servidor.",
+          });
+          return;
+        }
       }
 
-      await lifecycleAction(farmId, animal.id, "mark-delivered", {
-        date: dateInput,
-        offspringId,
-      });
+      try {
+        await lifecycleAction(farmId, animal.id, "mark-delivered", {
+          date: dateInput,
+          offspringId,
+        });
+      } catch {
+        toast({
+          variant: "destructive",
+          title: isEn ? "Could not record delivery" : "Error al registrar el parto",
+          description: isEn
+            ? "Please try again."
+            : "Intenta de nuevo.",
+        });
+        return;
+      }
 
       qc.invalidateQueries({ queryKey: [`/api/farms/${farmId}/animals/${animal.id}`] });
       qc.invalidateQueries({ queryKey: [`/api/farms/${farmId}/animals`] });
       onUpdate();
-    } finally {
-      setLoading(false);
       setDialogAction(null);
       setDateInput("");
       resetDeliveryDialog();
+    } finally {
+      setLoading(false);
     }
   };
 
