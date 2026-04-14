@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { TrendingUp, CheckCircle2, Flame, Baby, Milk } from "lucide-react";
 import {
-  deriveLifecycleStage, hasLifecycle, LIFECYCLE_STAGES, getStageColor,
+  deriveLifecycleStage, hasLifecycle, LIFECYCLE_STAGES,
   type LifecycleStage, type LifecycleAnimal,
 } from "@/lib/lifecycle";
 
@@ -80,7 +80,7 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
             onClick={() => onSelect(active ? null : stage)}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
               active
-                ? `${colors} border-current shadow-sm`
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
                 : count === 0
                   ? "bg-card border-border/30 text-muted-foreground/40"
                   : "bg-card border-border/50 text-muted-foreground hover:border-border"
@@ -89,7 +89,7 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
             <Icon className="h-3.5 w-3.5" />
             <span>{isEn ? labelEn : labelEs}</span>
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-              active ? "bg-current/10" : "bg-muted text-muted-foreground"
+              active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-foreground/10 text-muted-foreground"
             }`}>
               {count}
             </span>
