@@ -471,10 +471,14 @@ export function Dashboard() {
                           {evtAny.animalTag || evtAny.animalName || "—"} · {dateStr}
                         </p>
                       </div>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent/80 flex-shrink-0 capitalize">
-                        {typeLabel}
-                      </span>
-                      <ArrowRight className="h-3 w-3 text-muted-foreground/0 group-hover/item:text-accent/50 flex-shrink-0 transition-colors" />
+                      <div className="flex items-center flex-shrink-0">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent/80 capitalize">
+                          {typeLabel}
+                        </span>
+                        <span className="overflow-hidden w-0 group-hover/item:w-[14px] opacity-0 group-hover/item:opacity-100 transition-all duration-200 flex items-center flex-shrink-0">
+                          <ArrowRight className="h-3 w-3 text-accent/50 ml-1 flex-shrink-0" />
+                        </span>
+                      </div>
                     </button>
                   </li>
                 );
