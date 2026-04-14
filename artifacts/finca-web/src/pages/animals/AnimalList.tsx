@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
@@ -9,7 +9,7 @@ import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell, TrendingUp, CheckCircle2, Flame, Baby, Milk } from "lucide-react";
+import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell, TrendingUp, CheckCircle2, Flame, Baby, Milk, LayoutGrid, Table2 } from "lucide-react";
 import { LifecycleSummaryChips } from "@/components/lifecycle/LifecycleSummaryChips";
 import { deriveLifecycleStage, hasLifecycle, type LifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -57,6 +57,7 @@ const SPECIES_EMOJI: Record<string, string> = {
 export function AnimalList() {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language === "en";
+  const [, navigate] = useLocation();
   const { activeFarmId, currency } = useStore();
   const { openUpgradeModal } = useUpgradeStore();
   const [search, setSearch] = useState("");
@@ -64,6 +65,9 @@ export function AnimalList() {
   const [selectedLifecycle, setSelectedLifecycle] = useState<LifecycleStage | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [view, setView] = useState<"grid" | "table">(() => {
+    try { return (localStorage.getItem("animals-view") as "grid" | "table") || "grid"; } catch { return "grid"; }
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -373,6 +377,22 @@ export function AnimalList() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <div className="flex items-center gap-1 ml-auto bg-card shadow-sm rounded-xl p-1 border border-border/40">
+          <button
+            onClick={() => { setView("grid"); try { localStorage.setItem("animals-view", "grid"); } catch {} }}
+            className={`p-2 rounded-lg transition-all ${view === "grid" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            title={isEn ? "Grid view" : "Vista cuadrícula"}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => { setView("table"); try { localStorage.setItem("animals-view", "table"); } catch {} }}
+            className={`p-2 rounded-lg transition-all ${view === "table" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            title={isEn ? "Table view" : "Vista tabla"}
+          >
+            <Table2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Species filter chips — always shown once data loads */}
@@ -440,98 +460,216 @@ export function AnimalList() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => <Card key={i} className="h-48 animate-pulse bg-black/5 border-none rounded-2xl" />)}
-        </div>
+        view === "table" ? (
+          <Card className="border-border/50 rounded-2xl overflow-hidden">
+            <div className="divide-y divide-border/40">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-3 animate-pulse">
+                  <div className="h-4 w-16 bg-black/10 rounded" />
+                  <div className="h-4 w-24 bg-black/10 rounded" />
+                  <div className="h-4 w-20 bg-black/10 rounded" />
+                  <div className="h-4 w-16 bg-black/10 rounded ml-auto" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => <Card key={i} className="h-48 animate-pulse bg-black/5 border-none rounded-2xl" />)}
+          </div>
+        )
       ) : filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((animal: Animal) => (
-            <Link key={animal.id} href={`/animals/${animal.id}`}>
-              <Card className="group cursor-pointer overflow-hidden border-border/50 hover:border-accent/50 transition-all duration-300 hover-elevate bg-card/60 backdrop-blur-sm rounded-2xl h-full flex flex-col">
-                <div className="h-32 bg-primary/5 relative flex items-center justify-center border-b border-border/30">
-                  {animal.photoUrl ? (
-                    <>
-                      <img
-                        src={animal.photoUrl}
-                        alt={animal.name || animal.customTag}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                          (e.currentTarget.nextElementSibling as HTMLElement)?.removeAttribute("hidden");
-                        }}
-                      />
-                      <span className="text-4xl" hidden>{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
-                    </>
-                  ) : (
-                    <span className="text-4xl">{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
-                  )}
-                  {/* Top-left: Due soon (+ Deceased if applicable) */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-1">
-                    {(animal as any).status === "deceased" && (
-                      <div className="bg-stone-600/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
-                        <span>✝</span>
-                        {isEn ? "Deceased" : "Fallecida/o"}
-                      </div>
-                    )}
-                    {upcomingMedicalSet.has(animal.id) && (
-                      <div className="bg-amber-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
-                        <Bell className="h-3 w-3" />
-                        {isEn ? "Reminder" : "Recordatorio"}
-                      </div>
-                    )}
-                  </div>
-                  {/* Top-right: Lifecycle stage pill */}
-                  {(() => {
+        view === "table" ? (
+          <Card className="border-border/50 rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 bg-muted/30">
+                    <th className="text-left px-5 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Tag</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.name')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.species')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">{t('animals.breed')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Sex" : "Sexo"}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">{isEn ? "Age" : "Edad"}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.weight')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Stage" : "Etapa"}</th>
+                    <th className="px-4 py-3 w-8"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {filtered.map((animal: Animal) => {
                     const la = animal as unknown as LifecycleAnimal;
-                    if (!hasLifecycle(la)) return null;
-                    const stage = deriveLifecycleStage(la);
-                    if (!stage) return null;
-                    const cfg: Record<string, { bg: string; label: string; labelEn: string; icon: React.FC<{ className?: string }> }> = {
-                      growing:   { bg: "bg-blue-500",    label: "Crecimiento",        labelEn: "Growing",    icon: TrendingUp },
-                      can_breed: { bg: "bg-emerald-500", label: "Puede reproducir",   labelEn: "Can Breed",  icon: CheckCircle2 },
-                      in_heat:   { bg: "bg-orange-500",  label: "En celo",            labelEn: "In Heat",    icon: Flame },
-                      pregnant:  { bg: "bg-rose-500",    label: "Preñada",            labelEn: "Pregnant",   icon: Baby },
-                      nursing:   { bg: "bg-purple-500",  label: "Lactancia",          labelEn: "Nursing",    icon: Milk },
+                    const stage = hasLifecycle(la) ? deriveLifecycleStage(la) : null;
+                    const stageCfg: Record<string, { bg: string; text: string; label: string; labelEn: string; icon: React.FC<{ className?: string }> }> = {
+                      growing:   { bg: "bg-blue-500/15",    text: "text-blue-700 dark:text-blue-300",    label: "Crecimiento",      labelEn: "Growing",    icon: TrendingUp },
+                      can_breed: { bg: "bg-emerald-500/15", text: "text-emerald-700 dark:text-emerald-300", label: "Puede reproducir", labelEn: "Can Breed", icon: CheckCircle2 },
+                      in_heat:   { bg: "bg-orange-500/15",  text: "text-orange-700 dark:text-orange-300",  label: "En celo",          labelEn: "In Heat",   icon: Flame },
+                      pregnant:  { bg: "bg-rose-500/15",    text: "text-rose-700 dark:text-rose-300",      label: "Preñada",          labelEn: "Pregnant",  icon: Baby },
+                      nursing:   { bg: "bg-purple-500/15",  text: "text-purple-700 dark:text-purple-300",  label: "Lactancia",        labelEn: "Nursing",   icon: Milk },
                     };
-                    const s = cfg[stage];
-                    if (!s) return null;
+                    const sc = stage ? stageCfg[stage] : null;
+
+                    const ageDays = (() => {
+                      if (!(animal as any).dateOfBirth) return null;
+                      const dob = new Date((animal as any).dateOfBirth + "T12:00:00");
+                      if (isNaN(dob.getTime())) return null;
+                      const days = Math.floor((Date.now() - dob.getTime()) / 86400000);
+                      if (days < 30) return isEn ? `${days}d` : `${days}d`;
+                      if (days < 365) return isEn ? `${Math.floor(days / 30)}mo` : `${Math.floor(days / 30)}m`;
+                      const yrs = (days / 365).toFixed(1).replace(/\.0$/, "");
+                      return isEn ? `${yrs}yr` : `${yrs}a`;
+                    })();
+
+                    const sexLabel = (() => {
+                      const s = (animal as any).sex;
+                      if (s === "male") return isEn ? "♂ M" : "♂ M";
+                      if (s === "female") return isEn ? "♀ F" : "♀ F";
+                      return "—";
+                    })();
+
                     return (
-                      <div className={`absolute top-3 right-3 ${s.bg} px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm`}>
-                        <s.icon className="h-3 w-3" />
-                        {isEn ? s.labelEn : s.label}
-                      </div>
+                      <tr
+                        key={animal.id}
+                        onClick={() => navigate(`/animals/${animal.id}`)}
+                        className="hover:bg-muted/30 cursor-pointer transition-colors group"
+                      >
+                          <td className="px-5 py-3 font-mono text-xs font-semibold text-primary">
+                            <div className="flex items-center gap-1.5">
+                              {upcomingMedicalSet.has(animal.id) && (
+                                <Bell className="h-3 w-3 text-amber-500 shrink-0" />
+                              )}
+                              {animal.customTag || <span className="text-muted-foreground">—</span>}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-medium text-foreground max-w-[140px] truncate">
+                            {animal.name || <span className="text-muted-foreground text-xs italic">{t('animals.noName')}</span>}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            <span className="flex items-center gap-1.5">
+                              <span>{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
+                              <span className="hidden xl:inline">{t(`animals.sp.${animal.species}`)}</span>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[120px] truncate">
+                            {animal.breed || <span className="text-muted-foreground/50">—</span>}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell text-xs">{sexLabel}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell text-xs tabular-nums">
+                            {ageDays ?? "—"}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground tabular-nums text-xs">
+                            {animal.currentWeight ? `${animal.currentWeight} kg` : "—"}
+                          </td>
+                          <td className="px-4 py-3 hidden sm:table-cell">
+                            {sc && stage ? (
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${sc.bg} ${sc.text}`}>
+                                <sc.icon className="h-3 w-3" />
+                                {isEn ? sc.labelEn : sc.label}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/40 text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-accent transition-colors transform group-hover:translate-x-0.5" />
+                          </td>
+                        </tr>
                     );
-                  })()}
-                </div>
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-serif font-bold text-lg text-primary truncate">
-                      {animal.customTag && animal.name ? (
-                        <>
-                          {animal.customTag}
-                          <span className="text-muted-foreground"> | {animal.name}</span>
-                        </>
-                      ) : (
-                        animal.customTag || animal.name || t('animals.noName')
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((animal: Animal) => (
+              <Link key={animal.id} href={`/animals/${animal.id}`}>
+                <Card className="group cursor-pointer overflow-hidden border-border/50 hover:border-accent/50 transition-all duration-300 hover-elevate bg-card/60 backdrop-blur-sm rounded-2xl h-full flex flex-col">
+                  <div className="h-32 bg-primary/5 relative flex items-center justify-center border-b border-border/30">
+                    {animal.photoUrl ? (
+                      <>
+                        <img
+                          src={animal.photoUrl}
+                          alt={animal.name || animal.customTag}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            (e.currentTarget.nextElementSibling as HTMLElement)?.removeAttribute("hidden");
+                          }}
+                        />
+                        <span className="text-4xl" hidden>{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
+                      </>
+                    ) : (
+                      <span className="text-4xl">{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
+                    )}
+                    {/* Top-left: Due soon (+ Deceased if applicable) */}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1">
+                      {(animal as any).status === "deceased" && (
+                        <div className="bg-stone-600/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
+                          <span>✝</span>
+                          {isEn ? "Deceased" : "Fallecida/o"}
+                        </div>
                       )}
-                    </h3>
-                    <p className="text-muted-foreground text-sm capitalize mt-1 flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
-                      {t(`animals.sp.${animal.species}`)} {animal.breed ? `• ${animal.breed}` : ''}
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground block text-xs">{t('animals.weight')}</span>
-                      <span className="font-semibold text-foreground">{animal.currentWeight ? `${animal.currentWeight} kg` : '-'}</span>
+                      {upcomingMedicalSet.has(animal.id) && (
+                        <div className="bg-amber-500/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm">
+                          <Bell className="h-3 w-3" />
+                          {isEn ? "Reminder" : "Recordatorio"}
+                        </div>
+                      )}
                     </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-accent transition-colors transform group-hover:translate-x-1" />
+                    {/* Top-right: Lifecycle stage pill */}
+                    {(() => {
+                      const la = animal as unknown as LifecycleAnimal;
+                      if (!hasLifecycle(la)) return null;
+                      const stage = deriveLifecycleStage(la);
+                      if (!stage) return null;
+                      const cfg: Record<string, { bg: string; label: string; labelEn: string; icon: React.FC<{ className?: string }> }> = {
+                        growing:   { bg: "bg-blue-500",    label: "Crecimiento",        labelEn: "Growing",    icon: TrendingUp },
+                        can_breed: { bg: "bg-emerald-500", label: "Puede reproducir",   labelEn: "Can Breed",  icon: CheckCircle2 },
+                        in_heat:   { bg: "bg-orange-500",  label: "En celo",            labelEn: "In Heat",    icon: Flame },
+                        pregnant:  { bg: "bg-rose-500",    label: "Preñada",            labelEn: "Pregnant",   icon: Baby },
+                        nursing:   { bg: "bg-purple-500",  label: "Lactancia",          labelEn: "Nursing",    icon: Milk },
+                      };
+                      const s = cfg[stage];
+                      if (!s) return null;
+                      return (
+                        <div className={`absolute top-3 right-3 ${s.bg} px-2 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1 shadow-sm`}>
+                          <s.icon className="h-3 w-3" />
+                          {isEn ? s.labelEn : s.label}
+                        </div>
+                      );
+                    })()}
                   </div>
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="font-serif font-bold text-lg text-primary truncate">
+                        {animal.customTag && animal.name ? (
+                          <>
+                            {animal.customTag}
+                            <span className="text-muted-foreground"> | {animal.name}</span>
+                          </>
+                        ) : (
+                          animal.customTag || animal.name || t('animals.noName')
+                        )}
+                      </h3>
+                      <p className="text-muted-foreground text-sm capitalize mt-1 flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+                        {t(`animals.sp.${animal.species}`)} {animal.breed ? `• ${animal.breed}` : ''}
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="text-muted-foreground block text-xs">{t('animals.weight')}</span>
+                        <span className="font-semibold text-foreground">{animal.currentWeight ? `${animal.currentWeight} kg` : '-'}</span>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-accent transition-colors transform group-hover:translate-x-1" />
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )
       ) : (
         <div className="text-center py-20 bg-card/30 rounded-3xl border border-dashed border-border">
           <PawPrint className="mx-auto h-16 w-16 text-muted-foreground/30 mb-4" />
