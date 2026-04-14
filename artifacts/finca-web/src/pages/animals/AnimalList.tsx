@@ -493,6 +493,7 @@ export function AnimalList() {
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">{isEn ? "Age" : "Edad"}</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.weight')}</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Stage" : "Etapa"}</th>
+                    <th className="px-4 py-3 text-center w-10 hidden sm:table-cell" title={isEn ? "Medical reminder" : "Recordatorio médico"}><Bell className="h-3.5 w-3.5 text-muted-foreground mx-auto" /></th>
                     <th className="px-4 py-3 w-8"></th>
                   </tr>
                 </thead>
@@ -534,12 +535,7 @@ export function AnimalList() {
                         className="hover:bg-muted/30 cursor-pointer transition-colors group"
                       >
                           <td className="px-5 py-3 font-mono text-xs font-semibold text-primary">
-                            <div className="flex items-center gap-1.5">
-                              {upcomingMedicalSet.has(animal.id) && (
-                                <Bell className="h-3 w-3 text-amber-500 shrink-0" />
-                              )}
-                              {animal.customTag || <span className="text-muted-foreground">—</span>}
-                            </div>
+                            {animal.customTag || <span className="text-muted-foreground">—</span>}
                           </td>
                           <td className="px-4 py-3 font-medium text-foreground max-w-[140px] truncate">
                             {animal.name || <span className="text-muted-foreground text-xs italic">{t('animals.noName')}</span>}
@@ -568,6 +564,13 @@ export function AnimalList() {
                               </span>
                             ) : (
                               <span className="text-muted-foreground/40 text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center hidden sm:table-cell">
+                            {upcomingMedicalSet.has(animal.id) ? (
+                              <Bell className="h-3.5 w-3.5 text-amber-500 mx-auto" />
+                            ) : (
+                              <span className="text-muted-foreground/30 text-xs">·</span>
                             )}
                           </td>
                           <td className="px-4 py-3">
