@@ -5,9 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Baby, Stethoscope, Milk, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Stethoscope, Milk, CheckCircle2, AlertTriangle } from "lucide-react";
 import {
-  deriveLifecycleStage, getLifecycleAlerts,
+  deriveLifecycleStage, getLifecycleAlerts, getConfigForSpecies,
   getStageIcon, type LifecycleAnimal,
 } from "@/lib/lifecycle";
 import { LifecycleBar } from "./LifecycleBar";
@@ -26,6 +26,20 @@ async function lifecycleAction(farmId: string, animalId: string, action: string,
   });
   if (!res.ok) throw new Error(`lifecycle action failed: ${action}`);
   return res.json();
+}
+
+function toMs(v?: string | Date | null): number | null {
+  if (!v) return null;
+  const ms = new Date(v).getTime();
+  return isNaN(ms) ? null : ms;
+}
+
+function daysBetween(a: number, b: number) {
+  return Math.round(Math.abs(b - a) / 86400000);
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
 }
 
 export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
@@ -54,6 +68,139 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
       setDialogAction(null);
       setDateInput("");
       setNotesInput("");
+    }
+  };
+
+  const renderStageInfo = () => {
+    const now = Date.now();
+    switch (stage) {
+      case "pregnant": {
+        const pregStart = toMs(animal.pregnancyStartedAt);
+        const delivery = toMs(animal.expectedDeliveryAt);
+        if (!pregStart) return null;
+        const elapsed = daysBetween(pregStart, now);
+        const cfg = getConfigForSpecies(animal.species);
+        const total = delivery
+          ? daysBetween(pregStart, delivery)
+          : cfg.pregnancyDurationDays;
+        const remaining = delivery ? Math.max(0, daysBetween(now, delivery)) : null;
+        const pct = clamp(Math.round((elapsed / total) * 100), 0, 100);
+        return (
+          <div className="mb-4 rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 space-y-2.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-rose-700 font-semibold">
+                {isEn ? `${elapsed} days pregnant` : `${elapsed} días de preñez`}
+              </span>
+              {remaining !== null && (
+                <span className="text-rose-400 font-medium text-xs">
+                  {isEn ? `${remaining} days to delivery` : `${remaining} días para el parto`}
+                </span>
+              )}
+            </div>
+            <div className="relative h-2 w-full rounded-full bg-rose-100 overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-rose-400 transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="text-xs text-rose-400 text-right font-medium">{pct}% {isEn ? "complete" : "completado"}</p>
+          </div>
+        );
+      }
+      case "nursing": {
+        const nursStart = toMs(animal.nursingStartedAt);
+        const nursEnd = toMs(animal.nursingEndsAt);
+        if (!nursStart) return null;
+        const elapsed = daysBetween(nursStart, now);
+        const cfg = getConfigForSpecies(animal.species);
+        const total = nursEnd ? daysBetween(nursStart, nursEnd) : cfg.nursingDurationDays;
+        const remaining = nursEnd ? Math.max(0, daysBetween(now, nursEnd)) : null;
+        const pct = clamp(Math.round((elapsed / total) * 100), 0, 100);
+        return (
+          <div className="mb-4 rounded-xl bg-purple-50 border border-purple-100 px-4 py-3 space-y-2.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-purple-700 font-semibold">
+                {isEn ? `${elapsed} days nursing` : `${elapsed} días de lactancia`}
+              </span>
+              {remaining !== null && (
+                <span className="text-purple-400 font-medium text-xs">
+                  {isEn ? `${remaining} days to weaning` : `${remaining} días para el destete`}
+                </span>
+              )}
+            </div>
+            <div className="relative h-2 w-full rounded-full bg-purple-100 overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-purple-400 transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="text-xs text-purple-400 text-right font-medium">{pct}% {isEn ? "complete" : "completado"}</p>
+          </div>
+        );
+      }
+      case "in_heat": {
+        const heatStart = toMs(animal.heatStartedAt);
+        const heatEnd = toMs(animal.heatEndsAt);
+        if (!heatEnd) return null;
+        const total = heatStart ? daysBetween(heatStart, heatEnd) : getConfigForSpecies(animal.species).heatDurationDays;
+        const remaining = Math.max(0, daysBetween(now, heatEnd));
+        const elapsed = Math.max(0, total - remaining);
+        const pct = clamp(Math.round((elapsed / total) * 100), 0, 100);
+        const endDate = new Date(heatEnd).toLocaleDateString(isEn ? "en-US" : "es-CO", { month: "short", day: "numeric" });
+        return (
+          <div className="mb-4 rounded-xl bg-orange-50 border border-orange-100 px-4 py-3 space-y-2.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-orange-700 font-semibold">
+                {isEn ? `${remaining} day${remaining !== 1 ? "s" : ""} left in heat` : `${remaining} día${remaining !== 1 ? "s" : ""} restante${remaining !== 1 ? "s" : ""} en celo`}
+              </span>
+              <span className="text-orange-400 font-medium text-xs">
+                {isEn ? `Ends ${endDate}` : `Termina el ${endDate}`}
+              </span>
+            </div>
+            <div className="relative h-2 w-full rounded-full bg-orange-100 overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-orange-400 transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      }
+      case "growing": {
+        const w = animal.currentWeightKg != null
+          ? (typeof animal.currentWeightKg === "string" ? parseFloat(animal.currentWeightKg) : animal.currentWeightKg)
+          : null;
+        const cfg = getConfigForSpecies(animal.species);
+        const target = animal.minimumBreedingWeightKg != null
+          ? (typeof animal.minimumBreedingWeightKg === "string" ? parseFloat(animal.minimumBreedingWeightKg as string) : animal.minimumBreedingWeightKg)
+          : cfg.minimumBreedingWeightKg;
+        if (w == null) return null;
+        const pct = clamp(Math.round((w / target) * 100), 0, 100);
+        const remaining = Math.max(0, Math.round(target - w));
+        return (
+          <div className="mb-4 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 space-y-2.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-blue-700 font-semibold">
+                {isEn ? `${Math.round(w)} kg current weight` : `${Math.round(w)} kg peso actual`}
+              </span>
+              <span className="text-blue-400 font-medium text-xs">
+                {remaining > 0
+                  ? (isEn ? `${remaining} kg to breed weight` : `${remaining} kg para reproducir`)
+                  : (isEn ? "Breed weight reached" : "Peso de reproducción alcanzado")}
+              </span>
+            </div>
+            <div className="relative h-2 w-full rounded-full bg-blue-100 overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-blue-400 transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="text-xs text-blue-400 text-right font-medium">{pct}% {isEn ? "of breed weight" : "del peso de reproducción"}</p>
+          </div>
+        );
+      }
+      default:
+        return null;
     }
   };
 
@@ -113,6 +260,7 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
     }
   };
 
+  const stageInfo = renderStageInfo();
   const actions = renderActions();
 
   return (
@@ -127,6 +275,8 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
             }
           </p>
         </div>
+
+        {stageInfo}
 
         <LifecycleBar currentStage={stage} />
 
