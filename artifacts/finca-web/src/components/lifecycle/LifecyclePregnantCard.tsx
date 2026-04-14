@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Stethoscope, CheckCircle2 } from "lucide-react";
+import { Stethoscope, CheckCircle2, Baby } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { getConfigForSpecies, type LifecycleAnimal } from "@/lib/lifecycle";
@@ -78,7 +78,9 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
       <Card className="rounded-2xl border shadow-sm border-rose-100 bg-gradient-to-br from-rose-50/60 to-pink-50/40 p-5">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center justify-center p-2.5 text-base leading-none">🤰</span>
+            <div className="p-2.5 rounded-xl bg-rose-100/60 text-rose-500">
+              <Baby className="h-5 w-5" />
+            </div>
             <p className="text-sm font-semibold text-foreground">
               {isEn ? "Pregnancy" : "Preñez"}
             </p>
