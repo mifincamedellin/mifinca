@@ -62,7 +62,7 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
       >
         <span>{isEn ? "All" : "Todas"}</span>
         <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-          selectedStage === null ? "bg-white/20" : "bg-muted text-muted-foreground"
+          selectedStage === null ? "bg-white/20 text-primary-foreground" : "bg-muted text-muted-foreground dark:bg-white/20 dark:text-foreground"
         }`}>
           {totalTracked}
         </span>
