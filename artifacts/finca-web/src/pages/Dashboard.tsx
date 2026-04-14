@@ -339,41 +339,8 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* ── Middle row: Species chart + Finances card ───────── */}
+      {/* ── Middle row: Finances card + Species chart ───────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Species bar chart */}
-        <Card className="lg:col-span-2 p-6 border-border/50 shadow-sm rounded-2xl bg-card/40">
-          <h3 className="text-xl font-serif text-primary mb-6 flex items-center">
-            {t("dashboard.animalsBySpecies")}
-            <InfoTooltip text={isEn ? "Number of animals per species on this farm." : "Cantidad de animales por especie en esta finca."} />
-          </h3>
-          <div className="h-64 w-full">
-            {!statsLoading && (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip
-                    cursor={{ fill: "hsl(var(--muted)/0.3)" }}
-                    contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
-                    formatter={(value: number) => [value, isEn ? "Animals" : "Animales"]}
-                    labelFormatter={(label: string) => label}
-                  />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={32}>
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.count === 0 ? "hsl(var(--muted))" : colors[index % colors.length]}
-                        opacity={entry.count === 0 ? 0.4 : 1}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </Card>
-
         {/* Finances this-month card */}
         <Card
           className="p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 flex flex-col cursor-pointer hover:shadow-md transition-all hover:border-border group"
@@ -417,6 +384,39 @@ export function Dashboard() {
           <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 group-hover:text-accent transition-colors">
             <ArrowRight className="h-3 w-3" />
             {t("dashboard.viewFinances")}
+          </div>
+        </Card>
+
+        {/* Species bar chart */}
+        <Card className="lg:col-span-2 p-6 border-border/50 shadow-sm rounded-2xl bg-card/40">
+          <h3 className="text-xl font-serif text-primary mb-6 flex items-center">
+            {t("dashboard.animalsBySpecies")}
+            <InfoTooltip text={isEn ? "Number of animals per species on this farm." : "Cantidad de animales por especie en esta finca."} />
+          </h3>
+          <div className="h-64 w-full">
+            {!statsLoading && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} allowDecimals={false} />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--muted)/0.3)" }}
+                    contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                    formatter={(value: number) => [value, isEn ? "Animals" : "Animales"]}
+                    labelFormatter={(label: string) => label}
+                  />
+                  <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={32}>
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.count === 0 ? "hsl(var(--muted))" : colors[index % colors.length]}
+                        opacity={entry.count === 0 ? 0.4 : 1}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </div>
