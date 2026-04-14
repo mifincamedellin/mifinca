@@ -214,7 +214,7 @@ export function LifecycleActionCard({ animal, farmId, onUpdate }: Props) {
         return (
           <div className="flex flex-wrap gap-2">
             <Button
-              size="sm" className="rounded-xl h-8 px-3 text-xs bg-purple-500 hover:bg-purple-600 text-white"
+              size="sm" className="rounded-xl h-8 px-3 text-xs bg-purple-500 hover:bg-purple-600 text-white border-0"
               disabled={loading}
               onClick={() => doAction("wean")}
             >
