@@ -68,7 +68,7 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
         </span>
       </button>
 
-      {LIFECYCLE_STAGES.map(stage => {
+      {[...LIFECYCLE_STAGES].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0)).map(stage => {
         const count = counts[stage] ?? 0;
         const active = selectedStage === stage;
         const colors = getStageColor(stage);
