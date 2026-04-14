@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull } from "lucide-react";
 import { LifecycleActionCard } from "@/components/lifecycle/LifecycleActionCard";
+import { LifecyclePregnantCard } from "@/components/lifecycle/LifecyclePregnantCard";
+import { LifecycleBar } from "@/components/lifecycle/LifecycleBar";
 import { MarkInHeatCard, MarkPregnantCard } from "@/components/lifecycle/LifecycleHeatPregnancyCards";
 import { hasLifecycle, deriveLifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
@@ -1032,23 +1034,52 @@ export function AnimalDetail() {
                 const la = animal as unknown as LifecycleAnimal;
                 const stage = deriveLifecycleStage(la);
                 return (
-                  <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                      {isEn ? "Cycle" : "Ciclo"}
-                    </p>
-                    <LifecycleActionCard
-                      animal={{ ...(animal as any), id: id! }}
-                      farmId={activeFarmId}
-                      onUpdate={() => refetch()}
-                    />
-                    {(stage === "can_breed") && (
-                      <MarkInHeatCard
-                        animalId={id!}
+                  <>
+                    {/* Cycle card — always shows just the stage bar */}
+                    <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                        {isEn ? "Cycle" : "Ciclo"}
+                      </p>
+                      <LifecycleBar currentStage={stage!} />
+                    </Card>
+
+                    {/* Pregnant: separate card below the Cycle card */}
+                    {stage === "pregnant" && (
+                      <LifecyclePregnantCard
+                        animal={{ ...(animal as any), id: id! }}
                         farmId={activeFarmId}
                         onUpdate={() => refetch()}
                       />
                     )}
-                    {(stage === "can_breed" || stage === "in_heat") && (
+
+                    {/* In heat / nursing / growing: stage detail card */}
+                    {(stage === "in_heat" || stage === "nursing" || stage === "growing") && (
+                      <LifecycleActionCard
+                        animal={{ ...(animal as any), id: id! }}
+                        farmId={activeFarmId}
+                        onUpdate={() => refetch()}
+                      />
+                    )}
+
+                    {/* Can breed: mark in heat + mark pregnant */}
+                    {stage === "can_breed" && (
+                      <>
+                        <MarkInHeatCard
+                          animalId={id!}
+                          farmId={activeFarmId}
+                          onUpdate={() => refetch()}
+                        />
+                        <MarkPregnantCard
+                          animalId={id!}
+                          farmId={activeFarmId}
+                          species={animal.species}
+                          onUpdate={() => refetch()}
+                        />
+                      </>
+                    )}
+
+                    {/* In heat can also be marked pregnant */}
+                    {stage === "in_heat" && (
                       <MarkPregnantCard
                         animalId={id!}
                         farmId={activeFarmId}
@@ -1056,7 +1087,7 @@ export function AnimalDetail() {
                         onUpdate={() => refetch()}
                       />
                     )}
-                  </Card>
+                  </>
                 );
               })()}
 

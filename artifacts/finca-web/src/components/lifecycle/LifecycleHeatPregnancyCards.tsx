@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Flame, Baby } from "lucide-react";
@@ -51,7 +52,7 @@ export function MarkInHeatCard({ animalId, farmId, onUpdate }: BaseProps) {
 
   return (
     <>
-      <div className="pt-4 mt-4 border-t border-border/30">
+      <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600">
@@ -76,7 +77,7 @@ export function MarkInHeatCard({ animalId, farmId, onUpdate }: BaseProps) {
             {isEn ? "Mark In Heat" : "Marcar en celo"}
           </Button>
         </div>
-      </div>
+      </Card>
 
       <Dialog open={open} onOpenChange={(o) => !o && setOpen(false)}>
         <DialogContent className="sm:max-w-sm rounded-2xl">
@@ -163,7 +164,7 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
 
   return (
     <>
-      <div className="pt-4 mt-4 border-t border-border/30">
+      <Card className="rounded-2xl border shadow-sm border-border/40 bg-card p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600">
@@ -188,7 +189,7 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
             {isEn ? "Mark Pregnant" : "Marcar preñada"}
           </Button>
         </div>
-      </div>
+      </Card>
 
       <Dialog open={open} onOpenChange={(o) => !o && setOpen(false)}>
         <DialogContent className="sm:max-w-sm rounded-2xl">
