@@ -113,7 +113,13 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
         <div>
           <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
             <span>{isEn ? `${daysAlong} of ${total} days` : `${daysAlong} de ${total} días`}</span>
-            <span className="font-semibold text-rose-600">{pct}%</span>
+            <span className="font-semibold text-rose-600">
+              {daysLeft !== null && daysLeft > 0
+                ? (isEn ? `${daysLeft} days left` : `${daysLeft} días restantes`)
+                : daysLeft === 0
+                  ? (isEn ? "Due today!" : "¡Hoy!")
+                  : `${pct}%`}
+            </span>
           </div>
           <div className="h-2.5 bg-rose-100 rounded-full overflow-hidden">
             <div
@@ -136,13 +142,6 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
                 {isEn ? "Due date" : "Fecha probable"}
               </p>
               <p className="text-sm font-semibold text-pink-700">{dateFmt(delivery)}</p>
-              {daysLeft !== null && (
-                <p className="text-[10px] text-pink-500 mt-0.5">
-                  {daysLeft === 0
-                    ? (isEn ? "Due today!" : "¡Hoy!")
-                    : isEn ? `${daysLeft} days left` : `${daysLeft} días restantes`}
-                </p>
-              )}
             </div>
           )}
         </div>
