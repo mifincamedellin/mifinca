@@ -984,7 +984,7 @@ export function AnimalDetail() {
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('animals.pregnancies')}</p>
                   <p className="font-medium text-foreground flex items-center gap-2">
                     <Baby className="h-4 w-4 text-primary/50" />
-                    {(animal as any).pregnancyCount ?? 0}
+                    {animal.pregnancyCount ?? 0}
                   </p>
                 </div>
               )}

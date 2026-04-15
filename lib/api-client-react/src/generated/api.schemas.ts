@@ -247,6 +247,7 @@ export type AnimalDetail = Animal & {
   mother?: Animal;
   father?: Animal;
   linkedCalendarEvents?: LinkedCalendarEvent[];
+  pregnancyCount?: number;
 };
 
 export type CreateAnimalRequestSpecies =
