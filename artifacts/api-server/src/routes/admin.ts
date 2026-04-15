@@ -7,38 +7,46 @@ import {
   animalsTable,
   financeTransactionsTable,
 } from "@workspace/db";
-import { eq, desc, ilike, or, sql, count, sum, and } from "drizzle-orm";
+import { eq, desc, ilike, or, sql, count, sum, and, asc } from "drizzle-orm";
 
 const router = Router();
 
-const ADMIN_SECRET = process.env["ADMIN_SECRET"] || "mifinca-admin-2025";
+function getAdminSecret(): string | undefined {
+  return process.env["ADMIN_SECRET"];
+}
 
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const adminSecret = getAdminSecret();
+  if (!adminSecret) {
+    return res.status(503).json({ error: "server_misconfigured", message: "ADMIN_SECRET not set" });
+  }
   const secret = req.headers["x-admin-secret"];
-  if (!secret || secret !== ADMIN_SECRET) {
+  if (!secret || secret !== adminSecret) {
     return res.status(401).json({ error: "unauthorized", message: "Invalid admin secret" });
   }
   return next();
 }
 
 router.post("/admin/verify", (req: Request, res: Response) => {
+  const adminSecret = getAdminSecret();
+  if (!adminSecret) {
+    return res.status(503).json({ error: "server_misconfigured" });
+  }
   const { secret } = req.body as { secret?: string };
-  if (!secret || secret !== ADMIN_SECRET) {
+  if (!secret || secret !== adminSecret) {
     return res.status(401).json({ error: "unauthorized" });
   }
   return res.json({ ok: true });
 });
 
-router.get("/admin/stats", requireAdmin, async (req: Request, res: Response) => {
+router.get("/admin/stats", requireAdmin, async (_req: Request, res: Response) => {
   try {
     const [userCount] = await db
       .select({ count: count() })
       .from(profilesTable)
       .where(sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`);
 
-    const [farmCount] = await db
-      .select({ count: count() })
-      .from(farmsTable);
+    const [farmCount] = await db.select({ count: count() }).from(farmsTable);
 
     const [animalCount] = await db
       .select({ count: count() })
@@ -65,10 +73,7 @@ router.get("/admin/stats", requireAdmin, async (req: Request, res: Response) => 
       farms: Number(farmCount?.count ?? 0),
       animals: Number(animalCount?.count ?? 0),
       planBreakdown: planBreakdown.map((p) => ({ plan: p.plan, count: Number(p.count) })),
-      signupsByDay: signupsByDay.rows.map((r) => ({
-        day: r.day,
-        count: Number(r.count),
-      })),
+      signupsByDay: signupsByDay.rows.map((r) => ({ day: r.day, count: Number(r.count) })),
     });
   } catch (err) {
     console.error(err);
@@ -80,6 +85,8 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response) => 
   try {
     const search = req.query["search"] as string | undefined;
     const page = Number(req.query["page"] ?? 1);
+    const sortBy = (req.query["sortBy"] as string) || "createdAt";
+    const sortDir = (req.query["sortDir"] as string) || "desc";
     const limit = 25;
     const offset = (page - 1) * limit;
 
@@ -89,7 +96,23 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response) => 
       .groupBy(farmMembersTable.userId)
       .as("farm_counts");
 
-    const query = db
+    const whereCondition = search
+      ? or(
+          ilike(profilesTable.fullName, `%${search}%`),
+          ilike(profilesTable.email, `%${search}%`),
+        )
+      : sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`;
+
+    const sortMap: Record<string, Parameters<typeof asc>[0]> = {
+      createdAt: profilesTable.createdAt,
+      fullName: profilesTable.fullName,
+      email: profilesTable.email,
+      plan: profilesTable.plan,
+    };
+    const sortCol = sortMap[sortBy] ?? profilesTable.createdAt;
+    const orderFn = sortDir === "asc" ? asc : desc;
+
+    const users = await db
       .select({
         id: profilesTable.id,
         fullName: profilesTable.fullName,
@@ -102,38 +125,70 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response) => 
       })
       .from(profilesTable)
       .leftJoin(farmCountSq, eq(profilesTable.id, farmCountSq.userId))
-      .where(
-        search
-          ? or(
-              ilike(profilesTable.fullName, `%${search}%`),
-              ilike(profilesTable.email, `%${search}%`),
-            )
-          : sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`,
-      )
-      .orderBy(desc(profilesTable.createdAt))
+      .where(whereCondition)
+      .orderBy(orderFn(sortCol))
       .limit(limit)
       .offset(offset);
-
-    const users = await query;
 
     const [total] = await db
       .select({ count: count() })
       .from(profilesTable)
-      .where(
-        search
-          ? or(
-              ilike(profilesTable.fullName, `%${search}%`),
-              ilike(profilesTable.email, `%${search}%`),
-            )
-          : sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`,
+      .where(whereCondition);
+
+    const userIds = users.map((u) => u.id);
+    let lastActiveMap: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const placeholders = userIds.map((_, i) => `$${i + 1}`).join(", ");
+      const lastActiveRows = await pool.query<{ user_id: string; last_active: string }>(
+        `SELECT user_id, MAX(created_at)::text as last_active
+         FROM activity_log
+         WHERE user_id IN (${placeholders})
+         GROUP BY user_id`,
+        userIds,
       );
+      lastActiveMap = Object.fromEntries(
+        lastActiveRows.rows.map((r) => [r.user_id, r.last_active]),
+      );
+    }
 
     return res.json({
-      users: users.map((u) => ({ ...u, farmCount: Number(u.farmCount ?? 0) })),
+      users: users.map((u) => ({
+        ...u,
+        farmCount: Number(u.farmCount ?? 0),
+        lastActive: lastActiveMap[u.id] ?? null,
+      })),
       total: Number(total?.count ?? 0),
       page,
       pages: Math.ceil(Number(total?.count ?? 0) / limit),
     });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.get("/admin/users/search", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const q = req.query["q"] as string | undefined;
+    if (!q || q.length < 2) return res.json({ users: [] });
+
+    const results = await db
+      .select({
+        id: profilesTable.id,
+        fullName: profilesTable.fullName,
+        email: profilesTable.email,
+        plan: profilesTable.plan,
+      })
+      .from(profilesTable)
+      .where(
+        or(
+          ilike(profilesTable.fullName, `%${q}%`),
+          ilike(profilesTable.email, `%${q}%`),
+        ),
+      )
+      .limit(10);
+
+    return res.json({ users: results });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "internal" });
@@ -329,7 +384,7 @@ router.get("/admin/farms/:farmId", requireAdmin, async (req: Request, res: Respo
       .from(financeTransactionsTable)
       .where(eq(financeTransactionsTable.farmId, farmId))
       .orderBy(desc(financeTransactionsTable.date))
-      .limit(10);
+      .limit(50);
 
     const financeSummary = await db
       .select({
@@ -363,10 +418,7 @@ router.get("/admin/farms/:farmId", requireAdmin, async (req: Request, res: Respo
       animals,
       finances: {
         recent: financeRows,
-        summary: financeSummary.map((f) => ({
-          type: f.type,
-          total: Number(f.total ?? 0),
-        })),
+        summary: financeSummary.map((f) => ({ type: f.type, total: Number(f.total ?? 0) })),
       },
       activity: activityRows.rows,
     });
@@ -387,6 +439,7 @@ router.patch("/admin/farms/:farmId", requireAdmin, async (req: Request, res: Res
       .returning();
     return res.json(updated[0]);
   } catch (err) {
+    console.error(err);
     return res.status(500).json({ error: "internal" });
   }
 });
@@ -397,9 +450,40 @@ router.delete("/admin/farms/:farmId", requireAdmin, async (req: Request, res: Re
     await db.delete(farmsTable).where(eq(farmsTable.id, farmId));
     return res.json({ ok: true });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({ error: "internal" });
   }
 });
+
+router.post(
+  "/admin/farms/:farmId/members",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const { farmId } = req.params as { farmId: string };
+      const { userId, role } = req.body as { userId: string; role?: string };
+
+      if (!userId) return res.status(400).json({ error: "userId required" });
+
+      const existing = await db
+        .select({ id: farmMembersTable.userId })
+        .from(farmMembersTable)
+        .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)))
+        .limit(1);
+      if (existing[0]) return res.status(409).json({ error: "already_member" });
+
+      await db.insert(farmMembersTable).values({
+        farmId,
+        userId,
+        role: (role ?? "viewer") as "owner" | "admin" | "viewer",
+      });
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "internal" });
+    }
+  },
+);
 
 router.delete(
   "/admin/farms/:farmId/members/:userId",
@@ -409,11 +493,10 @@ router.delete(
       const { farmId, userId } = req.params as { farmId: string; userId: string };
       await db
         .delete(farmMembersTable)
-        .where(
-          and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)),
-        );
+        .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)));
       return res.json({ ok: true });
     } catch (err) {
+      console.error(err);
       return res.status(500).json({ error: "internal" });
     }
   },

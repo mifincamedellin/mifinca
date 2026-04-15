@@ -2,8 +2,17 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { api } from "@/lib/api";
-import { Search, Loader2, ChevronLeft, ChevronRight, ChevronRight as Arrow } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import {
+  Search,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronRight as Arrow,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from "lucide-react";
+import { format, parseISO, formatDistanceToNow } from "date-fns";
 
 const PLAN_BADGE: Record<string, string> = {
   seed: "bg-amber-100 text-amber-700",
@@ -11,11 +20,23 @@ const PLAN_BADGE: Record<string, string> = {
   pro: "bg-violet-100 text-violet-700",
 };
 
+type SortBy = "createdAt" | "fullName" | "email" | "plan";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ col, sortBy, sortDir }: { col: SortBy; sortBy: SortBy; sortDir: SortDir }) {
+  if (col !== sortBy) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-30" />;
+  return sortDir === "asc"
+    ? <ArrowUp className="h-3 w-3 ml-1 text-primary" />
+    : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
+}
+
 export default function Users() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<SortBy>("createdAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function handleSearch(v: string) {
     setSearch(v);
@@ -26,10 +47,27 @@ export default function Users() {
     }, 300);
   }
 
+  function toggleSort(col: SortBy) {
+    if (col === sortBy) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir("asc");
+    }
+    setPage(1);
+  }
+
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-users", debouncedSearch, page],
-    queryFn: () => api.users({ search: debouncedSearch || undefined, page }),
+    queryKey: ["admin-users", debouncedSearch, page, sortBy, sortDir],
+    queryFn: () => api.users({ search: debouncedSearch || undefined, page, sortBy, sortDir }),
   });
+
+  const COLS: { key: SortBy; label: string; sortable: boolean }[] = [
+    { key: "fullName", label: "Name", sortable: true },
+    { key: "email", label: "Email", sortable: true },
+    { key: "plan", label: "Plan", sortable: true },
+    { key: "createdAt", label: "Farms / Joined", sortable: true },
+  ];
 
   return (
     <div className="space-y-6">
@@ -60,11 +98,20 @@ export default function Users() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Email</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Plan</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Farms</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Joined</th>
+                {COLS.map(({ key, label, sortable }) => (
+                  <th key={key} className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {sortable ? (
+                      <button
+                        onClick={() => toggleSort(key)}
+                        className="flex items-center hover:text-foreground transition-colors"
+                      >
+                        {label}
+                        <SortIcon col={key} sortBy={sortBy} sortDir={sortDir} />
+                      </button>
+                    ) : label}
+                  </th>
+                ))}
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Last Active</th>
                 <th className="w-8 px-5" />
               </tr>
             </thead>
@@ -89,15 +136,20 @@ export default function Users() {
                   </td>
                   <td className="px-5 py-3.5 text-sm text-muted-foreground">{user.email ?? "—"}</td>
                   <td className="px-5 py-3.5">
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${PLAN_BADGE[user.plan] ?? "bg-muted text-muted-foreground"}`}
-                    >
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${PLAN_BADGE[user.plan] ?? "bg-muted text-muted-foreground"}`}>
                       {user.plan}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-foreground">{user.farmCount ?? 0}</td>
-                  <td className="px-5 py-3.5 text-sm text-muted-foreground">
-                    {user.createdAt ? format(parseISO(user.createdAt), "MMM d, yyyy") : "—"}
+                  <td className="px-5 py-3.5">
+                    <p className="text-sm text-foreground">{user.farmCount ?? 0} farms</p>
+                    <p className="text-xs text-muted-foreground">
+                      {user.createdAt ? format(parseISO(user.createdAt), "MMM d, yyyy") : "—"}
+                    </p>
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-muted-foreground">
+                    {user.lastActive
+                      ? formatDistanceToNow(parseISO(user.lastActive), { addSuffix: true })
+                      : "Never"}
                   </td>
                   <td className="px-5 py-3.5">
                     <Arrow className="h-4 w-4 text-muted-foreground" />
@@ -118,9 +170,7 @@ export default function Users() {
 
       {data && data.pages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {data.pages}
-          </p>
+          <p className="text-sm text-muted-foreground">Page {page} of {data.pages}</p>
           <div className="flex gap-2">
             <button
               disabled={page <= 1}

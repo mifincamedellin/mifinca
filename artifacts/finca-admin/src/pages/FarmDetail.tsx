@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { api } from "@/lib/api";
+import { api, type FarmDetail as FarmDetailType } from "@/lib/api";
 import {
   ArrowLeft,
   Loader2,
@@ -14,6 +14,8 @@ import {
   X,
   Check,
   UserMinus,
+  UserPlus,
+  Search,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
@@ -32,7 +34,171 @@ const SPECIES_EMOJI: Record<string, string> = {
 };
 
 function formatCOP(n: number) {
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+function AddMemberModal({
+  farmId,
+  onClose,
+  onSuccess,
+}: {
+  farmId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<{ id: string; fullName: string | null; email: string | null } | null>(null);
+  const [role, setRole] = useState<"viewer" | "admin" | "owner">("viewer");
+  const [results, setResults] = useState<{ id: string; fullName: string | null; email: string | null }[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  async function handleSearch(q: string) {
+    setSearch(q);
+    if (q.length < 2) {
+      setResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const data = await api.userSearch(q);
+      setResults(data.users);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  const addMutation = useMutation({
+    mutationFn: () => api.addMember(farmId, selected!.id, role),
+    onSuccess: () => {
+      toast.success("Member added");
+      onSuccess();
+      onClose();
+    },
+    onError: (e: Error & { status?: number }) => {
+      if (e.status === 409) toast.error("User is already a member");
+      else toast.error("Failed to add member");
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-card rounded-2xl border border-card-border shadow-xl w-full max-w-sm p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-semibold text-foreground">Add Member</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {!selected ? (
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Search User</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Name or email..."
+                className="w-full pl-8 pr-4 border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                autoFocus
+              />
+            </div>
+            {searching && (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {results.length > 0 && (
+              <div className="mt-2 border border-border rounded-xl overflow-hidden divide-y divide-border/60">
+                {results.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => setSelected(u)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-semibold text-primary">
+                        {(u.fullName ?? u.email ?? "?")[0]?.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{u.fullName ?? "No name"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {search.length >= 2 && !searching && results.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No users found</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-muted/40 rounded-xl">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-xs font-semibold text-primary">
+                  {(selected.fullName ?? selected.email ?? "?")[0]?.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{selected.fullName ?? "No name"}</p>
+                <p className="text-xs text-muted-foreground truncate">{selected.email}</p>
+              </div>
+              <button
+                onClick={() => { setSelected(null); setSearch(""); setResults([]); }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Role</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as "viewer" | "admin" | "owner")}
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-card"
+              >
+                <option value="viewer">Viewer</option>
+                <option value="admin">Admin</option>
+                <option value="owner">Owner</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors"
+          >
+            Cancel
+          </button>
+          {selected && (
+            <button
+              onClick={() => addMutation.mutate()}
+              disabled={addMutation.isPending}
+              className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+            >
+              {addMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <UserPlus className="h-3.5 w-3.5" />
+              )}
+              Add Member
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function FarmDetail({ id }: { id: string }) {
@@ -41,15 +207,20 @@ export default function FarmDetail({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>("Animals");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [editData, setEditData] = useState({ name: "", location: "" });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<FarmDetailType>({
     queryKey: ["admin-farm", id],
     queryFn: () => api.farm(id),
-    onSuccess: (d) => {
+    onSuccess: (d: FarmDetailType) => {
       setEditData({ name: d.farm.name ?? "", location: d.farm.location ?? "" });
     },
-  } as Parameters<typeof useQuery>[0]);
+  } as {
+    queryKey: unknown[];
+    queryFn: () => Promise<FarmDetailType>;
+    onSuccess: (d: FarmDetailType) => void;
+  });
 
   const updateMutation = useMutation({
     mutationFn: () => api.updateFarm(id, editData),
@@ -108,7 +279,13 @@ export default function FarmDetail({ id }: { id: string }) {
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">{farm.name}</h1>
           <p className="text-muted-foreground text-sm">
-            Owner: <button onClick={() => farm.ownerId && setLocation(`/users/${farm.ownerId}`)} className="hover:text-primary transition-colors">{farm.ownerName ?? "Unknown"}</button>
+            Owner:{" "}
+            <button
+              onClick={() => farm.ownerId && setLocation(`/users/${farm.ownerId}`)}
+              className="hover:text-primary transition-colors"
+            >
+              {farm.ownerName ?? "Unknown"}
+            </button>
             {farm.location && ` · ${farm.location}`}
           </p>
         </div>
@@ -176,11 +353,9 @@ export default function FarmDetail({ id }: { id: string }) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tag / Name</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Species</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Breed</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Sex</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                  {["Tag / Name", "Species", "Breed", "Sex", "Status"].map((h) => (
+                    <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -197,11 +372,15 @@ export default function FarmDetail({ id }: { id: string }) {
                     <td className="px-5 py-3 text-sm text-muted-foreground">{a.breed ?? "—"}</td>
                     <td className="px-5 py-3 text-sm text-muted-foreground capitalize">{a.sex ?? "—"}</td>
                     <td className="px-5 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
-                        a.status === "active" ? "bg-green-100 text-green-700" :
-                        a.status === "sold" ? "bg-blue-100 text-blue-700" :
-                        "bg-red-100 text-red-700"
-                      }`}>
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                          a.status === "active"
+                            ? "bg-green-100 text-green-700"
+                            : a.status === "sold"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
                         {a.status}
                       </span>
                     </td>
@@ -217,30 +396,44 @@ export default function FarmDetail({ id }: { id: string }) {
           )}
 
           {tab === "Finances" && (
-            <div className="p-5 space-y-4">
+            <div className="p-5">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Type</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Category</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Description</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amount</th>
+                    {["Date", "Type", "Category", "Description", "Amount"].map((h, i) => (
+                      <th
+                        key={h}
+                        className={`px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide ${i === 4 ? "text-right" : "text-left"}`}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {finances.recent.map((t) => (
                     <tr key={t.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{format(parseISO(t.date + "T12:00:00"), "MMM d, yyyy")}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {format(parseISO(t.date + "T12:00:00"), "MMM d, yyyy")}
+                      </td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${t.type === "income" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                            t.type === "income" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          }`}
+                        >
                           {t.type}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground capitalize">{t.category}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{t.description}</td>
-                      <td className={`px-4 py-3 text-sm font-semibold text-right ${t.type === "income" ? "text-green-600" : "text-red-500"}`}>
-                        {t.type === "income" ? "+" : "-"}{formatCOP(Number(t.amount))}
+                      <td
+                        className={`px-4 py-3 text-sm font-semibold text-right ${
+                          t.type === "income" ? "text-green-600" : "text-red-500"
+                        }`}
+                      >
+                        {t.type === "income" ? "+" : "-"}
+                        {formatCOP(Number(t.amount))}
                       </td>
                     </tr>
                   ))}
@@ -255,36 +448,52 @@ export default function FarmDetail({ id }: { id: string }) {
           )}
 
           {tab === "Members" && (
-            <div className="divide-y divide-border/60">
-              {members.map((m) => (
-                <div key={m.userId} className="flex items-center justify-between px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xs font-semibold text-primary">
-                        {(m.fullName ?? m.email ?? "?")[0]?.toUpperCase()}
+            <div>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border/60 bg-muted/20">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {members.length} member{members.length !== 1 ? "s" : ""}
+                </span>
+                <button
+                  onClick={() => setAddMemberOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  <UserPlus className="h-3 w-3" />
+                  Add Member
+                </button>
+              </div>
+              <div className="divide-y divide-border/60">
+                {members.map((m) => (
+                  <div key={m.userId} className="flex items-center justify-between px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-primary">
+                          {(m.fullName ?? m.email ?? "?")[0]?.toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{m.fullName ?? "No name"}</p>
+                        <p className="text-xs text-muted-foreground">{m.email ?? "—"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
+                        {m.role}
                       </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{m.fullName ?? "No name"}</p>
-                      <p className="text-xs text-muted-foreground">{m.email ?? "—"}</p>
+                      <button
+                        onClick={() => removeMemberMutation.mutate(m.userId)}
+                        disabled={removeMemberMutation.isPending}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Remove member"
+                      >
+                        <UserMinus className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">{m.role}</span>
-                    <button
-                      onClick={() => removeMemberMutation.mutate(m.userId)}
-                      disabled={removeMemberMutation.isPending}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
-                      title="Remove member"
-                    >
-                      <UserMinus className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {members.length === 0 && (
-                <p className="text-center py-10 text-sm text-muted-foreground">No members</p>
-              )}
+                ))}
+                {members.length === 0 && (
+                  <p className="text-center py-10 text-sm text-muted-foreground">No members</p>
+                )}
+              </div>
             </div>
           )}
 
@@ -292,9 +501,9 @@ export default function FarmDetail({ id }: { id: string }) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Time</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">User</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Action</th>
+                  {["Time", "User", "Action"].map((h) => (
+                    <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -323,13 +532,17 @@ export default function FarmDetail({ id }: { id: string }) {
           <div className="bg-card rounded-2xl border border-card-border shadow-xl w-full max-w-sm p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-semibold text-foreground">Edit Farm</h3>
-              <button onClick={() => setEditOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+              <button onClick={() => setEditOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <div className="space-y-4">
-              {[
-                { label: "Farm Name", key: "name" as const },
-                { label: "Location", key: "location" as const },
-              ].map(({ label, key }) => (
+              {(
+                [
+                  { label: "Farm Name", key: "name" },
+                  { label: "Location", key: "location" },
+                ] as const
+              ).map(({ label, key }) => (
                 <div key={key}>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5">{label}</label>
                   <input
@@ -341,13 +554,22 @@ export default function FarmDetail({ id }: { id: string }) {
               ))}
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setEditOpen(false)} className="flex-1 border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors">Cancel</button>
+              <button
+                onClick={() => setEditOpen(false)}
+                className="flex-1 border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 onClick={() => updateMutation.mutate()}
                 disabled={updateMutation.isPending}
                 className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
               >
-                {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                {updateMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
                 Save
               </button>
             </div>
@@ -360,24 +582,43 @@ export default function FarmDetail({ id }: { id: string }) {
           <div className="bg-card rounded-2xl border border-card-border shadow-xl w-full max-w-sm p-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-foreground">Delete Farm?</h3>
-              <button onClick={() => setDeleteOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+              <button onClick={() => setDeleteOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
               This will permanently delete <strong>{farm.name}</strong> and all its animals, finances, and records. This cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteOpen(false)} className="flex-1 border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors">Cancel</button>
+              <button
+                onClick={() => setDeleteOpen(false)}
+                className="flex-1 border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 onClick={() => deleteMutation.mutate()}
                 disabled={deleteMutation.isPending}
                 className="flex-1 bg-destructive text-white rounded-xl py-2.5 text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
               >
-                {deleteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                {deleteMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
                 Delete
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {addMemberOpen && (
+        <AddMemberModal
+          farmId={id}
+          onClose={() => setAddMemberOpen(false)}
+          onSuccess={() => qc.invalidateQueries({ queryKey: ["admin-farm", id] })}
+        />
       )}
     </div>
   );

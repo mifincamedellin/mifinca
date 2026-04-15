@@ -12,11 +12,14 @@ export function clearSecret() {
   sessionStorage.removeItem("admin_secret");
 }
 
-async function req<T>(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<T> {
+export function redirectToLogin() {
+  clearSecret();
+  window.location.replace(
+    import.meta.env.BASE_URL.replace(/\/$/, "") + "/login",
+  );
+}
+
+async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
@@ -25,6 +28,10 @@ async function req<T>(
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 401) {
+    redirectToLogin();
+    throw new Error("Unauthorized — redirecting to login");
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw Object.assign(new Error((err as { message?: string }).message ?? "Request failed"), {
@@ -44,12 +51,20 @@ export const api = {
     }).then((r) => r.ok),
 
   stats: () => req<AdminStats>("GET", "/stats"),
-  users: (params?: { search?: string; page?: number }) => {
+
+  users: (params?: { search?: string; page?: number; sortBy?: string; sortDir?: string }) => {
     const qs = new URLSearchParams();
     if (params?.search) qs.set("search", params.search);
     if (params?.page) qs.set("page", String(params.page));
+    if (params?.sortBy) qs.set("sortBy", params.sortBy);
+    if (params?.sortDir) qs.set("sortDir", params.sortDir);
     return req<UsersResponse>("GET", `/users?${qs}`);
   },
+  userSearch: (q: string) =>
+    req<{ users: Pick<Profile, "id" | "fullName" | "email" | "plan">[] }>(
+      "GET",
+      `/users/search?q=${encodeURIComponent(q)}`,
+    ),
   user: (id: string) => req<UserDetail>("GET", `/users/${id}`),
   updateUser: (id: string, data: Partial<{ fullName: string; email: string; plan: string }>) =>
     req<Profile>("PATCH", `/users/${id}`, data),
@@ -65,6 +80,8 @@ export const api = {
   updateFarm: (id: string, data: Partial<{ name: string; location: string }>) =>
     req<Farm>("PATCH", `/farms/${id}`, data),
   deleteFarm: (id: string) => req<{ ok: boolean }>("DELETE", `/farms/${id}`),
+  addMember: (farmId: string, userId: string, role: string) =>
+    req<{ ok: boolean }>("POST", `/farms/${farmId}/members`, { userId, role }),
   removeMember: (farmId: string, userId: string) =>
     req<{ ok: boolean }>("DELETE", `/farms/${farmId}/members/${userId}`),
 
@@ -87,6 +104,7 @@ export type Profile = {
   clerkId: string | null;
   createdAt: string;
   farmCount?: number;
+  lastActive?: string | null;
 };
 
 export type AdminStats = {

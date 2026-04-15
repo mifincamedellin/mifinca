@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { api } from "@/lib/api";
+import { api, type UserDetail as UserDetailType } from "@/lib/api";
 import {
   ArrowLeft,
   Loader2,
@@ -28,17 +28,21 @@ export default function UserDetail({ id }: { id: string }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editData, setEditData] = useState({ fullName: "", email: "", plan: "" });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<UserDetailType>({
     queryKey: ["admin-user", id],
     queryFn: () => api.user(id),
-    onSuccess: (d) => {
+    onSuccess: (d: UserDetailType) => {
       setEditData({
         fullName: d.fullName ?? "",
         email: d.email ?? "",
         plan: d.plan ?? "seed",
       });
     },
-  } as Parameters<typeof useQuery>[0]);
+  } as {
+    queryKey: unknown[];
+    queryFn: () => Promise<UserDetailType>;
+    onSuccess: (d: UserDetailType) => void;
+  });
 
   const updateMutation = useMutation({
     mutationFn: () => api.updateUser(id, editData),
@@ -92,7 +96,11 @@ export default function UserDetail({ id }: { id: string }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
-              setEditData({ fullName: data.fullName ?? "", email: data.email ?? "", plan: data.plan ?? "seed" });
+              setEditData({
+                fullName: data.fullName ?? "",
+                email: data.email ?? "",
+                plan: data.plan ?? "seed",
+              });
               setEditOpen(true);
             }}
             className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted/50 text-sm font-medium transition-colors"
@@ -110,10 +118,23 @@ export default function UserDetail({ id }: { id: string }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Plan", value: <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${PLAN_BADGE[data.plan] ?? "bg-muted text-muted-foreground"}`}>{data.plan}</span> },
+          {
+            label: "Plan",
+            value: (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${PLAN_BADGE[data.plan] ?? "bg-muted text-muted-foreground"}`}>
+                {data.plan}
+              </span>
+            ),
+          },
           { label: "Role", value: <span className="capitalize text-sm">{data.role}</span> },
-          { label: "Joined", value: <span className="text-sm">{data.createdAt ? format(parseISO(data.createdAt), "MMM d, yyyy") : "—"}</span> },
-          { label: "Clerk ID", value: <span className="text-xs font-mono text-muted-foreground truncate block max-w-[160px]">{data.clerkId ?? "—"}</span> },
+          {
+            label: "Joined",
+            value: <span className="text-sm">{data.createdAt ? format(parseISO(data.createdAt), "MMM d, yyyy") : "—"}</span>,
+          },
+          {
+            label: "Clerk ID",
+            value: <span className="text-xs font-mono text-muted-foreground truncate block max-w-[160px]">{data.clerkId ?? "—"}</span>,
+          },
         ].map(({ label, value }) => (
           <div key={label} className="bg-card border border-card-border rounded-xl p-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{label}</p>
@@ -167,10 +188,12 @@ export default function UserDetail({ id }: { id: string }) {
               </button>
             </div>
             <div className="space-y-4">
-              {[
-                { label: "Full Name", key: "fullName" as const },
-                { label: "Email", key: "email" as const },
-              ].map(({ label, key }) => (
+              {(
+                [
+                  { label: "Full Name", key: "fullName" },
+                  { label: "Email", key: "email" },
+                ] as const
+              ).map(({ label, key }) => (
                 <div key={key}>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5">{label}</label>
                   <input
@@ -205,7 +228,11 @@ export default function UserDetail({ id }: { id: string }) {
                 disabled={updateMutation.isPending}
                 className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
               >
-                {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                {updateMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
                 Save
               </button>
             </div>
@@ -237,7 +264,11 @@ export default function UserDetail({ id }: { id: string }) {
                 disabled={deleteMutation.isPending}
                 className="flex-1 bg-destructive text-white rounded-xl py-2.5 text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
               >
-                {deleteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                {deleteMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
                 Delete
               </button>
             </div>
