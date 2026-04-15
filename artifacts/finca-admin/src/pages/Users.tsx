@@ -134,7 +134,12 @@ export default function Users() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-muted-foreground">{user.email ?? "—"}</td>
+                  <td className="px-5 py-3.5 text-sm">
+                    {user.email
+                      ? <span className="text-muted-foreground">{user.email}</span>
+                      : <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">No email</span>
+                    }
+                  </td>
                   <td className="px-5 py-3.5">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${PLAN_BADGE[user.plan] ?? "bg-muted text-muted-foreground"}`}>
                       {user.plan}

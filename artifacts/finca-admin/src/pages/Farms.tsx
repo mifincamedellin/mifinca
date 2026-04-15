@@ -75,7 +75,10 @@ export default function Farms() {
                   <td className="px-5 py-3.5">
                     <div>
                       <p className="text-sm text-foreground">{farm.ownerName ?? "—"}</p>
-                      <p className="text-xs text-muted-foreground">{farm.ownerEmail ?? ""}</p>
+                      {farm.ownerEmail
+                        ? <p className="text-xs text-muted-foreground">{farm.ownerEmail}</p>
+                        : <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">No email</span>
+                      }
                     </div>
                   </td>
                   <td className="px-5 py-3.5">

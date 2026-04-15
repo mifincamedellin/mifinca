@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
   Check,
+  Mail,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
@@ -115,6 +116,31 @@ export default function UserDetail({ id }: { id: string }) {
         </div>
       </div>
 
+      {/* Email card — full width, prominent, editable */}
+      <div className={`bg-card border rounded-xl p-4 flex items-center justify-between gap-4 ${!data.email ? "border-amber-300 bg-amber-50/60" : "border-card-border"}`}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${data.email ? "bg-primary/10" : "bg-amber-100"}`}>
+            <Mail className={`h-4 w-4 ${data.email ? "text-primary" : "text-amber-600"}`} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Email Address</p>
+            {data.email
+              ? <p className="text-sm font-medium text-foreground truncate">{data.email}</p>
+              : <p className="text-sm text-amber-600 font-medium">No email set — click Edit to add one</p>
+            }
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setEditData({ fullName: data.fullName ?? "", email: data.email ?? "", plan: data.plan ?? "seed" });
+            setEditOpen(true);
+          }}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/50 text-xs font-medium transition-colors"
+        >
+          <Pencil className="h-3 w-3" /> Edit
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
@@ -131,8 +157,8 @@ export default function UserDetail({ id }: { id: string }) {
             value: <span className="text-sm">{data.createdAt ? format(parseISO(data.createdAt), "MMM d, yyyy") : "—"}</span>,
           },
           {
-            label: "Clerk ID",
-            value: <span className="text-xs font-mono text-muted-foreground truncate block max-w-[160px]">{data.clerkId ?? "—"}</span>,
+            label: "Auth ID",
+            value: <span className="text-xs font-mono text-muted-foreground truncate block max-w-[160px]">{data.clerkId ?? <span className="text-amber-500 not-italic">Not linked</span>}</span>,
           },
         ].map(({ label, value }) => (
           <div key={label} className="bg-card border border-card-border rounded-xl p-4">
