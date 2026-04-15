@@ -95,11 +95,11 @@ export function MarkInHeatCard({ animalId, farmId, onUpdate }: BaseProps) {
                 type="date"
                 value={dateInput}
                 onChange={e => setDateInput(e.target.value)}
-                className="mt-1 rounded-xl"
+                className="mt-1 rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
               />
             </div>
             <Button
-              className="w-full rounded-xl bg-orange-500 hover:bg-orange-600"
+              className="w-full rounded-xl bg-orange-500 hover:bg-orange-600 border-0"
               disabled={!dateInput || loading}
               onClick={doAction}
             >
@@ -207,7 +207,7 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
                 type="date"
                 value={dateInput}
                 onChange={e => handleConceptionDateChange(e.target.value)}
-                className="mt-1 rounded-xl"
+                className="mt-1 rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 {isEn ? "When was the pregnancy confirmed?" : "¿Cuándo se confirmó la preñez?"}
@@ -221,7 +221,7 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
                 type="date"
                 value={dueDateInput}
                 onChange={e => setDueDateInput(e.target.value)}
-                className="mt-1 rounded-xl"
+                className="mt-1 rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 {isEn
