@@ -44,7 +44,7 @@ router.get("/admin/stats", requireAdmin, async (_req: Request, res: Response) =>
     const [userCount] = await db
       .select({ count: count() })
       .from(profilesTable)
-      .where(sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`);
+      .where(sql`(${profilesTable.clerkId} IS NULL OR ${profilesTable.clerkId} NOT LIKE 'demo:%')`);
 
     const [farmCount] = await db.select({ count: count() }).from(farmsTable);
 
@@ -56,13 +56,13 @@ router.get("/admin/stats", requireAdmin, async (_req: Request, res: Response) =>
     const planBreakdown = await db
       .select({ plan: profilesTable.plan, count: count() })
       .from(profilesTable)
-      .where(sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`)
+      .where(sql`(${profilesTable.clerkId} IS NULL OR ${profilesTable.clerkId} NOT LIKE 'demo:%')`)
       .groupBy(profilesTable.plan);
 
     const signupsByDay = await pool.query<{ day: string; count: string }>(`
       SELECT DATE_TRUNC('day', created_at)::date AS day, COUNT(*) AS count
       FROM profiles
-      WHERE clerk_id NOT LIKE 'demo:%'
+      WHERE (clerk_id IS NULL OR clerk_id NOT LIKE 'demo:%')
         AND created_at >= NOW() - INTERVAL '30 days'
       GROUP BY day
       ORDER BY day ASC
@@ -96,7 +96,7 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response) => 
       .groupBy(farmMembersTable.userId)
       .as("farm_counts");
 
-    const noDemoFilter = sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`;
+    const noDemoFilter = sql`(${profilesTable.clerkId} IS NULL OR ${profilesTable.clerkId} NOT LIKE 'demo:%')`;
     const whereCondition = search
       ? and(
           noDemoFilter,
@@ -186,7 +186,7 @@ router.get("/admin/users/search", requireAdmin, async (req: Request, res: Respon
       .from(profilesTable)
       .where(
         and(
-          sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`,
+          sql`(${profilesTable.clerkId} IS NULL OR ${profilesTable.clerkId} NOT LIKE 'demo:%')`,
           or(
             ilike(profilesTable.fullName, `%${q}%`),
             ilike(profilesTable.email, `%${q}%`),
