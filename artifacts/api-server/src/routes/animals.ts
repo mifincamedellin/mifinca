@@ -153,7 +153,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
       db.select({ cnt: count() }).from(animalLifecycleEventsTable)
         .where(and(
           eq(animalLifecycleEventsTable.animalId, animalId),
-          sql`${animalLifecycleEventsTable.eventType} = 'marked_pregnant'`,
+          eq(animalLifecycleEventsTable.eventType, 'marked_pregnant'),
         )),
     ]);
 
