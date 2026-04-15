@@ -96,12 +96,16 @@ router.get("/admin/users", requireAdmin, async (req: Request, res: Response) => 
       .groupBy(farmMembersTable.userId)
       .as("farm_counts");
 
+    const noDemoFilter = sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`;
     const whereCondition = search
-      ? or(
-          ilike(profilesTable.fullName, `%${search}%`),
-          ilike(profilesTable.email, `%${search}%`),
+      ? and(
+          noDemoFilter,
+          or(
+            ilike(profilesTable.fullName, `%${search}%`),
+            ilike(profilesTable.email, `%${search}%`),
+          ),
         )
-      : sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`;
+      : noDemoFilter;
 
     const sortMap: Record<string, Parameters<typeof asc>[0]> = {
       createdAt: profilesTable.createdAt,
@@ -181,9 +185,12 @@ router.get("/admin/users/search", requireAdmin, async (req: Request, res: Respon
       })
       .from(profilesTable)
       .where(
-        or(
-          ilike(profilesTable.fullName, `%${q}%`),
-          ilike(profilesTable.email, `%${q}%`),
+        and(
+          sql`${profilesTable.clerkId} NOT LIKE 'demo:%'`,
+          or(
+            ilike(profilesTable.fullName, `%${q}%`),
+            ilike(profilesTable.email, `%${q}%`),
+          ),
         ),
       )
       .limit(10);
@@ -384,7 +391,7 @@ router.get("/admin/farms/:farmId", requireAdmin, async (req: Request, res: Respo
       .from(financeTransactionsTable)
       .where(eq(financeTransactionsTable.farmId, farmId))
       .orderBy(desc(financeTransactionsTable.date))
-      .limit(50);
+      .limit(10);
 
     const financeSummary = await db
       .select({
