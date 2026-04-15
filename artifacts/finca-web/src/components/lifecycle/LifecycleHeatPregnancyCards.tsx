@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Flame, Baby } from "lucide-react";
+import { Flame, Baby, Calendar } from "lucide-react";
 import { LIFECYCLE_CONFIG } from "@/lib/lifecycle";
 
 async function lifecycleAction(farmId: string, animalId: string, action: string, body: Record<string, unknown> = {}) {
@@ -91,12 +91,15 @@ export function MarkInHeatCard({ animalId, farmId, onUpdate }: BaseProps) {
               <label className="text-sm font-medium">
                 {isEn ? "Heat start date" : "Fecha de inicio del celo"}
               </label>
-              <Input
-                type="date"
-                value={dateInput}
-                onChange={e => setDateInput(e.target.value)}
-                className="mt-1 rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-              />
+              <div className="relative mt-1">
+                <Input
+                  type="date"
+                  value={dateInput}
+                  onChange={e => setDateInput(e.target.value)}
+                  className="rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
             </div>
             <Button
               className="w-full rounded-xl bg-orange-500 hover:bg-orange-600 border-0"
@@ -203,12 +206,15 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
               <label className="text-sm font-medium">
                 {isEn ? "Confirmation date" : "Fecha de confirmación"}
               </label>
-              <Input
-                type="date"
-                value={dateInput}
-                onChange={e => handleConceptionDateChange(e.target.value)}
-                className="mt-1 rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-              />
+              <div className="relative mt-1">
+                <Input
+                  type="date"
+                  value={dateInput}
+                  onChange={e => handleConceptionDateChange(e.target.value)}
+                  className="rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {isEn ? "When was the pregnancy confirmed?" : "¿Cuándo se confirmó la preñez?"}
               </p>
@@ -217,12 +223,15 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
               <label className="text-sm font-medium">
                 {isEn ? "Expected due date" : "Fecha probable de parto"}
               </label>
-              <Input
-                type="date"
-                value={dueDateInput}
-                onChange={e => setDueDateInput(e.target.value)}
-                className="mt-1 rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-              />
+              <div className="relative mt-1">
+                <Input
+                  type="date"
+                  value={dueDateInput}
+                  onChange={e => setDueDateInput(e.target.value)}
+                  className="rounded-xl pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {isEn
                   ? `Auto-calculated at ${gestationDays} days. Adjust if needed.`
