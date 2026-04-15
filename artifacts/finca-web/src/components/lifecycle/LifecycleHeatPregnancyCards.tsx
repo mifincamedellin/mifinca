@@ -251,7 +251,7 @@ export function MarkPregnantCard({ animalId, farmId, species, onUpdate }: Pregna
               </div>
             </div>
             <Button
-              className="w-full rounded-xl bg-rose-500 hover:bg-rose-600"
+              className="w-full rounded-xl bg-rose-500 hover:bg-rose-600 border-0"
               disabled={!dateInput || loading}
               onClick={doAction}
             >
