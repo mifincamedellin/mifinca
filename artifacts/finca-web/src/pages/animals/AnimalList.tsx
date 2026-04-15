@@ -9,7 +9,7 @@ import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell, TrendingUp, CheckCircle2, Flame, Baby, Milk, LayoutGrid, Table2 } from "lucide-react";
+import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell, TrendingUp, CheckCircle2, Flame, Baby, Milk, LayoutGrid, Table2, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { LifecycleSummaryChips } from "@/components/lifecycle/LifecycleSummaryChips";
 import { deriveLifecycleStage, hasLifecycle, type LifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -68,6 +68,28 @@ export function AnimalList() {
   const [view, setView] = useState<"grid" | "table">(() => {
     try { return (localStorage.getItem("animals-view") as "grid" | "table") || "grid"; } catch { return "grid"; }
   });
+  type SortCol = "tag" | "name" | "age" | "weight";
+  type SortDir = "asc" | "desc";
+  const [sortCol, setSortCol] = useState<SortCol | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = (col: SortCol) => {
+    if (sortCol === col) {
+      if (sortDir === "asc") { setSortDir("desc"); }
+      else { setSortCol(null); setSortDir("asc"); }
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortCol }) => {
+    if (sortCol !== col) return <ChevronsUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDir === "asc"
+      ? <ChevronUp className="h-3 w-3 ml-1" />
+      : <ChevronDown className="h-3 w-3 ml-1" />;
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -163,8 +185,32 @@ export function AnimalList() {
         return stage === selectedLifecycle;
       });
     }
+    if (sortCol) {
+      result = [...result].sort((a, b) => {
+        let cmp = 0;
+        if (sortCol === "tag") {
+          const ta = (a.customTag ?? "").toLowerCase();
+          const tb = (b.customTag ?? "").toLowerCase();
+          cmp = ta.localeCompare(tb, undefined, { numeric: true, sensitivity: "base" });
+        } else if (sortCol === "name") {
+          const na = (a.name ?? "").toLowerCase();
+          const nb = (b.name ?? "").toLowerCase();
+          cmp = na.localeCompare(nb, undefined, { sensitivity: "base" });
+        } else if (sortCol === "age") {
+          const da = (a as any).dateOfBirth ? new Date((a as any).dateOfBirth + "T12:00:00").getTime() : 0;
+          const db = (b as any).dateOfBirth ? new Date((b as any).dateOfBirth + "T12:00:00").getTime() : 0;
+          // asc = youngest first = larger birthDate first
+          cmp = db - da;
+        } else if (sortCol === "weight") {
+          const wa = a.currentWeight != null ? Number(a.currentWeight) : -1;
+          const wb = b.currentWeight != null ? Number(b.currentWeight) : -1;
+          cmp = wa - wb;
+        }
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
     return result;
-  }, [animals, selectedSpecies, selectedLifecycle]);
+  }, [animals, selectedSpecies, selectedLifecycle, sortCol, sortDir]);
 
   if (!activeFarmId) return null;
 
@@ -485,13 +531,29 @@ export function AnimalList() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/30">
-                    <th className="text-left px-5 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Tag</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.name')}</th>
+                    <th className="text-left px-5 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      <button onClick={() => handleSort("tag")} className="flex items-center hover:text-foreground transition-colors">
+                        Tag<SortIcon col="tag" />
+                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      <button onClick={() => handleSort("name")} className="flex items-center hover:text-foreground transition-colors">
+                        {t('animals.name')}<SortIcon col="name" />
+                      </button>
+                    </th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.species')}</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">{t('animals.breed')}</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Sex" : "Sexo"}</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">{isEn ? "Age" : "Edad"}</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.weight')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
+                      <button onClick={() => handleSort("age")} className="flex items-center hover:text-foreground transition-colors">
+                        {isEn ? "Age" : "Edad"}<SortIcon col="age" />
+                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      <button onClick={() => handleSort("weight")} className="flex items-center hover:text-foreground transition-colors">
+                        {t('animals.weight')}<SortIcon col="weight" />
+                      </button>
+                    </th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Stage" : "Etapa"}</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Alert" : "Alerta"}</th>
                     <th className="px-4 py-3 w-8"></th>
