@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull } from "lucide-react";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull, DollarSign } from "lucide-react";
 import { LifecycleActionCard } from "@/components/lifecycle/LifecycleActionCard";
 import { LifecyclePregnantCard } from "@/components/lifecycle/LifecyclePregnantCard";
 import { LifecycleBar } from "@/components/lifecycle/LifecycleBar";
@@ -972,7 +972,7 @@ export function AnimalDetail() {
                 </p>
               </div>
               <div className="pt-3 border-t border-border/50">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('animals.purchasePrice')}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1"><DollarSign className="h-3 w-3" />{t('animals.purchasePrice')}</p>
                 <p className="font-medium text-foreground">
                   {(animal as any).purchasePrice
                     ? formatCurrency(Number((animal as any).purchasePrice), currency)
