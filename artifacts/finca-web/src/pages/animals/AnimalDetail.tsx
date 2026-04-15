@@ -979,6 +979,15 @@ export function AnimalDetail() {
                     : <span className="text-muted-foreground/60 italic font-normal text-sm">{t('animals.notPurchased')}</span>}
                 </p>
               </div>
+              {animal.sex === 'female' && (
+                <div className="pt-3 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t('animals.pregnancies')}</p>
+                  <p className="font-medium text-foreground flex items-center gap-2">
+                    <Baby className="h-4 w-4 text-primary/50" />
+                    {(animal as any).pregnancyCount ?? 0}
+                  </p>
+                </div>
+              )}
             </div>
           </Card>
         </div>

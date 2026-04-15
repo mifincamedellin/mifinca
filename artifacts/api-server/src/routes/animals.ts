@@ -134,7 +134,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
       return res.status(404).json({ error: "not_found" });
     }
 
-    const [weights, medical, offspring, linkedEvents] = await Promise.all([
+    const [weights, medical, offspring, linkedEvents, pregnancyCountResult] = await Promise.all([
       db.select().from(weightRecordsTable)
         .where(eq(weightRecordsTable.animalId, animalId))
         .orderBy(desc(weightRecordsTable.recordedAt)),
@@ -150,6 +150,11 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
           isNull(farmEventsTable.medicalRecordId), // exclude auto-generated medical events to avoid duplication with medical records tab
         ))
         .orderBy(asc(farmEventsTable.startDate)),
+      db.select({ cnt: count() }).from(animalLifecycleEventsTable)
+        .where(and(
+          eq(animalLifecycleEventsTable.animalId, animalId),
+          sql`${animalLifecycleEventsTable.eventType} = 'marked_pregnant'`,
+        )),
     ]);
 
     const offspringList = offspring.filter(a =>
@@ -179,6 +184,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
       mother,
       father,
       linkedCalendarEvents: linkedEvents,
+      pregnancyCount: Number(pregnancyCountResult[0]?.cnt ?? 0),
     });
   } catch (err) {
     req.log.error({ err }, "Get animal error");
