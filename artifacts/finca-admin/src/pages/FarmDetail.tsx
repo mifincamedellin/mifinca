@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { api, type FarmDetail as FarmDetailType } from "@/lib/api";
@@ -52,7 +52,7 @@ function AddMemberModal({
 }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<{ id: string; fullName: string | null; email: string | null } | null>(null);
-  const [role, setRole] = useState<"viewer" | "admin" | "owner">("viewer");
+  const [role, setRole] = useState<"owner" | "worker">("worker");
   const [results, setResults] = useState<{ id: string; fullName: string | null; email: string | null }[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -74,7 +74,7 @@ function AddMemberModal({
   }
 
   const addMutation = useMutation({
-    mutationFn: () => api.addMember(farmId, selected!.id, role),
+    mutationFn: () => api.addMember(farmId, selected!.id, role as string),
     onSuccess: () => {
       toast.success("Member added");
       onSuccess();
@@ -163,11 +163,10 @@ function AddMemberModal({
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Role</label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as "viewer" | "admin" | "owner")}
+                onChange={(e) => setRole(e.target.value as "owner" | "worker")}
                 className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-card"
               >
-                <option value="viewer">Viewer</option>
-                <option value="admin">Admin</option>
+                <option value="worker">Worker</option>
                 <option value="owner">Owner</option>
               </select>
             </div>
@@ -213,14 +212,13 @@ export default function FarmDetail({ id }: { id: string }) {
   const { data, isLoading } = useQuery<FarmDetailType>({
     queryKey: ["admin-farm", id],
     queryFn: () => api.farm(id),
-    onSuccess: (d: FarmDetailType) => {
-      setEditData({ name: d.farm.name ?? "", location: d.farm.location ?? "" });
-    },
-  } as {
-    queryKey: unknown[];
-    queryFn: () => Promise<FarmDetailType>;
-    onSuccess: (d: FarmDetailType) => void;
   });
+
+  useEffect(() => {
+    if (data) {
+      setEditData({ name: data.farm.name ?? "", location: data.farm.location ?? "" });
+    }
+  }, [data]);
 
   const updateMutation = useMutation({
     mutationFn: () => api.updateFarm(id, editData),

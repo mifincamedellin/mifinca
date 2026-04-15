@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { api, type UserDetail as UserDetailType } from "@/lib/api";
@@ -26,23 +26,22 @@ export default function UserDetail({ id }: { id: string }) {
   const qc = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [editData, setEditData] = useState({ fullName: "", email: "", plan: "" });
+  const [editData, setEditData] = useState({ fullName: "", email: "", plan: "seed" });
 
   const { data, isLoading } = useQuery<UserDetailType>({
     queryKey: ["admin-user", id],
     queryFn: () => api.user(id),
-    onSuccess: (d: UserDetailType) => {
-      setEditData({
-        fullName: d.fullName ?? "",
-        email: d.email ?? "",
-        plan: d.plan ?? "seed",
-      });
-    },
-  } as {
-    queryKey: unknown[];
-    queryFn: () => Promise<UserDetailType>;
-    onSuccess: (d: UserDetailType) => void;
   });
+
+  useEffect(() => {
+    if (data) {
+      setEditData({
+        fullName: data.fullName ?? "",
+        email: data.email ?? "",
+        plan: data.plan ?? "seed",
+      });
+    }
+  }, [data]);
 
   const updateMutation = useMutation({
     mutationFn: () => api.updateUser(id, editData),

@@ -472,10 +472,11 @@ router.post(
         .limit(1);
       if (existing[0]) return res.status(409).json({ error: "already_member" });
 
+      const dbRole: "owner" | "worker" = role === "owner" ? "owner" : "worker";
       await db.insert(farmMembersTable).values({
         farmId,
         userId,
-        role: (role ?? "viewer") as "owner" | "admin" | "viewer",
+        role: dbRole,
       });
       return res.json({ ok: true });
     } catch (err) {
