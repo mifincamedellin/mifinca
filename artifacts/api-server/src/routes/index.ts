@@ -15,6 +15,7 @@ import employeesRouter from "./employees.js";
 import seedRouter from "./seed.js";
 import eventsRouter from "./events.js";
 import invitationsRouter from "./invitations.js";
+import adminRouter from "./admin.js";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(employeesRouter);
 router.use(seedRouter);
 router.use(eventsRouter);
 router.use(invitationsRouter);
+router.use(adminRouter);
 
 export default router;
