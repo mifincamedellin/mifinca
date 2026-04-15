@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400..700;1,400..700&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -53,69 +54,89 @@
   --color-sidebar-accent: hsl(var(--sidebar-accent));
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
 
-  --font-sans: var(--app-font-sans);
-  --font-serif: var(--app-font-serif);
-  --font-mono: var(--app-font-mono);
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 }
 
 :root {
-  --background: 220 16% 97%;
-  --foreground: 220 20% 14%;
-  --border: 220 13% 88%;
-  --input: 220 13% 88%;
-  --ring: 238 80% 60%;
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .05);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .08);
 
-  --card: 0 0% 100%;
-  --card-foreground: 220 20% 14%;
-  --card-border: 220 13% 90%;
+  /* Cream: #FDFAF5 */
+  --background: 40 57% 97%;
+  /* Ink: #1A1A1A */
+  --foreground: 0 0% 10%;
+  /* Border: #E0D8CE */
+  --border: 33 22% 84%;
+  --input: 33 22% 84%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 20% 14%;
-  --popover-border: 220 13% 88%;
+  /* Sand: #F5F0E8 */
+  --card: 40 38% 94%;
+  --card-foreground: 0 0% 10%;
+  --card-border: 33 22% 84%;
 
-  --primary: 238 80% 60%;
-  --primary-foreground: 0 0% 100%;
-  --primary-border: hsl(238 80% 52%);
+  --popover: 40 57% 97%;
+  --popover-foreground: 0 0% 10%;
+  --popover-border: 33 22% 84%;
 
-  --secondary: 220 14% 93%;
-  --secondary-foreground: 220 20% 30%;
-  --secondary-border: hsl(220 14% 86%);
+  /* Earth: #2C1810 */
+  --primary: 15 60% 13%;
+  --primary-foreground: 40 57% 97%;
+  --primary-border: hsl(15 60% 8%);
 
-  --muted: 220 14% 94%;
-  --muted-foreground: 220 12% 52%;
-  --muted-border: hsl(220 14% 88%);
+  /* Sage: #4A6741 */
+  --secondary: 113 22% 33%;
+  --secondary-foreground: 40 57% 97%;
+  --secondary-border: hsl(113 22% 27%);
 
-  --accent: 238 100% 97%;
-  --accent-foreground: 238 80% 55%;
-  --accent-border: hsl(238 80% 90%);
+  /* Sand (Muted) */
+  --muted: 40 38% 94%;
+  /* Muted Text: #6B6560 */
+  --muted-foreground: 27 5% 40%;
+  --muted-border: hsl(33 22% 88%);
+
+  /* Clay: #C4956A */
+  --accent: 28 44% 59%;
+  --accent-foreground: 40 57% 97%;
+  --accent-border: hsl(28 44% 52%);
 
   --destructive: 0 84% 55%;
-  --destructive-foreground: 0 0% 100%;
+  --destructive-foreground: 40 57% 97%;
   --destructive-border: hsl(0 84% 48%);
 
-  --chart-1: 238 80% 60%;
-  --chart-2: 142 71% 45%;
-  --chart-3: 35 91% 58%;
+  /* Charts — earthy palette */
+  --chart-1: 15 60% 13%;
+  --chart-2: 113 22% 33%;
+  --chart-3: 28 44% 59%;
   --chart-4: 0 84% 55%;
-  --chart-5: 271 81% 55%;
+  --chart-5: 40 57% 70%;
 
-  --sidebar: 224 28% 10%;
-  --sidebar-foreground: 220 20% 90%;
-  --sidebar-border: 224 20% 16%;
-  --sidebar-primary: 238 80% 65%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 224 20% 18%;
-  --sidebar-accent-foreground: 220 20% 95%;
+  /* Sidebar: Earth dark brown */
+  --ring: 113 19% 47%;
+  --sidebar: 15 60% 13%;
+  --sidebar-foreground: 40 57% 97%;
+  --sidebar-border: 15 40% 20%;
+  --sidebar-primary: 113 22% 33%;
+  --sidebar-primary-foreground: 40 57% 97%;
+  --sidebar-accent: 15 40% 20%;
+  --sidebar-accent-foreground: 40 57% 97%;
 
-  --app-font-sans: 'Inter', system-ui, sans-serif;
-  --app-font-serif: Georgia, serif;
-  --app-font-mono: 'JetBrains Mono', monospace;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
 }
 
 @layer base {

@@ -38,7 +38,10 @@ export default function Login() {
           <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
             <Shield className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-sidebar-foreground">miFinca Admin</h1>
+          <h1 className="text-2xl font-serif text-sidebar-foreground tracking-tight">
+            <span className="font-medium">mi</span><span className="font-bold">Finca</span>
+            <span className="font-sans font-semibold text-sidebar-foreground/60 text-base ml-2">Admin</span>
+          </h1>
           <p className="text-sidebar-foreground/50 text-sm mt-1">Internal dashboard — team access only</p>
         </div>
 

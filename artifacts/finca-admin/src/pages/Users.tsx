@@ -16,7 +16,7 @@ import { format, parseISO, formatDistanceToNow } from "date-fns";
 
 const PLAN_BADGE: Record<string, string> = {
   seed: "bg-amber-100 text-amber-700",
-  farm: "bg-blue-100 text-blue-700",
+  farm: "bg-secondary/15 text-secondary",
   pro: "bg-violet-100 text-violet-700",
 };
 

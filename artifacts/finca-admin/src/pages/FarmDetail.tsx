@@ -309,7 +309,7 @@ export default function FarmDetail({ id }: { id: string }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Animals", value: animals.length, icon: PawPrint, color: "text-green-600", bg: "bg-green-50" },
-          { label: "Members", value: members.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Members", value: members.length, icon: Users, color: "text-secondary", bg: "bg-secondary/10" },
           { label: "Income", value: formatCOP(income), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "Expenses", value: formatCOP(expense), icon: DollarSign, color: "text-red-500", bg: "bg-red-50" },
         ].map(({ label, value, icon: Icon, color, bg }) => (
@@ -375,7 +375,7 @@ export default function FarmDetail({ id }: { id: string }) {
                           a.status === "active"
                             ? "bg-green-100 text-green-700"
                             : a.status === "sold"
-                            ? "bg-blue-100 text-blue-700"
+                            ? "bg-amber-100 text-amber-700"
                             : "bg-red-100 text-red-700"
                         }`}
                       >

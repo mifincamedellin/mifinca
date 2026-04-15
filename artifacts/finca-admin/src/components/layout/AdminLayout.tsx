@@ -7,7 +7,6 @@ import {
   Building2,
   Activity,
   LogOut,
-  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,20 +28,13 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="w-60 shrink-0 bg-sidebar flex flex-col border-r border-sidebar-border fixed h-full z-30">
-        <div className="p-5 border-b border-sidebar-border">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-              <Shield className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-widest leading-none">
-                miFinca
-              </p>
-              <p className="text-sm font-semibold text-sidebar-foreground leading-snug">
-                Admin
-              </p>
-            </div>
-          </div>
+        <div className="p-6 border-b border-sidebar-border">
+          <h1 className="text-2xl font-serif text-sidebar-foreground leading-none tracking-tight">
+            <span className="font-medium">mi</span><span className="font-bold">Finca</span>
+          </h1>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 mt-1">
+            Admin Dashboard
+          </p>
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5">
@@ -55,7 +47,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               <Link key={href} href={href}>
                 <a
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
                     isActive
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
@@ -64,7 +56,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                   <Icon
                     className={cn(
                       "h-4 w-4 shrink-0",
-                      isActive ? "text-primary" : "text-sidebar-foreground/40",
+                      isActive
+                        ? "text-accent"
+                        : "text-sidebar-foreground/40",
                     )}
                   />
                   {label}
@@ -77,7 +71,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         <div className="p-3 border-t border-sidebar-border">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
           >
             <LogOut className="h-4 w-4 shrink-0" />
             Sign out

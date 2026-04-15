@@ -14,7 +14,7 @@ import { format, parseISO } from "date-fns";
 
 const PLAN_COLORS: Record<string, string> = {
   seed: "bg-amber-500/15 text-amber-700 border-amber-200",
-  farm: "bg-blue-500/15 text-blue-700 border-blue-200",
+  farm: "bg-secondary/15 text-secondary border-secondary/30",
   pro: "bg-violet-500/15 text-violet-700 border-violet-200",
 };
 
@@ -56,8 +56,8 @@ export default function Overview() {
       label: "Total Users",
       value: data?.users ?? 0,
       icon: Users,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: "text-secondary",
+      bg: "bg-secondary/10",
     },
     {
       label: "Total Farms",
