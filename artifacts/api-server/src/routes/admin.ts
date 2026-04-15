@@ -403,7 +403,7 @@ router.get("/admin/farms/:farmId", requireAdmin, async (req: Request, res: Respo
       created_at: string;
       user_name: string | null;
     }>(
-      `SELECT al.id, al.action, al.entity_type, al.entity_id, al.created_at, p.full_name as user_name
+      `SELECT al.id, al.action_type AS action, al.entity_type, al.entity_id, al.created_at, p.full_name as user_name
        FROM activity_log al
        LEFT JOIN profiles p ON al.user_id = p.id
        WHERE al.farm_id = $1
@@ -517,7 +517,7 @@ router.get("/admin/activity", requireAdmin, async (req: Request, res: Response) 
     let paramIdx = 1;
 
     if (filterAction && filterAction !== "all") {
-      whereClause += ` AND al.action ILIKE $${paramIdx}`;
+      whereClause += ` AND al.action_type ILIKE $${paramIdx}`;
       params.push(`%${filterAction}%`);
       paramIdx++;
     }
@@ -542,7 +542,7 @@ router.get("/admin/activity", requireAdmin, async (req: Request, res: Response) 
       farm_name: string | null;
       farm_id: string | null;
     }>(
-      `SELECT al.id, al.action, al.entity_type, al.entity_id, al.created_at,
+      `SELECT al.id, al.action_type AS action, al.entity_type, al.entity_id, al.created_at,
               p.full_name as user_name, f.name as farm_name, al.farm_id
        FROM activity_log al
        LEFT JOIN profiles p ON al.user_id = p.id
