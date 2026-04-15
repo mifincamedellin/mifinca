@@ -398,7 +398,7 @@ export function LifecyclePregnantCard({ animal, farmId, onUpdate }: Props) {
             )}
 
             <Button
-              className="w-full rounded-xl bg-rose-500 hover:bg-rose-600 text-white"
+              className="w-full rounded-xl bg-rose-500 hover:bg-rose-600 text-white border-0"
               disabled={confirmDisabled}
               onClick={handleMarkDelivered}
             >
