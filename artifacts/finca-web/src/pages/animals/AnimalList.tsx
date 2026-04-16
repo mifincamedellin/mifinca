@@ -533,7 +533,7 @@ export function AnimalList() {
                   <tr className="border-b border-border/50 bg-muted/30">
                     <th className="text-left px-5 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
                       <button onClick={() => handleSort("tag")} className="flex items-center hover:text-foreground transition-colors">
-                        Tag<SortIcon col="tag" />
+                        ID<SortIcon col="tag" />
                       </button>
                     </th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
@@ -596,7 +596,7 @@ export function AnimalList() {
                         onClick={() => navigate(`/animals/${animal.id}`)}
                         className="hover:bg-muted/30 cursor-pointer transition-colors group"
                       >
-                          <td className="px-5 py-3 font-mono text-xs font-semibold text-primary">
+                          <td className="px-5 py-3 font-mono text-xs font-semibold text-primary whitespace-nowrap">
                             {animal.customTag || <span className="text-muted-foreground">—</span>}
                           </td>
                           <td className="px-4 py-3 font-medium text-foreground max-w-[140px] truncate">
