@@ -823,8 +823,9 @@ export function Employees() {
         </Card>
       ) : (
         <Card className="rounded-2xl border-border/50 shadow-sm bg-card/60 overflow-hidden">
-          {/* Table header — desktop only */}
-          <div className="hidden md:grid grid-cols-[minmax(0,1fr)_130px_190px_190px_140px_96px] gap-4 px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-muted/30">
+          <div className="overflow-x-auto">
+          {/* Table header */}
+          <div className="grid grid-cols-[minmax(0,1fr)_130px_190px_190px_140px_96px] gap-4 px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-muted/30 min-w-[800px]">
             <span>{t("emp.name")}</span>
             <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{t("emp.phone")}</span>
             <span className="flex items-center gap-1.5"><Mail className="h-3 w-3" />{t("emp.email")}</span>
@@ -839,8 +840,8 @@ export function Employees() {
               <motion.div key={emp.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
                 {i > 0 && <Separator className="opacity-40" />}
 
-                {/* Desktop row */}
-                <div className="hidden md:grid grid-cols-[minmax(0,1fr)_130px_190px_190px_140px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/20 transition-colors">
+                {/* Row */}
+                <div className="grid grid-cols-[minmax(0,1fr)_130px_190px_190px_140px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/20 transition-colors min-w-[800px]">
 
                   {/* Avatar + name */}
                   <div className="flex items-center gap-3 min-w-0">
@@ -907,53 +908,6 @@ export function Employees() {
                   </div>
                 </div>
 
-                {/* Mobile row */}
-                <div className="md:hidden flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors">
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden">
-                    {emp.photoUrl ? (
-                      <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-serif font-bold text-primary">{emp.name.substring(0, 2).toUpperCase()}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Name + phone */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground leading-tight truncate">{emp.name}</p>
-                    {emp.phone ? (
-                      <p className="text-xs text-muted-foreground truncate">{emp.phone}</p>
-                    ) : emp.startDate ? (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {format(new Date(emp.startDate + "T12:00:00"), isEn ? "MMM d, yyyy" : "d MMM yyyy", { locale: isEn ? undefined : es })}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  {/* Salary */}
-                  <p className="font-serif font-bold text-secondary text-sm flex-shrink-0">
-                    {formatCurrency(num(emp.monthlySalary), currency)}
-                  </p>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-0 flex-shrink-0">
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : emp.id)}
-                      className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors"
-                    >
-                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </button>
-                    <button onClick={() => openEdit(emp)} className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors">
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => setDeleteConfirm(emp.id)} className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
                 {/* Expandable panel */}
                 <AnimatePresence>
                   {isExpanded && (
@@ -971,6 +925,7 @@ export function Employees() {
               </motion.div>
             );
           })}
+          </div>
         </Card>
       )}
 
