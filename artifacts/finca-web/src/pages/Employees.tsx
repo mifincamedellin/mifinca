@@ -825,7 +825,7 @@ export function Employees() {
         <Card className="rounded-2xl border-border/50 shadow-sm bg-card/60 overflow-hidden">
           <div className="overflow-x-auto">
           {/* Table header */}
-          <div className="grid grid-cols-[minmax(0,1fr)_130px_190px_190px_140px_96px] gap-4 px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-muted/30 min-w-[800px]">
+          <div className="grid grid-cols-[minmax(180px,1fr)_140px_190px_190px_150px_96px] gap-4 px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-muted/30 min-w-[1000px]">
             <span>{t("emp.name")}</span>
             <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{t("emp.phone")}</span>
             <span className="flex items-center gap-1.5"><Mail className="h-3 w-3" />{t("emp.email")}</span>
@@ -841,7 +841,7 @@ export function Employees() {
                 {i > 0 && <Separator className="opacity-40" />}
 
                 {/* Row */}
-                <div className="grid grid-cols-[minmax(0,1fr)_130px_190px_190px_140px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/20 transition-colors min-w-[800px]">
+                <div className="grid grid-cols-[minmax(180px,1fr)_140px_190px_190px_150px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/20 transition-colors min-w-[1000px]">
 
                   {/* Avatar + name */}
                   <div className="flex items-center gap-3 min-w-0">
