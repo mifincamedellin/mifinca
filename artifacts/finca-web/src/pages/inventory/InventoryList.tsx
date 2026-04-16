@@ -307,7 +307,7 @@ export function InventoryList() {
 
       <Card className="rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-max">
             <thead>
               <tr className="bg-primary/5 text-primary border-b border-border/50">
                 <th className="py-4 px-6 font-semibold font-sans">{t('inventory.col.product')}</th>
