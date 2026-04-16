@@ -375,7 +375,7 @@ export function AnimalList() {
                   <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('animals.purchaseDate')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
-                      <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                      <FormControl><Input type="date" {...field} className="rounded-xl h-10 [&::-webkit-date-and-time-value]:text-left" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
