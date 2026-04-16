@@ -418,9 +418,9 @@ export function AnimalDetail() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-serif font-bold text-primary flex items-center gap-3">
+          <h1 className="text-3xl font-serif font-bold text-primary flex items-center gap-3 flex-wrap">
             {animal.name || `Animal ${animal.customTag}`}
-            <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full font-sans tracking-wide">
+            <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full font-sans tracking-wide whitespace-nowrap shrink-0">
               {animal.customTag || t('animals.noTag')}
             </span>
           </h1>
