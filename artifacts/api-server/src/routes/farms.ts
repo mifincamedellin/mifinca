@@ -225,17 +225,18 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
       return item.expirationDate < today!;
     });
 
-    const ninetyDaysOut = new Date();
-    ninetyDaysOut.setDate(ninetyDaysOut.getDate() + 90);
-    const ninetyDaysOutStr = ninetyDaysOut.toISOString().split("T")[0]!;
+    const thirtyDaysOut = new Date();
+    thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
+    const thirtyDaysOutStr = thirtyDaysOut.toISOString().split("T")[0]!;
 
     const upcomingMedical = await db.select().from(medicalRecordsTable)
       .innerJoin(animalsTable, eq(medicalRecordsTable.animalId, animalsTable.id))
       .where(and(
         eq(animalsTable.farmId, farmId),
         isNotNull(medicalRecordsTable.nextDueDate),
-        lte(medicalRecordsTable.nextDueDate, ninetyDaysOutStr),
-      ));
+        lte(medicalRecordsTable.nextDueDate, thirtyDaysOutStr),
+      ))
+      .orderBy(medicalRecordsTable.nextDueDate);
 
     const recentActivity = await db.select({ count: count() }).from(activityLogTable)
       .where(eq(activityLogTable.farmId, farmId));

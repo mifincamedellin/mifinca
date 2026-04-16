@@ -431,9 +431,9 @@ export function Dashboard() {
               {t("dashboard.upcomingTasks")}
             </h3>
             <div className="flex items-center gap-2">
-              {upcomingMedical.length > 0 && (
+              {(stats?.upcomingMedicalCount ?? 0) > 0 && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
-                  {upcomingMedical.length}
+                  {stats?.upcomingMedicalCount}
                 </span>
               )}
               <button
