@@ -147,7 +147,7 @@ export function Contacts() {
           />
         </div>
         <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="h-10 w-44 rounded-xl">
+          <SelectTrigger className="h-10 w-36 rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
