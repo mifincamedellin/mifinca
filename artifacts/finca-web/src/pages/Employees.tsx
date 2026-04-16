@@ -826,7 +826,7 @@ export function Employees() {
         <Card className="rounded-2xl border-border/50 shadow-sm bg-card/60 overflow-hidden">
           <div className="overflow-x-auto">
           {/* Table header */}
-          <div className="grid grid-cols-[minmax(180px,1fr)_140px_190px_190px_150px_96px] gap-4 px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-muted/30 min-w-[1000px]">
+          <div className="grid grid-cols-[minmax(240px,1fr)_140px_190px_190px_150px_96px] gap-4 px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-muted/30 min-w-[1060px]">
             <span>{t("emp.name")}</span>
             <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{t("emp.phone")}</span>
             <span className="flex items-center gap-1.5"><Mail className="h-3 w-3" />{t("emp.email")}</span>
@@ -842,10 +842,17 @@ export function Employees() {
                 {i > 0 && <Separator className="opacity-40" />}
 
                 {/* Row */}
-                <div className="grid grid-cols-[minmax(180px,1fr)_140px_190px_190px_150px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/20 transition-colors min-w-[1000px]">
+                <div className="grid grid-cols-[minmax(240px,1fr)_140px_190px_190px_150px_96px] gap-4 px-5 py-4 items-center hover:bg-muted/20 transition-colors min-w-[1060px]">
 
                   {/* Avatar + name */}
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {/* Mobile-only expand toggle on the left */}
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : emp.id)}
+                      className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors flex-shrink-0"
+                    >
+                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
                     <div className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden">
                       {emp.photoUrl ? (
                         <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
