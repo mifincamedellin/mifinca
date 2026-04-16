@@ -623,7 +623,11 @@ export function AnimalDetail() {
                 <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('animals.birth')} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
-                    <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                    <FormControl>
+                      <div className="h-10 overflow-hidden rounded-xl border border-input bg-background flex items-center">
+                        <input type="date" {...field} className="w-full h-full px-3 bg-transparent text-sm outline-none appearance-none [&::-webkit-date-and-time-value]:text-left" />
+                      </div>
+                    </FormControl>
                   </FormItem>
                 )} />
               </div>
@@ -803,17 +807,25 @@ export function AnimalDetail() {
               )} />
 
               {/* Date + Next due */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField control={medicalForm.control} name="recordDate" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-semibold">{isEn ? "Date" : "Fecha"}</FormLabel>
-                    <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                    <FormControl>
+                      <div className="h-10 overflow-hidden rounded-xl border border-input bg-background flex items-center">
+                        <input type="date" {...field} className="w-full h-full px-3 bg-transparent text-sm outline-none appearance-none [&::-webkit-date-and-time-value]:text-left" />
+                      </div>
+                    </FormControl>
                   </FormItem>
                 )} />
                 <FormField control={medicalForm.control} name="nextDueDate" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-semibold">{isEn ? "Next due" : "Próxima"} <span className="text-muted-foreground font-normal text-xs">({t('common.optional')})</span></FormLabel>
-                    <FormControl><Input type="date" {...field} className="rounded-xl" /></FormControl>
+                    <FormControl>
+                      <div className="h-10 overflow-hidden rounded-xl border border-input bg-background flex items-center">
+                        <input type="date" {...field} className="w-full h-full px-3 bg-transparent text-sm outline-none appearance-none [&::-webkit-date-and-time-value]:text-left" />
+                      </div>
+                    </FormControl>
                   </FormItem>
                 )} />
               </div>

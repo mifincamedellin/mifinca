@@ -527,11 +527,15 @@ export function Calendar() {
                 </FormItem>
               )} />
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField control={form.control} name="startDate" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium">{isEn ? "Start date" : "Fecha inicio"} *</FormLabel>
-                    <FormControl><Input type="date" className="rounded-xl" {...field} /></FormControl>
+                    <FormControl>
+                      <div className="h-10 overflow-hidden rounded-xl border border-input bg-background flex items-center">
+                        <input type="date" {...field} className="w-full h-full px-3 bg-transparent text-sm outline-none appearance-none [&::-webkit-date-and-time-value]:text-left" />
+                      </div>
+                    </FormControl>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="endDate" render={({ field }) => (
@@ -540,7 +544,11 @@ export function Calendar() {
                       {isEn ? "End date" : "Fecha fin"}
                       <span className="text-muted-foreground font-normal"> ({isEn ? "opt." : "opc."})</span>
                     </FormLabel>
-                    <FormControl><Input type="date" className="rounded-xl" {...field} /></FormControl>
+                    <FormControl>
+                      <div className="h-10 overflow-hidden rounded-xl border border-input bg-background flex items-center">
+                        <input type="date" {...field} className="w-full h-full px-3 bg-transparent text-sm outline-none appearance-none [&::-webkit-date-and-time-value]:text-left" />
+                      </div>
+                    </FormControl>
                   </FormItem>
                 )} />
               </div>
