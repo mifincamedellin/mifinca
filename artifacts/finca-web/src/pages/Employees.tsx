@@ -347,6 +347,7 @@ function AttachmentThumb({ att, onDelete, onView }: {
 
 function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string }) {
   const { t } = useTranslation();
+  const { currency } = useStore();
   const qc = useQueryClient();
 
   const [notesDraft, setNotesDraft] = useState(emp.notes ?? "");
