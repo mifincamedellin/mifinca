@@ -407,7 +407,9 @@ export function Finances() {
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">{t("fin.col.date")}</label>
-                    <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="rounded-xl" />
+                    <div className="h-10 overflow-hidden rounded-xl border border-input bg-background flex items-center">
+                      <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="w-full h-full px-3 bg-transparent text-sm outline-none appearance-none [&::-webkit-date-and-time-value]:text-left" />
+                    </div>
                   </div>
                 </div>
                 <div>
