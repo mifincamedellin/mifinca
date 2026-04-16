@@ -327,7 +327,7 @@ export function Finances() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-max">
               <thead>
                 <tr className="bg-muted/30">
                   <th className="text-left px-6 py-3 font-medium text-muted-foreground">{t("fin.col.date")}</th>
