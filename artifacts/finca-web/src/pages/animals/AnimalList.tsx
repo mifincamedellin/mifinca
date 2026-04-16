@@ -618,7 +618,7 @@ export function AnimalList() {
                           <td className="px-4 py-3 text-muted-foreground tabular-nums text-xs">
                             {animal.currentWeight ? `${animal.currentWeight} kg` : "—"}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             {sc && stage ? (
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${sc.bg} ${sc.text}`}>
                                 <sc.icon className="h-3 w-3" />
