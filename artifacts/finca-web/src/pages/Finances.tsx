@@ -226,12 +226,12 @@ export function Finances() {
       </div>
 
       {/* Period selector */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-6 pl-6 pr-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {PERIODS.map(p => (
           <button
             key={p.key}
             onClick={() => setPeriod(p.key)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
+            className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
               period === p.key
                 ? "bg-primary text-primary-foreground border-primary shadow-sm"
                 : "bg-card/60 text-muted-foreground border-border/50 hover:bg-muted/50 hover:text-foreground"
