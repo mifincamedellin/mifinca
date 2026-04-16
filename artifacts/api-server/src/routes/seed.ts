@@ -123,6 +123,17 @@ export async function seedDemoFarmData(farmId: string) {
     { farmId, customTag: "OVE-002", species: "sheep", breed: "Dorper",             name: "Pastor",     sex: "male",   dateOfBirth: "2020-11-10", status: "active", notes: "Carnero reproductor" },
     { farmId, customTag: "OVE-003", species: "sheep", breed: "Corriedale",         name: "Candela",    sex: "female", dateOfBirth: "2022-08-20", status: "active" },
     { farmId, customTag: "OVE-004", species: "sheep", breed: "Corriedale",         name: "Bebé",       sex: "female", dateOfBirth: "2025-11-15", status: "active", notes: "Oveja joven en crecimiento" },
+    // ── BABY ANIMALS — young enough to show "growing" stage ──────────────────
+    { farmId, customTag: "BOV-064", species: "cattle", breed: "Brahman",            name: "Candelazo",  sex: "male",   dateOfBirth: daysAgo(91),  status: "active", notes: "Ternero nacido en finca" },
+    { farmId, customTag: "BOV-065", species: "cattle", breed: "Brahman",            name: "Golondrina", sex: "female", dateOfBirth: daysAgo(147), status: "active", notes: "Ternera nacida en finca" },
+    { farmId, customTag: "BOV-066", species: "cattle", breed: "Simmental",          name: "Copito",     sex: "male",   dateOfBirth: daysAgo(127), status: "active", notes: "Ternero nacido en finca" },
+    { farmId, customTag: "BOV-067", species: "cattle", breed: "Cebú",               name: "Rocíito",    sex: "female", dateOfBirth: daysAgo(69),  status: "active", notes: "Ternera nacida en finca" },
+    { farmId, customTag: "BOV-068", species: "cattle", breed: "Gyr",                name: "Luzero",     sex: "female", dateOfBirth: daysAgo(86),  status: "active", notes: "Ternera nacida en finca" },
+    { farmId, customTag: "BOV-069", species: "cattle", breed: "Normando",           name: "Ventarrón",  sex: "male",   dateOfBirth: daysAgo(183), status: "active", notes: "Ternero nacido en finca" },
+    { farmId, customTag: "CER-008", species: "pig",    breed: "Yorkshire",          name: "Canelón",    sex: "male",   dateOfBirth: daysAgo(55),  status: "active", notes: "Lechón nacido en finca" },
+    { farmId, customTag: "CAB-006", species: "horse",  breed: "Criollo Colombiano", name: "Rayito",     sex: "male",   dateOfBirth: daysAgo(249), status: "active", notes: "Potro nacido en finca" },
+    { farmId, customTag: "CAP-007", species: "goat",   breed: "Nubian",             name: "Alegrón",    sex: "male",   dateOfBirth: daysAgo(101), status: "active", notes: "Cabrito nacido en finca" },
+    { farmId, customTag: "OVE-005", species: "sheep",  breed: "Dorper",             name: "Lana",       sex: "female", dateOfBirth: daysAgo(46),  status: "active", notes: "Corderita nacida en finca" },
 
 
 
@@ -198,6 +209,86 @@ export async function seedDemoFarmData(farmId: string) {
   const dFwd = (n: number) => { const d = new Date(now); d.setDate(d.getDate() + n); return d; };
   const tagId = (tag: string) => animalRows.find(a => a.customTag === tag)?.id;
   const ids = (...tags: string[]) => tags.map(tagId).filter(Boolean) as string[];
+
+  // ── LINEAGE — father/mother assignments ───────────────────────────────────
+  const setLineage = async (tag: string, fatherId?: string | null, motherId?: string | null) => {
+    const id = tagId(tag); if (!id) return;
+    await db.update(animalsTable).set({ ...(fatherId !== undefined ? { fatherId } : {}), ...(motherId !== undefined ? { motherId } : {}) }).where(eq(animalsTable.id, id));
+  };
+  // BOV-003 (Toro Negro, Brahman) — main herd sire
+  for (const t of ["BOV-001","BOV-004","BOV-006","BOV-008","BOV-022","BOV-027","BOV-029","BOV-033","BOV-037","BOV-040","BOV-044","BOV-051","BOV-055","BOV-058","BOV-065","BOV-068"])
+    await setLineage(t, tagId("BOV-003"), undefined);
+  // BOV-007 (Vendaval, Normando) — reserve sire
+  for (const t of ["BOV-017","BOV-024","BOV-032","BOV-039","BOV-046","BOV-054","BOV-063","BOV-009","BOV-016","BOV-023","BOV-031","BOV-038","BOV-045","BOV-066","BOV-069"])
+    await setLineage(t, tagId("BOV-007"), undefined);
+  // BOV-019 (Tormenta, Brahman) — secondary sire
+  for (const t of ["BOV-005","BOV-012","BOV-015","BOV-020","BOV-021","BOV-028","BOV-034","BOV-041","BOV-047","BOV-053","BOV-060","BOV-062","BOV-067"])
+    await setLineage(t, tagId("BOV-019"), undefined);
+  // BOV-048 (Huracán) — young sire
+  for (const t of ["BOV-011","BOV-013","BOV-014","BOV-018","BOV-026","BOV-035","BOV-036","BOV-043","BOV-050","BOV-057","BOV-059","BOV-064"])
+    await setLineage(t, tagId("BOV-048"), undefined);
+  // BOV-061 (Cimarrona) — youngest sire
+  for (const t of ["BOV-025","BOV-030","BOV-042","BOV-049","BOV-052","BOV-056"])
+    await setLineage(t, tagId("BOV-061"), undefined);
+  // Mother assignments
+  await setLineage("BOV-004", undefined, tagId("BOV-001")); await setLineage("BOV-013", undefined, tagId("BOV-001"));
+  await setLineage("BOV-012", undefined, tagId("BOV-006")); await setLineage("BOV-021", undefined, tagId("BOV-006"));
+  await setLineage("BOV-024", undefined, tagId("BOV-017")); await setLineage("BOV-032", undefined, tagId("BOV-017"));
+  await setLineage("BOV-027", undefined, tagId("BOV-025")); await setLineage("BOV-037", undefined, tagId("BOV-025"));
+  await setLineage("BOV-044", undefined, tagId("BOV-033")); await setLineage("BOV-055", undefined, tagId("BOV-033"));
+  await setLineage("BOV-052", undefined, tagId("BOV-051")); await setLineage("BOV-058", undefined, tagId("BOV-051"));
+  await setLineage("BOV-034", undefined, tagId("BOV-053")); await setLineage("BOV-060", undefined, tagId("BOV-053"));
+  await setLineage("BOV-026", undefined, tagId("BOV-011")); await setLineage("BOV-035", undefined, tagId("BOV-011"));
+  await setLineage("BOV-009", undefined, tagId("BOV-002")); await setLineage("BOV-016", undefined, tagId("BOV-002"));
+  await setLineage("BOV-030", undefined, tagId("BOV-020")); await setLineage("BOV-049", undefined, tagId("BOV-020"));
+  await setLineage("BOV-015", undefined, tagId("BOV-028")); await setLineage("BOV-047", undefined, tagId("BOV-028"));
+  // Baby calves mothers
+  await setLineage("BOV-064", undefined, tagId("BOV-025")); await setLineage("BOV-065", undefined, tagId("BOV-033"));
+  await setLineage("BOV-066", undefined, tagId("BOV-002")); await setLineage("BOV-067", undefined, tagId("BOV-020"));
+  await setLineage("BOV-068", undefined, tagId("BOV-028")); await setLineage("BOV-069", undefined, tagId("BOV-017"));
+  // Goats
+  for (const t of ["CAP-001","CAP-002","CAP-004","CAP-005","CAP-006","CAP-007"])
+    await setLineage(t, tagId("CAP-003"), undefined);
+  await setLineage("CAP-004", undefined, tagId("CAP-001")); await setLineage("CAP-006", undefined, tagId("CAP-001"));
+  await setLineage("CAP-005", undefined, tagId("CAP-002")); await setLineage("CAP-007", undefined, tagId("CAP-001"));
+  // Sheep
+  for (const t of ["OVE-001","OVE-003","OVE-004","OVE-005"])
+    await setLineage(t, tagId("OVE-002"), undefined);
+  await setLineage("OVE-003", undefined, tagId("OVE-001")); await setLineage("OVE-004", undefined, tagId("OVE-001")); await setLineage("OVE-005", undefined, tagId("OVE-001"));
+  // Pigs
+  for (const t of ["CER-001","CER-005","CER-006","CER-008"]) await setLineage(t, tagId("CER-002"), undefined);
+  for (const t of ["CER-003","CER-007"])                      await setLineage(t, tagId("CER-004"), undefined);
+  await setLineage("CER-005", undefined, tagId("CER-001")); await setLineage("CER-007", undefined, tagId("CER-001"));
+  await setLineage("CER-006", undefined, tagId("CER-003")); await setLineage("CER-008", undefined, tagId("CER-001"));
+  // Horses
+  await setLineage("CAB-003", tagId("CAB-001"), undefined); await setLineage("CAB-004", tagId("CAB-001"), tagId("CAB-003"));
+  await setLineage("CAB-005", tagId("CAB-002"), tagId("CAB-003")); await setLineage("CAB-006", tagId("CAB-001"), tagId("CAB-003"));
+
+  // ── PURCHASE PRICES — ~50% of animals ────────────────────────────────────
+  const setPurchase = async (tag: string, date: string, price: string) => {
+    const id = tagId(tag); if (!id) return;
+    await db.update(animalsTable).set({ purchaseDate: date, purchasePrice: price }).where(eq(animalsTable.id, id));
+  };
+  await setPurchase("BOV-003","2018-03-15","9500000");  await setPurchase("BOV-007","2017-01-20","11000000");
+  await setPurchase("BOV-019","2022-08-10","8200000");  await setPurchase("BOV-048","2023-04-05","6800000");
+  await setPurchase("BOV-002","2021-02-20","3800000");  await setPurchase("BOV-004","2022-06-14","2900000");
+  await setPurchase("BOV-006","2020-11-30","2600000");  await setPurchase("BOV-008","2022-09-22","3100000");
+  await setPurchase("BOV-010","2020-05-18","5200000");  await setPurchase("BOV-012","2020-07-15","4100000");
+  await setPurchase("BOV-014","2022-07-01","2800000");  await setPurchase("BOV-016","2021-04-10","3500000");
+  await setPurchase("BOV-018","2020-03-05","4800000");  await setPurchase("BOV-020","2022-12-01","3000000");
+  await setPurchase("BOV-022","2020-09-15","3400000");  await setPurchase("BOV-023","2022-04-22","2750000");
+  await setPurchase("BOV-024","2021-10-30","3600000");  await setPurchase("BOV-026","2021-02-28","3200000");
+  await setPurchase("BOV-028","2020-12-10","3900000");  await setPurchase("BOV-030","2021-06-05","4200000");
+  await setPurchase("BOV-032","2020-04-18","3300000");  await setPurchase("BOV-034","2022-08-20","2900000");
+  await setPurchase("BOV-036","2021-01-15","3700000");  await setPurchase("BOV-040","2021-09-09","4500000");
+  await setPurchase("BOV-042","2022-03-14","3100000");  await setPurchase("BOV-043","2022-01-28","4000000");
+  await setPurchase("BOV-044","2019-12-20","5500000");  await setPurchase("BOV-045","2022-08-05","2800000");
+  await setPurchase("BOV-050","2021-01-30","3500000");  await setPurchase("BOV-052","2023-01-08","2600000");
+  await setPurchase("BOV-056","2021-10-10","3800000");
+  await setPurchase("CER-002","2023-01-20","480000");   await setPurchase("CER-004","2023-02-28","390000");   await setPurchase("CER-006","2023-08-01","310000");
+  await setPurchase("CAB-001","2018-04-10","12500000"); await setPurchase("CAB-002","2017-02-14","9800000");  await setPurchase("CAB-003","2020-10-05","7200000");
+  await setPurchase("CAP-003","2021-06-20","850000");   await setPurchase("CAP-002","2022-11-15","420000");   await setPurchase("CAP-005","2022-02-08","390000");
+  await setPurchase("OVE-002","2020-12-01","620000");   await setPurchase("OVE-003","2022-09-20","380000");
 
   // GROWING
   const growingIds = ids("BOV-006","BOV-012","BOV-013","BOV-014","BOV-015","BOV-016","BOV-017","BOV-018","BOV-020");
@@ -499,23 +590,38 @@ export async function seedDemoFarmData(farmId: string) {
     { farmId, actionType: "create", entityType: "contact",       description: "Contact added: Dr. Carlos Medina (Veterinarian)" },
   ]);
 
-  // ── MILK RECORDS (30 days for main dairy cows) ───────────────────────────
-  // Indices: 0=Reina, 4=Estrella, 10=Lechera (all Holstein/Gyr cattle females)
-  const lecheraA = animalRows[10]; // Lechera  — Holstein  — 18–20 L/day
-  const estrellaA = animalRows[4]; // Estrella — Gyr       — 14–16 L/day
-  const reinaA    = animalRows[0]; // Reina    — Brahman   — 11–13 L/day
-  if (lecheraA && estrellaA && reinaA) {
-    const milkRows: { animalId: string; recordedAt: string; amountLiters: string; session: "morning" | "afternoon" | "full_day"; notes?: string }[] = [];
+  // ── MILK RECORDS (30 days) — 18 dairy cows: original 3 + 15 nursing cows ─
+  type MilkSession = "morning" | "afternoon" | "full_day";
+  const dairyCows: Array<{ tag: string; am: number; pm: number }> = [
+    { tag: "BOV-001", am: 11, pm: 7  }, // Reina   — Brahman
+    { tag: "BOV-011", am: 18, pm: 10 }, // Lechera — Holstein (best)
+    { tag: "BOV-005", am: 14, pm: 8  }, // Estrella— Gyr
+    { tag: "BOV-002", am: 11, pm: 6  }, // Luna    — Simmental (nursing)
+    { tag: "BOV-051", am: 11, pm: 6  }, // Pampera — Brahman   (nursing)
+    { tag: "BOV-053", am: 14, pm: 8  }, // Catalina— Gyr       (nursing)
+    { tag: "BOV-054", am: 12, pm: 7  }, // Serrana — Normando  (nursing)
+    { tag: "BOV-055", am: 10, pm: 6  }, // Princesa— Brahman   (nursing)
+    { tag: "BOV-056", am:  9, pm: 5  }, // Gitana  — Cebú      (nursing)
+    { tag: "BOV-057", am: 19, pm: 11 }, // Danesa  — Holstein  (nursing, 2nd best)
+    { tag: "BOV-058", am: 11, pm: 7  }, // Potranca— Brahman   (nursing)
+    { tag: "BOV-059", am:  9, pm: 5  }, // Topacio — Simmental (nursing late)
+    { tag: "BOV-060", am: 12, pm: 7  }, // Felicia — Gyr       (nursing late)
+    { tag: "BOV-062", am: 10, pm: 6  }, // Rosalba — Cebú      (nursing late)
+    { tag: "BOV-063", am: 11, pm: 6  }, // Verano  — Normando  (nursing late)
+    { tag: "BOV-026", am: 15, pm: 9  }, // Clarita — Holstein  (can_breed)
+    { tag: "BOV-035", am: 14, pm: 8  }, // Blanquita—Holstein  (can_breed)
+    { tag: "BOV-050", am: 13, pm: 8  }, // Elisa   — Holstein  (can_breed)
+  ];
+  const milkRows: { animalId: string; recordedAt: string; amountLiters: string; session: MilkSession }[] = [];
+  for (const cow of dairyCows) {
+    const id = tagId(cow.tag); if (!id) continue;
     for (let i = 0; i < 30; i++) {
-      milkRows.push({ animalId: lecheraA.id,  recordedAt: daysAgo(i), amountLiters: (18 + Math.round((Math.random() - 0.5) * 4)).toFixed(1), session: "morning" });
-      milkRows.push({ animalId: lecheraA.id,  recordedAt: daysAgo(i), amountLiters: (10 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "afternoon" });
-      milkRows.push({ animalId: estrellaA.id, recordedAt: daysAgo(i), amountLiters: (14 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "morning" });
-      milkRows.push({ animalId: estrellaA.id, recordedAt: daysAgo(i), amountLiters: (8  + Math.round((Math.random() - 0.5) * 2)).toFixed(1), session: "afternoon" });
-      milkRows.push({ animalId: reinaA.id,    recordedAt: daysAgo(i), amountLiters: (11 + Math.round((Math.random() - 0.5) * 3)).toFixed(1), session: "morning" });
-      milkRows.push({ animalId: reinaA.id,    recordedAt: daysAgo(i), amountLiters: (7  + Math.round((Math.random() - 0.5) * 2)).toFixed(1), session: "afternoon" });
+      const jitter = (seed: number) => ((seed * 7 + i * 3) % 5) * 0.2 - 0.4;
+      milkRows.push({ animalId: id, recordedAt: daysAgo(i), amountLiters: Math.max(3, cow.am + jitter(cow.am)).toFixed(1), session: "morning" });
+      milkRows.push({ animalId: id, recordedAt: daysAgo(i), amountLiters: Math.max(2, cow.pm + jitter(cow.pm)).toFixed(1), session: "afternoon" });
     }
-    await db.insert(milkRecordsTable).values(milkRows);
   }
+  if (milkRows.length) await db.insert(milkRecordsTable).values(milkRows);
 
   // ── FARM EVENTS — current month (relative) + Mar/May/Jun 2026 (absolute) ─
   await db.insert(farmEventsTable).values([
