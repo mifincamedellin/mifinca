@@ -356,8 +356,8 @@ export async function seedDemoFarmData(farmId: string) {
 
   // ── NON-CATTLE LIFECYCLE STAGES ───────────────────────────────────────────
 
-  // GROWING — young pig, horse, goat, sheep (below breeding age)
-  const growingOtherIds = ids("CER-005", "CAB-005", "CAP-004", "OVE-004");
+  // GROWING — young pig, horse, goat, sheep, and cattle heifers (below breeding age)
+  const growingOtherIds = ids("CER-005", "CAB-005", "CAP-004", "OVE-004", "BOV-065", "BOV-067", "BOV-068", "OVE-005");
   if (growingOtherIds.length) await db.update(animalsTable).set({
     lifecycleStage: "growing", lifecycleStageStartedAt: dAgo(60),
   }).where(inArray(animalsTable.id, growingOtherIds));
