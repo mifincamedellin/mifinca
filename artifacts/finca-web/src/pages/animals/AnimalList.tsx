@@ -528,7 +528,7 @@ export function AnimalList() {
         view === "table" ? (
           <Card className="border-border/50 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[640px]">
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/30">
                     <th className="text-left px-5 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
@@ -542,9 +542,9 @@ export function AnimalList() {
                       </button>
                     </th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.species')}</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">{t('animals.breed')}</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Sex" : "Sexo"}</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t('animals.breed')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{isEn ? "Sex" : "Sexo"}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
                       <button onClick={() => handleSort("age")} className="flex items-center hover:text-foreground transition-colors">
                         {isEn ? "Age" : "Edad"}<SortIcon col="age" />
                       </button>
@@ -554,8 +554,8 @@ export function AnimalList() {
                         {t('animals.weight')}<SortIcon col="weight" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Stage" : "Etapa"}</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">{isEn ? "Alert" : "Alerta"}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{isEn ? "Stage" : "Etapa"}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{isEn ? "Alert" : "Alerta"}</th>
                     <th className="px-4 py-3 w-8"></th>
                   </tr>
                 </thead>
@@ -605,20 +605,20 @@ export function AnimalList() {
                           <td className="px-4 py-3 text-muted-foreground">
                             <span className="flex items-center gap-1.5">
                               <span>{SPECIES_EMOJI[animal.species] ?? "🐾"}</span>
-                              <span className="hidden xl:inline">{t(`animals.sp.${animal.species}`)}</span>
+                              <span>{t(`animals.sp.${animal.species}`)}</span>
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[120px] truncate">
+                          <td className="px-4 py-3 text-muted-foreground max-w-[120px] truncate">
                             {animal.breed || <span className="text-muted-foreground/50">—</span>}
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell text-xs">{sexLabel}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell text-xs tabular-nums">
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{sexLabel}</td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs tabular-nums">
                             {ageDays ?? "—"}
                           </td>
                           <td className="px-4 py-3 text-muted-foreground tabular-nums text-xs">
                             {animal.currentWeight ? `${animal.currentWeight} kg` : "—"}
                           </td>
-                          <td className="px-4 py-3 hidden sm:table-cell">
+                          <td className="px-4 py-3">
                             {sc && stage ? (
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${sc.bg} ${sc.text}`}>
                                 <sc.icon className="h-3 w-3" />
@@ -628,7 +628,7 @@ export function AnimalList() {
                               <span className="text-muted-foreground/40 text-xs">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-center hidden sm:table-cell">
+                          <td className="px-4 py-3 text-center">
                             {upcomingMedicalSet.has(animal.id) ? (
                               <Bell className="h-3.5 w-3.5 text-amber-500 mx-auto" />
                             ) : (
