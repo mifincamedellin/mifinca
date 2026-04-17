@@ -5,6 +5,30 @@
  * Finca Farm Management API
  * OpenAPI spec version: 0.1.0
  */
+export interface EmployeeAttachment {
+  id: string;
+  employeeId: string;
+  farmId: string;
+  fileKey: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  confirmed: boolean;
+  createdAt?: string | null;
+}
+
+export interface CreateAttachmentRequest {
+  /** @minLength 1 */
+  originalName: string;
+  mimeType?: string;
+  sizeBytes?: number;
+}
+
+export interface CreateAttachmentResponse {
+  attachment: EmployeeAttachment;
+  uploadURL: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -26,8 +50,8 @@ export interface Profile {
   fullName?: string;
   role?: ProfileRole;
   preferredLanguage?: string;
-  createdAt?: string;
   isDemo?: boolean;
+  createdAt?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -168,12 +192,12 @@ export interface FarmStats {
   lowStockCount: number;
   upcomingMedicalCount?: number;
   recentActivityCount?: number;
-  upcomingMedical?: MedicalRecord[];
-  upcomingMedicalAnimalIds?: string[];
-  lowStockItems?: InventoryItem[];
   employeeCount?: number;
   contactCount?: number;
   pregnantCount?: number;
+  upcomingMedicalAnimalIds?: string[];
+  upcomingMedical?: MedicalRecord[];
+  lowStockItems?: InventoryItem[];
 }
 
 export type AnimalSpecies = (typeof AnimalSpecies)[keyof typeof AnimalSpecies];
@@ -222,6 +246,16 @@ export interface Animal {
   createdAt?: string;
 }
 
+export type AnimalDetailLinkedCalendarEventsItem = {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate?: string | null;
+  assignedTo?: string | null;
+  category?: string;
+  color?: string | null;
+};
+
 export interface WeightRecord {
   id: string;
   animalId: string;
@@ -231,22 +265,13 @@ export interface WeightRecord {
   createdAt?: string;
 }
 
-export interface LinkedCalendarEvent {
-  id: string;
-  title: string;
-  startDate: string;
-  endDate?: string | null;
-  category?: string | null;
-  assignedTo?: string | null;
-}
-
 export type AnimalDetail = Animal & {
   weightRecords?: WeightRecord[];
   medicalRecords?: MedicalRecord[];
   offspring?: Animal[];
   mother?: Animal;
   father?: Animal;
-  linkedCalendarEvents?: LinkedCalendarEvent[];
+  linkedCalendarEvents?: AnimalDetailLinkedCalendarEventsItem[];
   pregnancyCount?: number;
 };
 
@@ -418,6 +443,8 @@ export interface LogInventoryActionRequest {
   notes?: string;
 }
 
+export type ActivityEntryMetadata = { [key: string]: unknown } | null;
+
 export interface ActivityEntry {
   id: string;
   farmId: string;
@@ -426,6 +453,7 @@ export interface ActivityEntry {
   entityType: string;
   entityId?: string;
   description?: string;
+  metadata?: ActivityEntryMetadata;
   createdAt?: string;
   profile?: Profile;
 }
@@ -488,33 +516,10 @@ export type ListInventoryItemsParams = {
 
 export type ListActivityParams = {
   limit?: number;
+  offset?: number;
 };
 
 export type GlobalSearchParams = {
   farmId: string;
   q: string;
 };
-
-export interface EmployeeAttachment {
-  id: string;
-  employeeId: string;
-  farmId: string;
-  fileKey: string;
-  originalName: string;
-  mimeType: string;
-  sizeBytes: number;
-  confirmed: boolean;
-  createdAt?: string | null;
-}
-
-export interface CreateAttachmentRequest {
-  /** @minLength 1 */
-  originalName: string;
-  mimeType?: string;
-  sizeBytes?: number;
-}
-
-export interface CreateAttachmentResponse {
-  attachment: EmployeeAttachment;
-  uploadURL: string;
-}

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
-import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord, useGetFarmStats } from "@workspace/api-client-react";
+import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord, useGetFarmStats, getGetAnimalQueryKey, getListWeightRecordsQueryKey, getGetFarmStatsQueryKey } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,15 +118,15 @@ export function AnimalDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: animal, isLoading, refetch } = useGetAnimal(activeFarmId || '', id || '', {
-    query: { enabled: !!(activeFarmId && id) }
+    query: { queryKey: getGetAnimalQueryKey(activeFarmId || '', id || ''), enabled: !!(activeFarmId && id) }
   });
 
   const { data: weights } = useListWeightRecords(activeFarmId || '', id || '', {
-    query: { enabled: !!(activeFarmId && id) }
+    query: { queryKey: getListWeightRecordsQueryKey(activeFarmId || '', id || ''), enabled: !!(activeFarmId && id) }
   });
 
   const { data: farmStats } = useGetFarmStats(activeFarmId || '', {
-    query: { enabled: !!activeFarmId }
+    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ''), enabled: !!activeFarmId }
   });
   const hasUpcomingMedical = !!(id && farmStats?.upcomingMedicalAnimalIds?.includes(id));
 
@@ -320,7 +320,7 @@ export function AnimalDetail() {
       recordDate: record.recordDate ? record.recordDate.split("T")[0] : new Date().toISOString().split("T")[0],
       description: record.description ?? "",
       vetName: record.vetName ?? "",
-      costCop: record.costCop ? String(record.costCop) : "",
+      costCop: record.costCop != null ? Number(record.costCop) : ("" as const),
       nextDueDate: record.nextDueDate ? record.nextDueDate.split("T")[0] : "",
     });
     setMedicalOpen(true);
@@ -329,7 +329,7 @@ export function AnimalDetail() {
   const onMedicalSubmit = (data: MedicalForm) => {
     if (!activeFarmId || !id) return;
     const payload = { ...data, costCop: data.costCop !== "" && data.costCop != null ? Number(data.costCop) : undefined };
-    const resetDefaults = { recordType: "checkup" as const, title: "", recordDate: new Date().toISOString().split("T")[0], description: "", vetName: "", costCop: "" as any, nextDueDate: "" };
+    const resetDefaults = { recordType: "checkup" as const, title: "", recordDate: new Date().toISOString().split("T")[0], description: "", vetName: "", costCop: "" as const, nextDueDate: "" };
 
     if (editingMedical) {
       updateMedicalRecord.mutate(
@@ -368,7 +368,7 @@ export function AnimalDetail() {
       status: (animal.status as any) ?? "active",
       dateOfBirth: animal.dateOfBirth ? animal.dateOfBirth.split("T")[0] : "",
       purchaseDate: (animal as any).purchaseDate ? (animal as any).purchaseDate.split("T")[0] : "",
-      purchasePrice: (animal as any).purchasePrice ? String((animal as any).purchasePrice) : "",
+      purchasePrice: (animal as any).purchasePrice ? Number((animal as any).purchasePrice) : ("" as const),
       notes: (animal as any).notes ?? "",
       photoUrl: animal.photoUrl ?? "",
     } : {},

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { formatCurrencyCompact } from "@/lib/currency";
-import { useGetFarmStats, useListActivity, useListFarms, useGetMe, type FarmStats } from "@workspace/api-client-react";
+import { useGetFarmStats, useListActivity, useListFarms, useGetMe, getGetMeQueryKey, getListFarmsQueryKey, getGetFarmStatsQueryKey, getListActivityQueryKey, type FarmStats } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
@@ -145,21 +145,21 @@ export function Dashboard() {
   const isEn = i18n.language === "en";
   const [, navigate] = useLocation();
 
-  const { data: user } = useGetMe({ query: { enabled: true } });
+  const { data: user } = useGetMe({ query: { queryKey: getGetMeQueryKey(), enabled: true } });
   const firstName = user?.isDemo
     ? (isEn ? "Owner" : "Dueño")
     : (user?.fullName?.split(" ")[0] ?? "");
 
-  const { data: farms } = useListFarms({ query: { enabled: true } });
+  const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: true } });
   const activeFarm = farms?.find(f => f.id === activeFarmId);
 
   const { data: rawStats, isLoading: statsLoading } = useGetFarmStats(activeFarmId || "", {
-    query: { enabled: !!activeFarmId },
+    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ""), enabled: !!activeFarmId },
   });
   const stats = rawStats as StatsExt | undefined;
 
   const { data: activity } = useListActivity(activeFarmId || "", { limit: 5 }, {
-    query: { enabled: !!activeFarmId },
+    query: { queryKey: getListActivityQueryKey(activeFarmId || "", { limit: 5 }), enabled: !!activeFarmId },
   });
 
   const { data: finances } = useQuery<FinanceRow[]>({
@@ -191,13 +191,13 @@ export function Dashboard() {
 
   const chartData = stats?.animalsBySpecies?.map(entry => ({
     ...entry,
-    label: SPECIES_LABELS[entry.species]?.[isEn ? "en" : "es"] ?? entry.species,
+    label: SPECIES_LABELS[(entry.species ?? "") as string]?.[isEn ? "en" : "es"] ?? entry.species,
   })) ?? [];
 
   const upcomingMedical = (stats?.upcomingMedical || []).slice(0, 5);
   const lowStockItems   = (stats?.lowStockItems   || []).slice(0, 5) as Array<{
-    id: string; name: string; quantity: string; unit: string;
-    status: string; lowStockThreshold: string | null;
+    id: string; name: string; quantity: number; unit: string;
+    status: string; lowStockThreshold: number | null;
   }>;
 
   const statCards = [

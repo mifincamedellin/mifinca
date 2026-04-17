@@ -62,6 +62,15 @@ artifacts-monorepo/
 
 Tables: `profiles`, `farms`, `farm_members`, `zones`, `animals`, `weight_records`, `medical_records`, `inventory_items`, `inventory_logs`, `activity_log`, `conversations`, `messages`, `finance_transactions`, `contacts`, `employees`, `employee_attachments`, `animal_lifecycle_events`
 
+### Activity Log
+The `activity_log` table is the canonical audit/activity feed table (the feature is sometimes called "farm_activity" in task descriptions but the table keeps its original name for backward compatibility). It records CRUD actions on farm resources with: `farmId`, `userId`, `actionType`, `entityType`, `entityId`, `description`, `metadata` (jsonb, nullable), `createdAt`.
+
+DB migrations are incremental SQL files in `artifacts/api-server/migrations/` (see `0002_*`, `0003_*`, `0004_*`). The `metadata` column was added in migration `0004_activity_log_metadata.sql`.
+
+Activity is logged server-side in route handlers for animals, inventory, finances, contacts, and employees. The feed is surfaced via `GET /api/farms/:id/activity?limit=N&offset=N` and displayed in:
+- Dashboard: recent 5 entries
+- `/activity` page: full paginated view with load-more
+
 ### Animal Lifecycle System
 Female livestock (cattle, goat, sheep, horse, pig) have a 5-stage reproductive lifecycle:
 `growing → can_breed → in_heat → pregnant → nursing → can_breed`

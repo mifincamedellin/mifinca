@@ -9,7 +9,11 @@ const router = Router();
 router.get("/farms/:farmId/activity", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
-    const limit = parseInt((req.query as Record<string, string>)["limit"] ?? "20");
+    const query = req.query as Record<string, string>;
+    const parsedLimit = parseInt(query["limit"] ?? "");
+    const parsedOffset = parseInt(query["offset"] ?? "");
+    const limit = Math.min(Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20, 100);
+    const offset = Number.isFinite(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0;
 
     const entries = await db.select({
       id: activityLogTable.id,
@@ -19,6 +23,7 @@ router.get("/farms/:farmId/activity", requireAuth, requireFarmAccess, async (req
       entityType: activityLogTable.entityType,
       entityId: activityLogTable.entityId,
       description: activityLogTable.description,
+      metadata: activityLogTable.metadata,
       createdAt: activityLogTable.createdAt,
       profile: {
         id: profilesTable.id,
@@ -30,7 +35,8 @@ router.get("/farms/:farmId/activity", requireAuth, requireFarmAccess, async (req
       .leftJoin(profilesTable, eq(activityLogTable.userId, profilesTable.id))
       .where(eq(activityLogTable.farmId, farmId))
       .orderBy(desc(activityLogTable.createdAt))
-      .limit(limit);
+      .limit(limit)
+      .offset(offset);
 
     return res.json(entries);
   } catch (err) {

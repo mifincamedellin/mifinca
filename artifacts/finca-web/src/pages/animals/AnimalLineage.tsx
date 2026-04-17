@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
-import { useListAnimals } from "@workspace/api-client-react";
+import { useListAnimals, getListAnimalsQueryKey } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,7 +116,7 @@ function AnimalPicker({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [role, setRole] = useState<"mother" | "father">("mother");
 
-  const { data: allAnimals } = useListAnimals(farmId, {}, { query: { enabled: open && !!farmId } });
+  const { data: allAnimals } = useListAnimals(farmId, {}, { query: { queryKey: getListAnimalsQueryKey(farmId, {}), enabled: open && !!farmId } });
 
   const filtered = useMemo(() => {
     const animals = (allAnimals ?? []).filter((a: AnimalStub) => !exclude.includes(a.id) && a.species === species);

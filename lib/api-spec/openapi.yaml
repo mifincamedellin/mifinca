@@ -610,6 +610,10 @@ paths:
           in: query
           schema:
             type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Activity log entries
@@ -920,6 +924,8 @@ components:
           enum: [owner, worker]
         preferredLanguage:
           type: string
+        isDemo:
+          type: boolean
         createdAt:
           type: string
       required:
@@ -1029,6 +1035,16 @@ components:
           type: integer
         recentActivityCount:
           type: integer
+        employeeCount:
+          type: integer
+        contactCount:
+          type: integer
+        pregnantCount:
+          type: integer
+        upcomingMedicalAnimalIds:
+          type: array
+          items:
+            type: string
         upcomingMedical:
           type: array
           items:
@@ -1101,6 +1117,34 @@ components:
               $ref: "#/components/schemas/Animal"
             father:
               $ref: "#/components/schemas/Animal"
+            linkedCalendarEvents:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+                  startDate:
+                    type: string
+                  endDate:
+                    type: string
+                    nullable: true
+                  assignedTo:
+                    type: string
+                    nullable: true
+                  category:
+                    type: string
+                  color:
+                    type: string
+                    nullable: true
+                required:
+                  - id
+                  - title
+                  - startDate
+            pregnancyCount:
+              type: integer
 
     CreateAnimalRequest:
       type: object
@@ -1415,6 +1459,10 @@ components:
           type: string
         description:
           type: string
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
         createdAt:
           type: string
         profile:

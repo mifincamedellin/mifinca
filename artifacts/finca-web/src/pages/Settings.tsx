@@ -1,7 +1,7 @@
 import { useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
-import { useGetFarm, useUpdateFarm } from "@workspace/api-client-react";
+import { useGetFarm, useUpdateFarm, getGetFarmQueryKey } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,7 +136,7 @@ export function Settings() {
   };
 
   const { data: farm } = useGetFarm(activeFarmId || '', {
-    query: { enabled: !!activeFarmId }
+    query: { queryKey: getGetFarmQueryKey(activeFarmId || ''), enabled: !!activeFarmId }
   });
 
   const { data: profile, refetch: refetchProfile } = useQuery({

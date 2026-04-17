@@ -22,6 +22,7 @@ export const GetMeResponse = zod.object({
   fullName: zod.string().optional(),
   role: zod.enum(["owner", "worker"]).optional(),
   preferredLanguage: zod.string().optional(),
+  isDemo: zod.boolean().optional(),
   createdAt: zod.string().optional(),
 });
 
@@ -38,6 +39,7 @@ export const UpdateProfileResponse = zod.object({
   fullName: zod.string().optional(),
   role: zod.enum(["owner", "worker"]).optional(),
   preferredLanguage: zod.string().optional(),
+  isDemo: zod.boolean().optional(),
   createdAt: zod.string().optional(),
 });
 
@@ -123,6 +125,7 @@ export const ListFarmMembersResponseItem = zod.object({
       fullName: zod.string().optional(),
       role: zod.enum(["owner", "worker"]).optional(),
       preferredLanguage: zod.string().optional(),
+      isDemo: zod.boolean().optional(),
       createdAt: zod.string().optional(),
     })
     .optional(),
@@ -170,6 +173,10 @@ export const GetFarmStatsResponse = zod.object({
   lowStockCount: zod.number(),
   upcomingMedicalCount: zod.number().optional(),
   recentActivityCount: zod.number().optional(),
+  employeeCount: zod.number().optional(),
+  contactCount: zod.number().optional(),
+  pregnantCount: zod.number().optional(),
+  upcomingMedicalAnimalIds: zod.array(zod.string()).optional(),
   upcomingMedical: zod
     .array(
       zod.object({
@@ -444,6 +451,20 @@ export const GetAnimalResponse = zod
           createdAt: zod.string().optional(),
         })
         .optional(),
+      linkedCalendarEvents: zod
+        .array(
+          zod.object({
+            id: zod.string(),
+            title: zod.string(),
+            startDate: zod.string(),
+            endDate: zod.string().nullish(),
+            assignedTo: zod.string().nullish(),
+            category: zod.string().optional(),
+            color: zod.string().nullish(),
+          }),
+        )
+        .optional(),
+      pregnancyCount: zod.number().optional(),
     }),
   );
 
@@ -745,6 +766,7 @@ export const ListActivityParams = zod.object({
 
 export const ListActivityQueryParams = zod.object({
   limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const ListActivityResponseItem = zod.object({
@@ -755,6 +777,7 @@ export const ListActivityResponseItem = zod.object({
   entityType: zod.string(),
   entityId: zod.string().optional(),
   description: zod.string().optional(),
+  metadata: zod.record(zod.string(), zod.unknown()).nullish(),
   createdAt: zod.string().optional(),
   profile: zod
     .object({
@@ -762,6 +785,7 @@ export const ListActivityResponseItem = zod.object({
       fullName: zod.string().optional(),
       role: zod.enum(["owner", "worker"]).optional(),
       preferredLanguage: zod.string().optional(),
+      isDemo: zod.boolean().optional(),
       createdAt: zod.string().optional(),
     })
     .optional(),
@@ -872,25 +896,84 @@ export const GlobalSearchResponse = zod.object({
   ),
 });
 
-export const EmployeeAttachment = zod.object({
+/**
+ * @summary List confirmed attachments for an employee
+ */
+export const ListEmployeeAttachmentsParams = zod.object({
+  farmId: zod.coerce.string(),
+  employeeId: zod.coerce.string(),
+});
+
+export const ListEmployeeAttachmentsResponseItem = zod.object({
   id: zod.string().uuid(),
   employeeId: zod.string().uuid(),
   farmId: zod.string().uuid(),
   fileKey: zod.string(),
   originalName: zod.string(),
   mimeType: zod.string(),
-  sizeBytes: zod.number().int(),
+  sizeBytes: zod.number(),
   confirmed: zod.boolean(),
-  createdAt: zod.string().nullable().optional(),
+  createdAt: zod.coerce.date().nullish(),
+});
+export const ListEmployeeAttachmentsResponse = zod.array(
+  ListEmployeeAttachmentsResponseItem,
+);
+
+/**
+ * Two-phase upload lifecycle:
+1. POST this endpoint — creates a DB row with `confirmed=false` and returns a presigned GCS URL (`uploadURL`).
+2. Client PUTs the file directly to `uploadURL`.
+3. Client calls PATCH /confirm — sets `confirmed=true`; the attachment becomes visible in listings.
+Unconfirmed rows (failed/abandoned uploads) are pruned automatically after 1 hour.
+
+ * @summary Create an attachment row and return a presigned GCS upload URL
+ */
+export const CreateEmployeeAttachmentParams = zod.object({
+  farmId: zod.coerce.string(),
+  employeeId: zod.coerce.string(),
 });
 
-export const CreateAttachmentRequest = zod.object({
+export const CreateEmployeeAttachmentBody = zod.object({
   originalName: zod.string().min(1),
   mimeType: zod.string().optional(),
-  sizeBytes: zod.number().int().optional(),
+  sizeBytes: zod.number().optional(),
 });
 
-export const CreateAttachmentResponse = zod.object({
-  attachment: EmployeeAttachment,
-  uploadURL: zod.string().url(),
+/**
+ * @summary Mark an attachment upload as complete (sets confirmed=true)
+ */
+export const ConfirmEmployeeAttachmentParams = zod.object({
+  farmId: zod.coerce.string(),
+  employeeId: zod.coerce.string(),
+  attachmentId: zod.coerce.string(),
+});
+
+export const ConfirmEmployeeAttachmentResponse = zod.object({
+  id: zod.string().uuid(),
+  employeeId: zod.string().uuid(),
+  farmId: zod.string().uuid(),
+  fileKey: zod.string(),
+  originalName: zod.string(),
+  mimeType: zod.string(),
+  sizeBytes: zod.number(),
+  confirmed: zod.boolean(),
+  createdAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Delete an attachment (DB row + GCS object)
+ */
+export const DeleteEmployeeAttachmentParams = zod.object({
+  farmId: zod.coerce.string(),
+  employeeId: zod.coerce.string(),
+  attachmentId: zod.coerce.string(),
+});
+
+/**
+ * @summary Stream attachment file (farm-scoped auth, forced download headers)
+ */
+export const GetEmployeeAttachmentFileParams = zod.object({
+  farmId: zod.coerce.string(),
+  employeeId: zod.coerce.string(),
+  attachmentId: zod.coerce.string(),
 });

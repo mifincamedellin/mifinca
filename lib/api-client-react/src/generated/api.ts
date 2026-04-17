@@ -21,12 +21,14 @@ import type {
   Animal,
   AnimalDetail,
   CreateAnimalRequest,
+  CreateAttachmentRequest,
+  CreateAttachmentResponse,
   CreateFarmRequest,
   CreateInventoryItemRequest,
   CreateMedicalRecordRequest,
   CreateWeightRecordRequest,
   CreateZoneRequest,
-  ErrorEnvelope,
+  EmployeeAttachment,
   ErrorResponse,
   Farm,
   FarmMember,
@@ -50,9 +52,6 @@ import type {
   UpdateProfileRequest,
   WeightRecord,
   Zone,
-  EmployeeAttachment,
-  CreateAttachmentRequest,
-  CreateAttachmentResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2638,69 +2637,542 @@ export function useGlobalSearch<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-// ── Employee Attachments ──────────────────────────────────────────────────────
-
-export const listEmployeeAttachmentsUrl = (farmId: string, employeeId: string) =>
-  `/api/farms/${farmId}/employees/${employeeId}/attachments`;
+/**
+ * @summary List confirmed attachments for an employee
+ */
+export const getListEmployeeAttachmentsUrl = (
+  farmId: string,
+  employeeId: string,
+) => {
+  return `/api/farms/${farmId}/employees/${employeeId}/attachments`;
+};
 
 export const listEmployeeAttachments = async (
   farmId: string,
   employeeId: string,
   options?: RequestInit,
-): Promise<EmployeeAttachment[]> =>
-  customFetch<EmployeeAttachment[]>(listEmployeeAttachmentsUrl(farmId, employeeId), options);
+): Promise<EmployeeAttachment[]> => {
+  return customFetch<EmployeeAttachment[]>(
+    getListEmployeeAttachmentsUrl(farmId, employeeId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
 
-export const useListEmployeeAttachments = <
+export const getListEmployeeAttachmentsQueryKey = (
+  farmId: string,
+  employeeId: string,
+) => {
+  return [`/api/farms/${farmId}/employees/${employeeId}/attachments`] as const;
+};
+
+export const getListEmployeeAttachmentsQueryOptions = <
   TData = Awaited<ReturnType<typeof listEmployeeAttachments>>,
-  TError = ErrorType<ErrorEnvelope>,
+  TError = ErrorType<unknown>,
 >(
   farmId: string,
   employeeId: string,
-  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listEmployeeAttachments>>, TError, TData> },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const { query: queryOptions } = options ?? {};
-  const queryKey = queryOptions?.queryKey ?? ["listEmployeeAttachments", farmId, employeeId];
-  const queryFn = () => listEmployeeAttachments(farmId, employeeId);
-  return useQuery({ queryKey, queryFn, ...queryOptions }) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEmployeeAttachments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getListEmployeeAttachmentsQueryKey(farmId, employeeId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEmployeeAttachments>>
+  > = ({ signal }) =>
+    listEmployeeAttachments(farmId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(farmId && employeeId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEmployeeAttachments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEmployeeAttachmentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEmployeeAttachments>>
+>;
+export type ListEmployeeAttachmentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List confirmed attachments for an employee
+ */
+
+export function useListEmployeeAttachments<
+  TData = Awaited<ReturnType<typeof listEmployeeAttachments>>,
+  TError = ErrorType<unknown>,
+>(
+  farmId: string,
+  employeeId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listEmployeeAttachments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEmployeeAttachmentsQueryOptions(
+    farmId,
+    employeeId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Two-phase upload lifecycle:
+1. POST this endpoint — creates a DB row with `confirmed=false` and returns a presigned GCS URL (`uploadURL`).
+2. Client PUTs the file directly to `uploadURL`.
+3. Client calls PATCH /confirm — sets `confirmed=true`; the attachment becomes visible in listings.
+Unconfirmed rows (failed/abandoned uploads) are pruned automatically after 1 hour.
+
+ * @summary Create an attachment row and return a presigned GCS upload URL
+ */
+export const getCreateEmployeeAttachmentUrl = (
+  farmId: string,
+  employeeId: string,
+) => {
+  return `/api/farms/${farmId}/employees/${employeeId}/attachments`;
 };
 
 export const createEmployeeAttachment = async (
   farmId: string,
   employeeId: string,
-  body: BodyType<CreateAttachmentRequest>,
+  createAttachmentRequest: CreateAttachmentRequest,
   options?: RequestInit,
-): Promise<CreateAttachmentResponse> =>
-  customFetch<CreateAttachmentResponse>(
-    `/api/farms/${farmId}/employees/${employeeId}/attachments`,
+): Promise<CreateAttachmentResponse> => {
+  return customFetch<CreateAttachmentResponse>(
+    getCreateEmployeeAttachmentUrl(farmId, employeeId),
     {
       ...options,
       method: "POST",
       headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(body),
+      body: JSON.stringify(createAttachmentRequest),
     },
   );
+};
+
+export const getCreateEmployeeAttachmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEmployeeAttachment>>,
+    TError,
+    {
+      farmId: string;
+      employeeId: string;
+      data: BodyType<CreateAttachmentRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEmployeeAttachment>>,
+  TError,
+  {
+    farmId: string;
+    employeeId: string;
+    data: BodyType<CreateAttachmentRequest>;
+  },
+  TContext
+> => {
+  const mutationKey = ["createEmployeeAttachment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEmployeeAttachment>>,
+    {
+      farmId: string;
+      employeeId: string;
+      data: BodyType<CreateAttachmentRequest>;
+    }
+  > = (props) => {
+    const { farmId, employeeId, data } = props ?? {};
+
+    return createEmployeeAttachment(farmId, employeeId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateEmployeeAttachmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createEmployeeAttachment>>
+>;
+export type CreateEmployeeAttachmentMutationBody =
+  BodyType<CreateAttachmentRequest>;
+export type CreateEmployeeAttachmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create an attachment row and return a presigned GCS upload URL
+ */
+export const useCreateEmployeeAttachment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEmployeeAttachment>>,
+    TError,
+    {
+      farmId: string;
+      employeeId: string;
+      data: BodyType<CreateAttachmentRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createEmployeeAttachment>>,
+  TError,
+  {
+    farmId: string;
+    employeeId: string;
+    data: BodyType<CreateAttachmentRequest>;
+  },
+  TContext
+> => {
+  return useMutation(getCreateEmployeeAttachmentMutationOptions(options));
+};
+
+/**
+ * @summary Mark an attachment upload as complete (sets confirmed=true)
+ */
+export const getConfirmEmployeeAttachmentUrl = (
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+) => {
+  return `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}/confirm`;
+};
 
 export const confirmEmployeeAttachment = async (
   farmId: string,
   employeeId: string,
   attachmentId: string,
   options?: RequestInit,
-): Promise<EmployeeAttachment> =>
-  customFetch<EmployeeAttachment>(
-    `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}/confirm`,
-    { ...options, method: "PATCH" },
+): Promise<EmployeeAttachment> => {
+  return customFetch<EmployeeAttachment>(
+    getConfirmEmployeeAttachmentUrl(farmId, employeeId, attachmentId),
+    {
+      ...options,
+      method: "PATCH",
+    },
   );
+};
+
+export const getConfirmEmployeeAttachmentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmEmployeeAttachment>>,
+    TError,
+    { farmId: string; employeeId: string; attachmentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmEmployeeAttachment>>,
+  TError,
+  { farmId: string; employeeId: string; attachmentId: string },
+  TContext
+> => {
+  const mutationKey = ["confirmEmployeeAttachment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmEmployeeAttachment>>,
+    { farmId: string; employeeId: string; attachmentId: string }
+  > = (props) => {
+    const { farmId, employeeId, attachmentId } = props ?? {};
+
+    return confirmEmployeeAttachment(
+      farmId,
+      employeeId,
+      attachmentId,
+      requestOptions,
+    );
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmEmployeeAttachmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmEmployeeAttachment>>
+>;
+
+export type ConfirmEmployeeAttachmentMutationError = ErrorType<void>;
+
+/**
+ * @summary Mark an attachment upload as complete (sets confirmed=true)
+ */
+export const useConfirmEmployeeAttachment = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmEmployeeAttachment>>,
+    TError,
+    { farmId: string; employeeId: string; attachmentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmEmployeeAttachment>>,
+  TError,
+  { farmId: string; employeeId: string; attachmentId: string },
+  TContext
+> => {
+  return useMutation(getConfirmEmployeeAttachmentMutationOptions(options));
+};
+
+/**
+ * @summary Delete an attachment (DB row + GCS object)
+ */
+export const getDeleteEmployeeAttachmentUrl = (
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+) => {
+  return `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}`;
+};
 
 export const deleteEmployeeAttachment = async (
   farmId: string,
   employeeId: string,
   attachmentId: string,
   options?: RequestInit,
-): Promise<void> =>
-  customFetch<void>(
-    `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}`,
-    { ...options, method: "DELETE" },
+): Promise<void> => {
+  return customFetch<void>(
+    getDeleteEmployeeAttachmentUrl(farmId, employeeId, attachmentId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteEmployeeAttachmentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEmployeeAttachment>>,
+    TError,
+    { farmId: string; employeeId: string; attachmentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteEmployeeAttachment>>,
+  TError,
+  { farmId: string; employeeId: string; attachmentId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteEmployeeAttachment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteEmployeeAttachment>>,
+    { farmId: string; employeeId: string; attachmentId: string }
+  > = (props) => {
+    const { farmId, employeeId, attachmentId } = props ?? {};
+
+    return deleteEmployeeAttachment(
+      farmId,
+      employeeId,
+      attachmentId,
+      requestOptions,
+    );
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteEmployeeAttachmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteEmployeeAttachment>>
+>;
+
+export type DeleteEmployeeAttachmentMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete an attachment (DB row + GCS object)
+ */
+export const useDeleteEmployeeAttachment = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEmployeeAttachment>>,
+    TError,
+    { farmId: string; employeeId: string; attachmentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteEmployeeAttachment>>,
+  TError,
+  { farmId: string; employeeId: string; attachmentId: string },
+  TContext
+> => {
+  return useMutation(getDeleteEmployeeAttachmentMutationOptions(options));
+};
+
+/**
+ * @summary Stream attachment file (farm-scoped auth, forced download headers)
+ */
+export const getGetEmployeeAttachmentFileUrl = (
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+) => {
+  return `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}/file`;
+};
+
+export const getEmployeeAttachmentFile = async (
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(
+    getGetEmployeeAttachmentFileUrl(farmId, employeeId, attachmentId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetEmployeeAttachmentFileQueryKey = (
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+) => {
+  return [
+    `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}/file`,
+  ] as const;
+};
+
+export const getGetEmployeeAttachmentFileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEmployeeAttachmentFile>>,
+  TError = ErrorType<void>,
+>(
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getEmployeeAttachmentFile>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetEmployeeAttachmentFileQueryKey(farmId, employeeId, attachmentId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getEmployeeAttachmentFile>>
+  > = ({ signal }) =>
+    getEmployeeAttachmentFile(farmId, employeeId, attachmentId, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(farmId && employeeId && attachmentId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getEmployeeAttachmentFile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetEmployeeAttachmentFileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEmployeeAttachmentFile>>
+>;
+export type GetEmployeeAttachmentFileQueryError = ErrorType<void>;
+
+/**
+ * @summary Stream attachment file (farm-scoped auth, forced download headers)
+ */
+
+export function useGetEmployeeAttachmentFile<
+  TData = Awaited<ReturnType<typeof getEmployeeAttachmentFile>>,
+  TError = ErrorType<void>,
+>(
+  farmId: string,
+  employeeId: string,
+  attachmentId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getEmployeeAttachmentFile>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetEmployeeAttachmentFileQueryOptions(
+    farmId,
+    employeeId,
+    attachmentId,
+    options,
   );
 
-export const getEmployeeAttachmentFileUrl = (farmId: string, employeeId: string, attachmentId: string) =>
-  `/api/farms/${farmId}/employees/${employeeId}/attachments/${attachmentId}/file`;
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

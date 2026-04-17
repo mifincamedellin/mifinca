@@ -6,7 +6,7 @@ import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
-import { useListAnimals, useCreateAnimal, useGetFarmStats } from "@workspace/api-client-react";
+import { useListAnimals, useCreateAnimal, useGetFarmStats, getListAnimalsQueryKey, getGetFarmStatsQueryKey } from "@workspace/api-client-react";
 import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,11 +98,11 @@ export function AnimalList() {
 
   const { data: animals, isLoading } = useListAnimals(activeFarmId || '',
     { search: search || undefined },
-    { query: { enabled: !!activeFarmId } }
+    { query: { queryKey: getListAnimalsQueryKey(activeFarmId || '', { search: search || undefined }), enabled: !!activeFarmId } }
   );
 
   const { data: farmStats } = useGetFarmStats(activeFarmId || '', {
-    query: { enabled: !!activeFarmId },
+    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ''), enabled: !!activeFarmId },
   });
   const upcomingMedicalSet = new Set<string>(farmStats?.upcomingMedicalAnimalIds ?? []);
 

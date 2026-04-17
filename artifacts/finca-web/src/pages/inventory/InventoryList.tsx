@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
-import { useListInventoryItems, useCreateInventoryItem } from "@workspace/api-client-react";
+import { useListInventoryItems, useCreateInventoryItem, getListInventoryItemsQueryKey } from "@workspace/api-client-react";
 import type { InventoryItem, CreateInventoryItemRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -95,7 +95,7 @@ export function InventoryList() {
   const { data: allItems, isLoading } = useListInventoryItems(
     activeFarmId || '',
     { search: search || undefined },
-    { query: { enabled: !!activeFarmId } }
+    { query: { queryKey: getListInventoryItemsQueryKey(activeFarmId || '', { search: search || undefined }), enabled: !!activeFarmId } }
   );
 
   const categoryCount = useMemo(() => {

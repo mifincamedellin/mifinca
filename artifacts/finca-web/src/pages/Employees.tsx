@@ -6,7 +6,7 @@ import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
-import { useListFarms } from "@workspace/api-client-react";
+import { useListFarms, getListFarmsQueryKey } from "@workspace/api-client-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -624,7 +624,7 @@ export function Employees() {
   const { openUpgradeModal } = useUpgradeStore();
   const isEn = i18n.language === "en";
 
-  const { data: farms } = useListFarms({ query: { enabled: !!activeFarmId } });
+  const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
   const activeFarm = farms?.find((f: any) => f.id === activeFarmId);
   const payDay: number = (activeFarm as any)?.payDay ?? 30;
 

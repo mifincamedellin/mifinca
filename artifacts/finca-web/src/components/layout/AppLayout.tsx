@@ -7,7 +7,7 @@ import { SidebarThemePicker } from "@/components/SidebarThemePicker";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
-import { useGetMe, useListFarms } from "@workspace/api-client-react";
+import { useGetMe, useListFarms, getGetMeQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import { useAuth, useClerk } from "@clerk/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -114,11 +114,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAuthenticated = !!token || !!isSignedIn;
 
   const { data: user, isError: authFailed } = useGetMe({
-    query: { enabled: isAuthenticated, retry: 3, retryDelay: 2000 }
+    query: { queryKey: getGetMeQueryKey(), enabled: isAuthenticated, retry: 3, retryDelay: 2000 }
   });
 
   const { data: farms } = useListFarms({
-    query: { enabled: isAuthenticated && !authFailed }
+    query: { queryKey: getListFarmsQueryKey(), enabled: isAuthenticated && !authFailed }
   });
 
   // Redirect if not authenticated
