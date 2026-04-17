@@ -10,6 +10,8 @@ interface Props {
   animals: LifecycleAnimal[];
   selectedStage: LifecycleStage | null;
   onSelect: (stage: LifecycleStage | null) => void;
+  selectedMale?: boolean;
+  onSelectMale?: (v: boolean) => void;
 }
 
 const STAGE_LABELS: Record<LifecycleStage, [string, string]> = {
@@ -28,7 +30,7 @@ const STAGE_ICONS: Record<LifecycleStage, React.FC<{ className?: string }>> = {
   nursing:   Milk,
 };
 
-export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Props) {
+export function LifecycleSummaryChips({ animals, selectedStage, onSelect, selectedMale, onSelectMale }: Props) {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
 
@@ -47,28 +49,34 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
     animals.filter(a => hasLifecycle(a)).length,
   [animals]);
 
-  if (totalTracked === 0) return null;
+  const maleCount = useMemo(() =>
+    animals.filter(a => a.sex === "male").length,
+  [animals]);
+
+  if (totalTracked === 0 && maleCount === 0) return null;
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-6 pl-6 pr-2 md:mx-0 md:pl-0 md:pr-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       {/* All chip */}
-      <button
-        onClick={() => onSelect(null)}
-        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
-          selectedStage === null
-            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-            : "bg-card border-border/50 text-muted-foreground hover:border-border"
-        }`}
-      >
-        <span>{isEn ? "All" : "Todas"}</span>
-        <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-          selectedStage === null ? "bg-primary-foreground/20 text-primary-foreground" : "bg-foreground/10 text-muted-foreground"
-        }`}>
-          {totalTracked}
-        </span>
-      </button>
+      {totalTracked > 0 && (
+        <button
+          onClick={() => { onSelect(null); onSelectMale?.(false); }}
+          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
+            selectedStage === null && !selectedMale
+              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+              : "bg-card border-border/50 text-muted-foreground hover:border-border"
+          }`}
+        >
+          <span>{isEn ? "All" : "Todas"}</span>
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+            selectedStage === null && !selectedMale ? "bg-primary-foreground/20 text-primary-foreground" : "bg-foreground/10 text-muted-foreground"
+          }`}>
+            {totalTracked}
+          </span>
+        </button>
+      )}
 
-      {[...LIFECYCLE_STAGES].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0)).map(stage => {
+      {totalTracked > 0 && [...LIFECYCLE_STAGES].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0)).map(stage => {
         const count = counts[stage] ?? 0;
         const active = selectedStage === stage;
         const [labelEs, labelEn] = STAGE_LABELS[stage];
@@ -76,7 +84,7 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
         return (
           <button
             key={stage}
-            onClick={() => onSelect(active ? null : stage)}
+            onClick={() => { onSelect(active ? null : stage); onSelectMale?.(false); }}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
               active
                 ? "bg-primary text-primary-foreground border-primary shadow-sm"
@@ -95,6 +103,26 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect }: Prop
           </button>
         );
       })}
+
+      {/* Male chip */}
+      {onSelectMale && maleCount > 0 && (
+        <button
+          onClick={() => { onSelectMale(!selectedMale); if (!selectedMale) onSelect(null); }}
+          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
+            selectedMale
+              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+              : "bg-card border-border/50 text-muted-foreground hover:border-border"
+          }`}
+        >
+          <span className="text-base leading-none">♂</span>
+          <span>{isEn ? "Male" : "Machos"}</span>
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+            selectedMale ? "bg-primary-foreground/20 text-primary-foreground" : "bg-foreground/10 text-muted-foreground"
+          }`}>
+            {maleCount}
+          </span>
+        </button>
+      )}
     </div>
   );
 }

@@ -66,6 +66,7 @@ export function AnimalList() {
   const [search, setSearch] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<string>("all");
   const [selectedLifecycle, setSelectedLifecycle] = useState<LifecycleStage | null>(null);
+  const [selectedMale, setSelectedMale] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [view, setView] = useState<"grid" | "table">(() => {
@@ -194,6 +195,9 @@ export function AnimalList() {
         return stage === selectedLifecycle;
       });
     }
+    if (selectedMale) {
+      result = result.filter(a => a.sex === "male");
+    }
     if (sortCol) {
       result = [...result].sort((a, b) => {
         let cmp = 0;
@@ -219,7 +223,7 @@ export function AnimalList() {
       });
     }
     return result;
-  }, [animals, selectedSpecies, selectedLifecycle, sortCol, sortDir]);
+  }, [animals, selectedSpecies, selectedLifecycle, selectedMale, sortCol, sortDir]);
 
   if (!activeFarmId) return null;
 
@@ -521,7 +525,9 @@ export function AnimalList() {
         <LifecycleSummaryChips
           animals={speciesFiltered as LifecycleAnimal[]}
           selectedStage={selectedLifecycle}
-          onSelect={setSelectedLifecycle}
+          onSelect={(stage) => { setSelectedLifecycle(stage); if (stage) setSelectedMale(false); }}
+          selectedMale={selectedMale}
+          onSelectMale={(v) => { setSelectedMale(v); if (v) setSelectedLifecycle(null); }}
         />
       )}
 
