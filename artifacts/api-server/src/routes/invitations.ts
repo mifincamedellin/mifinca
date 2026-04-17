@@ -6,6 +6,15 @@ import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 import type { AuthedReq } from "../middleware/auth.js";
 import { z } from "zod";
 
+const permissionsSchema = z.object({
+  can_view_animals: z.boolean(), can_add_animals: z.boolean(), can_edit_animals: z.boolean(), can_remove_animals: z.boolean(),
+  can_view_inventory: z.boolean(), can_add_inventory: z.boolean(), can_edit_inventory: z.boolean(), can_remove_inventory: z.boolean(),
+  can_view_finances: z.boolean(), can_add_finances: z.boolean(), can_edit_finances: z.boolean(), can_remove_finances: z.boolean(),
+  can_view_contacts: z.boolean(), can_add_contacts: z.boolean(), can_edit_contacts: z.boolean(), can_remove_contacts: z.boolean(),
+  can_view_employees: z.boolean(), can_add_employees: z.boolean(), can_edit_employees: z.boolean(), can_remove_employees: z.boolean(),
+  can_view_calendar: z.boolean(), can_add_calendar: z.boolean(), can_edit_calendar: z.boolean(), can_remove_calendar: z.boolean(),
+});
+
 const router = Router();
 
 // List invitations for a farm (owner only)
@@ -69,6 +78,37 @@ router.post("/farms/:farmId/invitations", requireAuth, requireFarmAccess, async 
       return res.status(400).json({ error: "validation", message: err.message });
     }
     return res.status(500).json({ error: "internal", message: String(err) });
+  }
+});
+
+// Update permissions on a pending invitation (owner only)
+router.put("/farms/:farmId/invitations/:invitationId", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const authedMember = (req as AuthedReq).farmMember;
+    if (authedMember?.role !== "owner") {
+      return res.status(403).json({ error: "forbidden", message: "Only farm owners can update invitations" });
+    }
+    const { farmId, invitationId } = req.params as { farmId: string; invitationId: string };
+    const { permissions } = z.object({ permissions: permissionsSchema }).parse(req.body);
+
+    const [updated] = await db.update(farmInvitationsTable)
+      .set({ permissions })
+      .where(and(
+        eq(farmInvitationsTable.id, invitationId),
+        eq(farmInvitationsTable.farmId, farmId),
+        eq(farmInvitationsTable.status, "pending")
+      ))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: "not_found", message: "Pending invitation not found" });
+    }
+    return res.json(updated);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: "validation", message: err.message });
+    }
+    return res.status(500).json({ error: "internal" });
   }
 });
 

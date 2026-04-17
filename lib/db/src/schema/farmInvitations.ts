@@ -1,7 +1,8 @@
-import { pgTable, uuid, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, unique, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { farmsTable } from "./farms";
+import type { FarmPermissions } from "./farmMembers";
 
 export const farmInvitationsTable = pgTable("farm_invitations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -10,6 +11,7 @@ export const farmInvitationsTable = pgTable("farm_invitations", {
   invitedByUserId: uuid("invited_by_user_id").notNull(),
   role: text("role", { enum: ["owner", "worker"] }).default("worker"),
   status: text("status", { enum: ["pending", "accepted"] }).default("pending"),
+  permissions: jsonb("permissions").$type<FarmPermissions>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (t) => [unique().on(t.farmId, t.invitedEmail)]);
 

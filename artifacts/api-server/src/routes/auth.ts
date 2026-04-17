@@ -186,11 +186,13 @@ router.post("/auth/clerk-sync", async (req, res) => {
     if (invitation.length > 0) {
       // Accept the invitation — add to the farm
       const inviteRole = invitation[0]!.role ?? "worker";
+      const invitePerms = invitation[0]!.permissions;
+      const defaultPerms = inviteRole === "owner" ? DEFAULT_OWNER_PERMISSIONS : DEFAULT_WORKER_PERMISSIONS;
       await db.insert(farmMembersTable).values({
         farmId: invitation[0]!.farmId,
         userId: profileId,
         role: inviteRole,
-        permissions: inviteRole === "owner" ? DEFAULT_OWNER_PERMISSIONS : DEFAULT_WORKER_PERMISSIONS,
+        permissions: invitePerms ?? defaultPerms,
       });
       await db.update(farmInvitationsTable)
         .set({ status: "accepted" })

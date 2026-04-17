@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   ShieldCheck, UserPlus, Trash2, ChevronDown, ChevronUp,
-  PawPrint, Package, DollarSign, Users, UserCheck, CalendarDays,
+  PawPrint, Package, DollarSign, Users, UserCheck, CalendarDays, Clock,
 } from "lucide-react";
 
 type Member = {
@@ -53,6 +53,15 @@ const DEFAULT_WORKER_PERMS: FarmPermissions = {
   can_view_contacts: true, can_add_contacts: false, can_edit_contacts: false, can_remove_contacts: false,
   can_view_employees: true, can_add_employees: false, can_edit_employees: false, can_remove_employees: false,
   can_view_calendar: true, can_add_calendar: false, can_edit_calendar: false, can_remove_calendar: false,
+};
+
+const INVITE_DEFAULT_PERMS: FarmPermissions = {
+  can_view_animals: true, can_add_animals: true, can_edit_animals: true, can_remove_animals: true,
+  can_view_inventory: true, can_add_inventory: true, can_edit_inventory: true, can_remove_inventory: true,
+  can_view_finances: true, can_add_finances: true, can_edit_finances: true, can_remove_finances: true,
+  can_view_contacts: true, can_add_contacts: true, can_edit_contacts: true, can_remove_contacts: true,
+  can_view_employees: true, can_add_employees: true, can_edit_employees: true, can_remove_employees: true,
+  can_view_calendar: true, can_add_calendar: true, can_edit_calendar: true, can_remove_calendar: true,
 };
 
 function PermToggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -174,6 +183,96 @@ function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePer
   );
 }
 
+function PendingInviteCard({ invite, onUpdatePerms }: {
+  invite: { id: string; invitedEmail: string; role: string; status: string; permissions: FarmPermissions | null };
+  onUpdatePerms: (inviteId: string, perms: FarmPermissions) => void;
+}) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const perms: FarmPermissions = invite.permissions ?? INVITE_DEFAULT_PERMS;
+  const initials = invite.invitedEmail.substring(0, 2).toUpperCase();
+
+  function handleToggle(perm: keyof FarmPermissions, value: boolean) {
+    const next: FarmPermissions = { ...perms, [perm]: value };
+    if (perm.startsWith("can_view_") && !value) {
+      const base = perm.replace("can_view_", "");
+      next[`can_add_${base}` as keyof FarmPermissions] = false;
+      next[`can_edit_${base}` as keyof FarmPermissions] = false;
+      next[`can_remove_${base}` as keyof FarmPermissions] = false;
+    }
+    if (!perm.startsWith("can_view_") && value) {
+      const base = perm.replace(/^can_(add|edit|remove)_/, "");
+      next[`can_view_${base}` as keyof FarmPermissions] = true;
+    }
+    onUpdatePerms(invite.id, next);
+  }
+
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-card overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-sm font-semibold flex-shrink-0">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm text-foreground truncate">{invite.invitedEmail}</div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">{t("roles.pendingBadge")}</span>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+          onClick={() => setExpanded(e => !e)}
+        >
+          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-dashed border-border px-4 py-3 bg-muted/30">
+          <p className="text-xs text-muted-foreground mb-3">{t("roles.invitePermsLabel")}</p>
+          <div className="space-y-3">
+            {SECTIONS.map(section => {
+              const Icon = section.icon;
+              const viewVal = perms[section.viewPerm];
+              const addVal = perms[section.addPerm];
+              const editVal = perms[section.editPerm];
+              const removeVal = perms[section.removePerm];
+              return (
+                <div key={section.key}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs font-semibold text-foreground">{t(section.labelKey)}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 pl-5">
+                    {([
+                      { label: t("roles.perm.view"), perm: section.viewPerm, val: viewVal, disabled: false },
+                      { label: t("roles.perm.add"), perm: section.addPerm, val: addVal, disabled: !viewVal },
+                      { label: t("roles.perm.edit"), perm: section.editPerm, val: editVal, disabled: !viewVal },
+                      { label: t("roles.perm.remove"), perm: section.removePerm, val: removeVal, disabled: !viewVal },
+                    ] as const).map(({ label, perm, val, disabled }) => (
+                      <div key={perm as string} className="flex flex-col items-center gap-1">
+                        <PermToggle
+                          checked={val as boolean}
+                          onChange={(v) => handleToggle(perm as keyof FarmPermissions, v)}
+                          disabled={disabled as boolean}
+                        />
+                        <span className="text-[10px] text-muted-foreground">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Roles() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
@@ -222,15 +321,34 @@ export function Roles() {
     onError: () => toast({ title: t("common.error"), variant: "destructive" }),
   });
 
-  const { data: pendingInvites = [] } = useQuery<{ id: string; invitedEmail: string; role: string; status: string }[]>({
+  type PendingInvite = { id: string; invitedEmail: string; role: string; status: string; permissions: FarmPermissions | null };
+
+  const { data: pendingInvites = [] } = useQuery<PendingInvite[]>({
     queryKey: [`/api/farms/${activeFarmId}/invitations`],
     queryFn: async () => {
       const res = await fetch(`/api/farms/${activeFarmId}/invitations`);
       if (!res.ok) return [];
       const all = await res.json();
-      return (all as { id: string; invitedEmail: string; role: string; status: string }[]).filter(i => i.status === "pending");
+      return (all as PendingInvite[]).filter(i => i.status === "pending");
     },
     enabled: !!activeFarmId && isOwner,
+  });
+
+  const updateInvitePerms = useMutation({
+    mutationFn: async ({ inviteId, permissions }: { inviteId: string; permissions: FarmPermissions }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/invitations/${inviteId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permissions }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/invitations`] });
+      toast({ title: t("roles.invitePermsSaved") });
+    },
+    onError: () => toast({ title: t("common.error"), variant: "destructive" }),
   });
 
   const inviteMember = useMutation({
@@ -324,10 +442,11 @@ export function Roles() {
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{t("roles.pendingInvites")}</p>
           {pendingInvites.map(invite => (
-            <div key={invite.id} className="flex items-center justify-between rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-              <span>{invite.invitedEmail}</span>
-              <Badge variant="outline" className="text-xs">{t("roles.pendingBadge")}</Badge>
-            </div>
+            <PendingInviteCard
+              key={invite.id}
+              invite={invite}
+              onUpdatePerms={(inviteId, permissions) => updateInvitePerms.mutate({ inviteId, permissions })}
+            />
           ))}
         </div>
       )}
