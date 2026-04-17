@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { employeesTable, farmMembersTable, farmsTable, employeeAttachmentsTable, activityLogTable, profilesTable } from "@workspace/db";
 import { eq, and, lt, sql, count } from "drizzle-orm";
 import { getPlanLimits } from "../lib/plans.js";
-import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+import { requireAuth, requireFarmAccess, requirePerm } from "../middleware/auth.js";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage.js";
 
 const objectStorageService = new ObjectStorageService();
@@ -11,7 +11,7 @@ const objectStorageService = new ObjectStorageService();
 const router = Router();
 type AuthedReq = Request & { userId: string; farmMember?: typeof farmMembersTable.$inferSelect };
 
-router.get("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/employees", requireAuth, requireFarmAccess, requirePerm("can_view_employees"), async (req, res) => {
   try {
     const { farmId } = req.params as { farmId: string };
     const employees = await db.select().from(employeesTable)
@@ -24,7 +24,7 @@ router.get("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (re
   }
 });
 
-router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, requirePerm("can_add_employees"), async (req, res) => {
   try {
     const { farmId } = req.params as { farmId: string };
     const { name, phone, email, startDate, monthlySalary, bankName, bankAccount, notes,
@@ -74,7 +74,7 @@ router.post("/farms/:farmId/employees", requireAuth, requireFarmAccess, async (r
   }
 });
 
-router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAccess, async (req, res) => {
+router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAccess, requirePerm("can_edit_employees"), async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
     const userId = (req as AuthedReq).userId;
@@ -114,7 +114,7 @@ router.put("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAcces
   }
 });
 
-router.delete("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAccess, async (req, res) => {
+router.delete("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAccess, requirePerm("can_remove_employees"), async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
     const userId = (req as AuthedReq).userId;

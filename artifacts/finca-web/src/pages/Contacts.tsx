@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Plus, X, Pencil, Trash2, Phone, Mail, Search } from "lucide-react";
@@ -44,6 +45,7 @@ const AVATAR_COLORS = [
 export function Contacts() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
+  const { can } = useFarmPermissions();
   const qc = useQueryClient();
   const { openUpgradeModal } = useUpgradeStore();
 
@@ -130,9 +132,11 @@ export function Contacts() {
           <h1 className="text-3xl font-serif font-bold text-primary">{t("contacts.title")}</h1>
           <p className="text-muted-foreground mt-1">{t("contacts.subtitle")}</p>
         </div>
-        <Button onClick={openNew} className="rounded-xl gap-2">
-          <Plus className="h-4 w-4" /> {t("contacts.add")}
-        </Button>
+        {can("can_add_contacts") && (
+          <Button onClick={openNew} className="rounded-xl gap-2">
+            <Plus className="h-4 w-4" /> {t("contacts.add")}
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -178,9 +182,11 @@ export function Contacts() {
             <p className="font-semibold text-foreground/70 mb-1">{t("contacts.empty.title")}</p>
             <p className="text-sm">{t("contacts.empty.desc")}</p>
           </div>
-          <Button onClick={openNew} variant="outline" className="mt-2 rounded-xl border-primary/20 text-primary hover:bg-primary/5">
-            <Plus className="h-4 w-4 mr-2" /> {t("contacts.add")}
-          </Button>
+          {can("can_add_contacts") && (
+            <Button onClick={openNew} variant="outline" className="mt-2 rounded-xl border-primary/20 text-primary hover:bg-primary/5">
+              <Plus className="h-4 w-4 mr-2" /> {t("contacts.add")}
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

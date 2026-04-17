@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { useListInventoryItems, useCreateInventoryItem } from "@workspace/api-client-react";
 import type { InventoryItem, CreateInventoryItemRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
@@ -33,6 +34,7 @@ type AdjustItem = { id: string; name: string; quantity: string; unit: string };
 export function InventoryList() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
+  const { can } = useFarmPermissions();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -153,11 +155,13 @@ export function InventoryList() {
           <p className="text-muted-foreground mt-1">{t('inventory.subtitle')}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-xl px-6 bg-primary hover:bg-primary/90 hover-elevate shadow-md">
-              <Plus className="mr-2 h-4 w-4" /> {t('inventory.add')}
-            </Button>
-          </DialogTrigger>
+          {can("can_add_inventory") && (
+            <DialogTrigger asChild>
+              <Button className="rounded-xl px-6 bg-primary hover:bg-primary/90 hover-elevate shadow-md">
+                <Plus className="mr-2 h-4 w-4" /> {t('inventory.add')}
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl text-primary">{t('inventory.add')}</DialogTitle>

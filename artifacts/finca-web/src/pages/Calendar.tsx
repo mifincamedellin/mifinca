@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,6 +70,7 @@ const WEEKDAYS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export function Calendar() {
   const { i18n } = useTranslation();
   const { activeFarmId } = useStore();
+  const { can } = useFarmPermissions();
   const qc = useQueryClient();
   const isEn = i18n.language === "en";
   const [, setLocation] = useLocation();
@@ -266,11 +268,13 @@ export function Calendar() {
           <h1 className="text-3xl font-serif font-bold text-primary">{isEn ? "Calendar" : "Calendario"}</h1>
           <p className="text-muted-foreground mt-1 text-sm">{isEn ? "Plan and track farm activities" : "Planifica y registra actividades de la finca"}</p>
         </div>
-        <Button onClick={() => openCreate()} className="rounded-xl bg-primary hover:bg-primary/90 gap-2">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">{isEn ? "New Event" : "Nuevo Evento"}</span>
-          <span className="sm:hidden">{isEn ? "Add" : "Nuevo"}</span>
-        </Button>
+        {can("can_add_calendar") && (
+          <Button onClick={() => openCreate()} className="rounded-xl bg-primary hover:bg-primary/90 gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">{isEn ? "New Event" : "Nuevo Evento"}</span>
+            <span className="sm:hidden">{isEn ? "Add" : "Nuevo"}</span>
+          </Button>
+        )}
       </div>
 
       <Card className="rounded-2xl shadow-sm border-border/40 overflow-hidden">
@@ -396,14 +400,16 @@ export function Calendar() {
               <p className="text-xs text-primary font-medium mt-0.5">{isEn ? "Today" : "Hoy"}</p>
             )}
           </div>
-          <Button
-            size="sm"
-            onClick={() => openCreate(format(selectedDate, "yyyy-MM-dd"))}
-            className="rounded-xl bg-primary hover:bg-primary/90 gap-1.5 h-8 px-3 text-xs"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {isEn ? "Add" : "Agregar"}
-          </Button>
+          {can("can_add_calendar") && (
+            <Button
+              size="sm"
+              onClick={() => openCreate(format(selectedDate, "yyyy-MM-dd"))}
+              className="rounded-xl bg-primary hover:bg-primary/90 gap-1.5 h-8 px-3 text-xs"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {isEn ? "Add" : "Agregar"}
+            </Button>
+          )}
         </div>
 
         <div className="divide-y divide-border/30">

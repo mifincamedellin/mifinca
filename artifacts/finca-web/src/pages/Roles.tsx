@@ -1,0 +1,319 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useStore } from "@/lib/store";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
+import type { FarmPermissions } from "@/lib/useFarmPermissions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import {
+  ShieldCheck, UserPlus, Trash2, ChevronDown, ChevronUp,
+  PawPrint, Package, DollarSign, Users, UserCheck, CalendarDays,
+} from "lucide-react";
+
+type Member = {
+  id: string;
+  userId: string;
+  role: "owner" | "worker";
+  permissions: FarmPermissions | null;
+  createdAt: string;
+  profile: {
+    id: string;
+    fullName: string | null;
+    role: string | null;
+    preferredLanguage: string | null;
+  };
+};
+
+type Section = {
+  key: string;
+  labelKey: string;
+  icon: React.ElementType;
+  viewPerm: keyof FarmPermissions;
+  addPerm: keyof FarmPermissions;
+  editPerm: keyof FarmPermissions;
+  removePerm: keyof FarmPermissions;
+};
+
+const SECTIONS: Section[] = [
+  { key: "animals", labelKey: "nav.animals", icon: PawPrint, viewPerm: "can_view_animals", addPerm: "can_add_animals", editPerm: "can_edit_animals", removePerm: "can_remove_animals" },
+  { key: "inventory", labelKey: "nav.inventory", icon: Package, viewPerm: "can_view_inventory", addPerm: "can_add_inventory", editPerm: "can_edit_inventory", removePerm: "can_remove_inventory" },
+  { key: "finances", labelKey: "nav.finances", icon: DollarSign, viewPerm: "can_view_finances", addPerm: "can_add_finances", editPerm: "can_edit_finances", removePerm: "can_remove_finances" },
+  { key: "contacts", labelKey: "nav.contacts", icon: Users, viewPerm: "can_view_contacts", addPerm: "can_add_contacts", editPerm: "can_edit_contacts", removePerm: "can_remove_contacts" },
+  { key: "employees", labelKey: "nav.employees", icon: UserCheck, viewPerm: "can_view_employees", addPerm: "can_add_employees", editPerm: "can_edit_employees", removePerm: "can_remove_employees" },
+  { key: "calendar", labelKey: "nav.calendar", icon: CalendarDays, viewPerm: "can_view_calendar", addPerm: "can_add_calendar", editPerm: "can_edit_calendar", removePerm: "can_remove_calendar" },
+];
+
+const DEFAULT_WORKER_PERMS: FarmPermissions = {
+  can_view_animals: true, can_add_animals: false, can_edit_animals: false, can_remove_animals: false,
+  can_view_inventory: true, can_add_inventory: false, can_edit_inventory: false, can_remove_inventory: false,
+  can_view_finances: true, can_add_finances: false, can_edit_finances: false, can_remove_finances: false,
+  can_view_contacts: true, can_add_contacts: false, can_edit_contacts: false, can_remove_contacts: false,
+  can_view_employees: true, can_add_employees: false, can_edit_employees: false, can_remove_employees: false,
+  can_view_calendar: true, can_add_calendar: false, can_edit_calendar: false, can_remove_calendar: false,
+};
+
+function PermToggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={() => !disabled && onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"} ${checked ? "bg-primary" : "bg-muted-foreground/30"}`}
+      disabled={disabled}
+    >
+      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+    </button>
+  );
+}
+
+function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePerms }: {
+  member: Member;
+  isOwner: boolean;
+  onRemove: (userId: string) => void;
+  onUpdatePerms: (userId: string, perms: Partial<FarmPermissions>) => void;
+}) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const isWorker = member.role === "worker";
+  const perms: FarmPermissions = member.permissions ?? DEFAULT_WORKER_PERMS;
+
+  const displayName = member.profile.fullName || t("common.user");
+  const initials = displayName.substring(0, 2).toUpperCase();
+
+  function handleToggle(perm: keyof FarmPermissions, value: boolean) {
+    const patch: Partial<FarmPermissions> = { [perm]: value };
+    if (perm.startsWith("can_view_") && !value) {
+      const base = perm.replace("can_view_", "");
+      patch[`can_add_${base}` as keyof FarmPermissions] = false;
+      patch[`can_edit_${base}` as keyof FarmPermissions] = false;
+      patch[`can_remove_${base}` as keyof FarmPermissions] = false;
+    }
+    if (!perm.startsWith("can_view_") && value) {
+      const base = perm.replace(/^can_(add|edit|remove)_/, "");
+      patch[`can_view_${base}` as keyof FarmPermissions] = true;
+    }
+    onUpdatePerms(member.userId, patch);
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold flex-shrink-0">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm text-foreground truncate">{displayName}</div>
+          <Badge variant={member.role === "owner" ? "default" : "secondary"} className="text-xs mt-0.5">
+            {t(member.role === "owner" ? "roles.owner" : "roles.worker")}
+          </Badge>
+        </div>
+        {currentUserIsOwner && isWorker && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+              onClick={() => setExpanded(e => !e)}
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              onClick={() => onRemove(member.userId)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {expanded && isWorker && currentUserIsOwner && (
+        <div className="border-t border-border px-4 py-3 bg-muted/30">
+          <p className="text-xs text-muted-foreground mb-3">{t("roles.permissionsLabel")}</p>
+          <div className="space-y-3">
+            {SECTIONS.map(section => {
+              const Icon = section.icon;
+              const viewVal = perms[section.viewPerm];
+              const addVal = perms[section.addPerm];
+              const editVal = perms[section.editPerm];
+              const removeVal = perms[section.removePerm];
+              return (
+                <div key={section.key}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs font-semibold text-foreground">{t(section.labelKey)}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 pl-5">
+                    {([
+                      { label: t("roles.perm.view"), perm: section.viewPerm, val: viewVal, disabled: false },
+                      { label: t("roles.perm.add"), perm: section.addPerm, val: addVal, disabled: !viewVal },
+                      { label: t("roles.perm.edit"), perm: section.editPerm, val: editVal, disabled: !viewVal },
+                      { label: t("roles.perm.remove"), perm: section.removePerm, val: removeVal, disabled: !viewVal },
+                    ] as const).map(({ label, perm, val, disabled }) => (
+                      <div key={perm as string} className="flex flex-col items-center gap-1">
+                        <PermToggle
+                          checked={val as boolean}
+                          onChange={(v) => handleToggle(perm as keyof FarmPermissions, v)}
+                          disabled={disabled as boolean}
+                        />
+                        <span className="text-[10px] text-muted-foreground">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Roles() {
+  const { t } = useTranslation();
+  const { activeFarmId } = useStore();
+  const { isOwner } = useFarmPermissions();
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+
+  const { data: members = [], isLoading } = useQuery<Member[]>({
+    queryKey: [`/api/farms/${activeFarmId}/members`],
+    queryFn: async () => {
+      const res = await fetch(`/api/farms/${activeFarmId}/members`);
+      if (!res.ok) throw new Error("Failed to load members");
+      return res.json();
+    },
+    enabled: !!activeFarmId,
+  });
+
+  const removeMember = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/members/${userId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Remove failed");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
+      toast({ title: t("roles.memberRemoved") });
+    },
+    onError: () => toast({ title: t("common.error"), variant: "destructive" }),
+  });
+
+  const updatePerms = useMutation({
+    mutationFn: async ({ userId, permissions }: { userId: string; permissions: Partial<FarmPermissions> }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/members/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permissions }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
+    },
+    onError: () => toast({ title: t("common.error"), variant: "destructive" }),
+  });
+
+  const inviteMember = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, role: "worker" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.error === "not_found") throw new Error("not_found");
+        throw new Error("invite_failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
+      setInviteEmail("");
+      toast({ title: t("roles.memberInvited") });
+    },
+    onError: (err: Error) => {
+      if (err.message === "not_found") {
+        toast({ title: t("roles.userNotFound"), variant: "destructive" });
+      } else {
+        toast({ title: t("common.error"), variant: "destructive" });
+      }
+    },
+  });
+
+  async function handleInvite(e: React.FormEvent) {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    try {
+      await inviteMember.mutateAsync(inviteEmail.trim());
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <div className="flex items-center gap-3">
+        <ShieldCheck className="h-6 w-6 text-primary" />
+        <div>
+          <h1 className="text-2xl font-serif font-semibold text-foreground">{t("roles.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("roles.subtitle")}</p>
+        </div>
+      </div>
+
+      {isOwner && (
+        <form onSubmit={handleInvite} className="flex gap-2">
+          <Input
+            type="email"
+            placeholder={t("roles.invitePlaceholder")}
+            value={inviteEmail}
+            onChange={e => setInviteEmail(e.target.value)}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={inviting || !inviteEmail.trim()}>
+            <UserPlus className="h-4 w-4 mr-1" />
+            {t("roles.invite")}
+          </Button>
+        </form>
+      )}
+
+      <div className="space-y-3">
+        {isLoading && (
+          <div className="text-center py-8 text-muted-foreground text-sm">{t("common.loading")}</div>
+        )}
+        {!isLoading && members.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground text-sm">{t("roles.noMembers")}</div>
+        )}
+        {members.map(member => (
+          <MemberCard
+            key={member.id}
+            member={member}
+            isOwner={isOwner}
+            onRemove={(userId) => {
+              if (confirm(t("roles.confirmRemove"))) {
+                removeMember.mutate(userId);
+              }
+            }}
+            onUpdatePerms={(userId, permissions) => updatePerms.mutate({ userId, permissions })}
+          />
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-border bg-muted/30 p-4">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {isOwner ? t("roles.ownerHint") : t("roles.workerHint")}
+        </p>
+      </div>
+    </div>
+  );
+}

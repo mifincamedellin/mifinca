@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListFarms } from "@workspace/api-client-react";
@@ -617,6 +618,7 @@ function EmployeeExpandedPanel({ emp, farmId }: { emp: Employee; farmId: string 
 export function Employees() {
   const { t, i18n } = useTranslation();
   const { activeFarmId, currency } = useStore();
+  const { can } = useFarmPermissions();
   const qc = useQueryClient();
   const { openUpgradeModal } = useUpgradeStore();
   const isEn = i18n.language === "en";
@@ -761,9 +763,11 @@ export function Employees() {
           <h1 className="text-3xl font-serif font-bold text-primary">{t("emp.title")}</h1>
           <p className="text-muted-foreground mt-1">{t("emp.subtitle")}</p>
         </div>
-        <Button onClick={openAdd} className="rounded-xl gap-2">
-          <Plus className="h-4 w-4" /> {t("emp.addEmployee")}
-        </Button>
+        {can("can_add_employees") && (
+          <Button onClick={openAdd} className="rounded-xl gap-2">
+            <Plus className="h-4 w-4" /> {t("emp.addEmployee")}
+          </Button>
+        )}
       </div>
 
       {/* Top summary cards */}
@@ -818,9 +822,11 @@ export function Employees() {
             <p className="font-semibold text-foreground/70 mb-1">{t("emp.noEmployees")}</p>
             <p className="text-sm">{t("emp.noEmployeesDesc")}</p>
           </div>
-          <Button onClick={openAdd} variant="outline" className="mt-2 rounded-xl border-primary/20 text-primary hover:bg-primary/5">
-            <Plus className="h-4 w-4 mr-2" /> {t("emp.addEmployee")}
-          </Button>
+          {can("can_add_employees") && (
+            <Button onClick={openAdd} variant="outline" className="mt-2 rounded-xl border-primary/20 text-primary hover:bg-primary/5">
+              <Plus className="h-4 w-4 mr-2" /> {t("emp.addEmployee")}
+            </Button>
+          )}
         </Card>
       ) : (
         <Card className="rounded-2xl border-border/50 shadow-sm bg-card/60 overflow-hidden">

@@ -3,13 +3,13 @@ import { db } from "@workspace/db";
 import { contactsTable, farmMembersTable, activityLogTable, profilesTable } from "@workspace/db";
 import { eq, and, desc, count } from "drizzle-orm";
 import { getPlanLimits } from "../lib/plans.js";
-import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+import { requireAuth, requireFarmAccess, requirePerm } from "../middleware/auth.js";
 
 const router = Router();
 type AuthedReq = Request & { userId: string; farmMember?: typeof farmMembersTable.$inferSelect };
 
 // List contacts
-router.get("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/contacts", requireAuth, requireFarmAccess, requirePerm("can_view_contacts"), async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
     const { search, category } = req.query as Record<string, string>;
@@ -33,7 +33,7 @@ router.get("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (req
 });
 
 // Create a contact
-router.post("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/contacts", requireAuth, requireFarmAccess, requirePerm("can_add_contacts"), async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
     const userId = (req as AuthedReq).userId;
@@ -76,7 +76,7 @@ router.post("/farms/:farmId/contacts", requireAuth, requireFarmAccess, async (re
 });
 
 // Update a contact
-router.put("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, async (req, res) => {
+router.put("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, requirePerm("can_edit_contacts"), async (req, res) => {
   try {
     const { id, farmId } = req.params as Record<string, string>;
     const userId = (req as AuthedReq).userId;
@@ -105,7 +105,7 @@ router.put("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, async 
 });
 
 // Delete a contact
-router.delete("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, async (req, res) => {
+router.delete("/farms/:farmId/contacts/:id", requireAuth, requireFarmAccess, requirePerm("can_remove_contacts"), async (req, res) => {
   try {
     const { id, farmId } = req.params as Record<string, string>;
     const userId = (req as AuthedReq).userId;

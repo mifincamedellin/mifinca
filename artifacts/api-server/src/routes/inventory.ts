@@ -2,7 +2,7 @@ import { Router, Request } from "express";
 import { db } from "@workspace/db";
 import { inventoryItemsTable, inventoryLogsTable, farmMembersTable, activityLogTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
-import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+import { requireAuth, requireFarmAccess, requirePerm } from "../middleware/auth.js";
 
 const router = Router();
 type AuthedReq = Request & { userId: string; farmMember?: typeof farmMembersTable.$inferSelect };
@@ -14,7 +14,7 @@ function computeStatus(item: typeof inventoryItemsTable.$inferSelect): "ok" | "l
   return "ok";
 }
 
-router.get("/farms/:farmId/inventory", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/inventory", requireAuth, requireFarmAccess, requirePerm("can_view_inventory"), async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
     const { category, search } = req.query as Record<string, string>;
@@ -36,7 +36,7 @@ router.get("/farms/:farmId/inventory", requireAuth, requireFarmAccess, async (re
   }
 });
 
-router.post("/farms/:farmId/inventory", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/inventory", requireAuth, requireFarmAccess, requirePerm("can_add_inventory"), async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
     const userId = (req as AuthedReq).userId;
@@ -72,7 +72,7 @@ router.post("/farms/:farmId/inventory", requireAuth, requireFarmAccess, async (r
   }
 });
 
-router.get("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, requirePerm("can_view_inventory"), async (req, res) => {
   try {
     const { farmId, itemId } = req.params as { farmId: string; itemId: string };
 
@@ -93,7 +93,7 @@ router.get("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, a
   }
 });
 
-router.put("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, async (req, res) => {
+router.put("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, requirePerm("can_edit_inventory"), async (req, res) => {
   try {
     const { farmId, itemId } = req.params as { farmId: string; itemId: string };
     const userId = (req as AuthedReq).userId;
@@ -129,7 +129,7 @@ router.put("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, a
   }
 });
 
-router.post("/farms/:farmId/inventory/:itemId/log", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/inventory/:itemId/log", requireAuth, requireFarmAccess, requirePerm("can_edit_inventory"), async (req, res) => {
   try {
     const { farmId, itemId } = req.params as { farmId: string; itemId: string };
     const userId = (req as AuthedReq).userId;
@@ -168,7 +168,7 @@ router.post("/farms/:farmId/inventory/:itemId/log", requireAuth, requireFarmAcce
   }
 });
 
-router.delete("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, async (req, res) => {
+router.delete("/farms/:farmId/inventory/:itemId", requireAuth, requireFarmAccess, requirePerm("can_remove_inventory"), async (req, res) => {
   try {
     const { farmId, itemId } = req.params as { farmId: string; itemId: string };
     const userId = (req as AuthedReq).userId;

@@ -5,7 +5,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, asc, ilike, or, count, sql, isNull } from "drizzle-orm";
 import { getPlanLimits } from "../lib/plans.js";
-import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+import { requireAuth, requireFarmAccess, requirePerm } from "../middleware/auth.js";
 
 async function syncMedicalCalendarEvent(
   farmId: string,
@@ -48,7 +48,7 @@ function getLatestWeight(weights: typeof weightRecordsTable.$inferSelect[]) {
   return weights.reduce((a, b) => a.recordedAt > b.recordedAt ? a : b);
 }
 
-router.get("/farms/:farmId/animals", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/animals", requireAuth, requireFarmAccess, requirePerm("can_view_animals"), async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
     const { species, status, breed, search } = req.query as Record<string, string>;
@@ -86,7 +86,7 @@ router.get("/farms/:farmId/animals", requireAuth, requireFarmAccess, async (req,
   }
 });
 
-router.post("/farms/:farmId/animals", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/animals", requireAuth, requireFarmAccess, requirePerm("can_add_animals"), async (req, res) => {
   try {
     const farmId = req.params["farmId"]!;
     const userId = (req as AuthedReq).userId;
@@ -122,7 +122,7 @@ router.post("/farms/:farmId/animals", requireAuth, requireFarmAccess, async (req
   }
 });
 
-router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, requirePerm("can_view_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
 
@@ -192,7 +192,7 @@ router.get("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, a
   }
 });
 
-router.put("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, async (req, res) => {
+router.put("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -784,7 +784,7 @@ router.delete("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth,
   }
 });
 
-router.delete("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, async (req, res) => {
+router.delete("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, requirePerm("can_remove_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -90,6 +91,7 @@ const EMPTY_FORM = {
 export function Finances() {
   const { t, i18n } = useTranslation();
   const { activeFarmId, currency } = useStore();
+  const { can } = useFarmPermissions();
   const qc = useQueryClient();
   const isEn = i18n.language === "en";
 
@@ -220,9 +222,11 @@ export function Finances() {
           <h1 className="text-3xl font-serif font-bold text-primary">{t("fin.title")}</h1>
           <p className="text-muted-foreground mt-1">{t("fin.subtitle")}</p>
         </div>
-        <Button onClick={openNew} className="rounded-xl gap-2">
-          <Plus className="h-4 w-4" /> {t("fin.add")}
-        </Button>
+        {can("can_add_finances") && (
+          <Button onClick={openNew} className="rounded-xl gap-2">
+            <Plus className="h-4 w-4" /> {t("fin.add")}
+          </Button>
+        )}
       </div>
 
       {/* Period selector */}
@@ -321,9 +325,11 @@ export function Finances() {
           <div className="p-12 text-center">
             <Sprout className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-muted-foreground">{t("fin.empty")}</p>
-            <Button variant="outline" onClick={openNew} className="mt-4 rounded-xl gap-2">
-              <Plus className="h-4 w-4" /> {t("fin.add")}
-            </Button>
+            {can("can_add_finances") && (
+              <Button variant="outline" onClick={openNew} className="mt-4 rounded-xl gap-2">
+                <Plus className="h-4 w-4" /> {t("fin.add")}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">

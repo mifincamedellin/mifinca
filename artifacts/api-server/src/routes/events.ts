@@ -2,11 +2,11 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { farmEventsTable, animalsTable } from "@workspace/db";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+import { requireAuth, requireFarmAccess, requirePerm } from "../middleware/auth.js";
 
 const router = Router();
 
-router.get("/farms/:farmId/events", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/events", requireAuth, requireFarmAccess, requirePerm("can_view_calendar"), async (req, res) => {
   try {
     const { farmId } = req.params as { farmId: string };
     const { from, to } = req.query as { from?: string; to?: string };
@@ -23,7 +23,7 @@ router.get("/farms/:farmId/events", requireAuth, requireFarmAccess, async (req, 
   }
 });
 
-router.post("/farms/:farmId/events", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/events", requireAuth, requireFarmAccess, requirePerm("can_add_calendar"), async (req, res) => {
   try {
     const { farmId } = req.params as { farmId: string };
     const userId = (req as any).userId;
@@ -54,7 +54,7 @@ router.post("/farms/:farmId/events", requireAuth, requireFarmAccess, async (req,
   }
 });
 
-router.put("/farms/:farmId/events/:eventId", requireAuth, requireFarmAccess, async (req, res) => {
+router.put("/farms/:farmId/events/:eventId", requireAuth, requireFarmAccess, requirePerm("can_edit_calendar"), async (req, res) => {
   try {
     const { farmId, eventId } = req.params as { farmId: string; eventId: string };
     const { title, description, startDate, endDate, allDay, category, assignedTo, color, animalId } = req.body;
@@ -96,7 +96,7 @@ router.put("/farms/:farmId/events/:eventId", requireAuth, requireFarmAccess, asy
   }
 });
 
-router.delete("/farms/:farmId/events/:eventId", requireAuth, requireFarmAccess, async (req, res) => {
+router.delete("/farms/:farmId/events/:eventId", requireAuth, requireFarmAccess, requirePerm("can_remove_calendar"), async (req, res) => {
   try {
     const { farmId, eventId } = req.params as { farmId: string; eventId: string };
 

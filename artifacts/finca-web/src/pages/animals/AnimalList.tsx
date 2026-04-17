@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListAnimals, useCreateAnimal, useGetFarmStats } from "@workspace/api-client-react";
@@ -59,6 +60,7 @@ export function AnimalList() {
   const isEn = i18n.language === "en";
   const [, navigate] = useLocation();
   const { activeFarmId, currency } = useStore();
+  const { can } = useFarmPermissions();
   const { openUpgradeModal } = useUpgradeStore();
   const [search, setSearch] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<string>("all");
@@ -225,11 +227,13 @@ export function AnimalList() {
           setIsDialogOpen(open);
           if (!open) { setPhotoPreview(null); form.reset(); }
         }}>
-          <DialogTrigger asChild>
-            <Button className="rounded-xl px-6 hover-elevate shadow-md">
-              <Plus className="mr-2 h-4 w-4" /> {t('animals.add')}
-            </Button>
-          </DialogTrigger>
+          {can("can_add_animals") && (
+            <DialogTrigger asChild>
+              <Button className="rounded-xl px-6 hover-elevate shadow-md">
+                <Plus className="mr-2 h-4 w-4" /> {t('animals.add')}
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="sm:max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl text-primary">{t('animals.add')}</DialogTitle>

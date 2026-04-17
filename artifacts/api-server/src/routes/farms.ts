@@ -5,10 +5,12 @@ import {
   farmsTable, farmMembersTable, profilesTable,
   animalsTable, inventoryItemsTable, medicalRecordsTable, activityLogTable,
   employeesTable, contactsTable,
+  DEFAULT_OWNER_PERMISSIONS, DEFAULT_WORKER_PERMISSIONS,
 } from "@workspace/db";
 import { eq, and, count, lt, lte, isNotNull } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 import { getPlanLimits } from "../lib/plans.js";
+import type { FarmPermissions } from "@workspace/db";
 
 const router = Router();
 
@@ -20,6 +22,7 @@ router.get("/farms", requireAuth, async (req, res) => {
     const memberships = await db.select({
       farmId: farmMembersTable.farmId,
       role: farmMembersTable.role,
+      permissions: farmMembersTable.permissions,
     }).from(farmMembersTable).where(eq(farmMembersTable.userId, userId));
 
     const farmIds = memberships.map(m => m.farmId);
@@ -28,7 +31,11 @@ router.get("/farms", requireAuth, async (req, res) => {
     const farms = await Promise.all(farmIds.map(async (farmId) => {
       const farm = await db.select().from(farmsTable).where(eq(farmsTable.id, farmId)).limit(1);
       const m = memberships.find(m => m.farmId === farmId);
-      return farm[0] ? { ...farm[0], userRole: m?.role } : null;
+      const isOwner = m?.role === "owner";
+      const userPermissions: FarmPermissions = isOwner
+        ? DEFAULT_OWNER_PERMISSIONS
+        : (m?.permissions as FarmPermissions | null) ?? DEFAULT_WORKER_PERMISSIONS;
+      return farm[0] ? { ...farm[0], userRole: m?.role, userPermissions } : null;
     }));
 
     return res.json(farms.filter(Boolean));
@@ -64,7 +71,7 @@ router.post("/farms", requireAuth, async (req, res) => {
       farmId: farm[0]!.id,
       userId,
       role: "owner",
-      permissions: { can_edit: true, can_add_animals: true, can_log_inventory: true },
+      permissions: DEFAULT_OWNER_PERMISSIONS,
     });
 
     return res.status(201).json(farm[0]);
@@ -78,7 +85,11 @@ router.get("/farms/:farmId", requireAuth, requireFarmAccess, async (req, res) =>
   try {
     const farm = await db.select().from(farmsTable).where(eq(farmsTable.id, req.params["farmId"]!)).limit(1);
     const member = (req as AuthedReq).farmMember;
-    return res.json({ ...farm[0], userRole: member?.role });
+    const isOwner = member?.role === "owner";
+    const userPermissions: FarmPermissions = isOwner
+      ? DEFAULT_OWNER_PERMISSIONS
+      : (member?.permissions as FarmPermissions | null) ?? DEFAULT_WORKER_PERMISSIONS;
+    return res.json({ ...farm[0], userRole: member?.role, userPermissions });
   } catch (err) {
     req.log.error({ err }, "Get farm error");
     return res.status(500).json({ error: "internal" });
@@ -126,6 +137,11 @@ router.get("/farms/:farmId/members", requireAuth, requireFarmAccess, async (req,
 
 router.post("/farms/:farmId/members", requireAuth, requireFarmAccess, async (req, res) => {
   try {
+    const member = (req as AuthedReq).farmMember;
+    if (member?.role !== "owner") {
+      return res.status(403).json({ error: "forbidden", message: "Only farm owners can invite members" });
+    }
+
     const { email, role = "worker" } = req.body;
 
     const userResult = await db.execute({
@@ -139,21 +155,65 @@ router.post("/farms/:farmId/members", requireAuth, requireFarmAccess, async (req
     }
 
     const inviteeId = rows[0]!.id;
-    const member = await db.insert(farmMembersTable).values({
+    const defaultPerms = role === "owner" ? DEFAULT_OWNER_PERMISSIONS : DEFAULT_WORKER_PERMISSIONS;
+    const newMember = await db.insert(farmMembersTable).values({
       farmId: req.params["farmId"]!,
       userId: inviteeId,
       role,
+      permissions: defaultPerms,
     }).returning();
 
-    return res.status(201).json(member[0]);
+    return res.status(201).json(newMember[0]);
   } catch (err) {
     req.log.error({ err }, "Invite member error");
     return res.status(500).json({ error: "internal" });
   }
 });
 
+router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, async (req, res) => {
+  try {
+    const requester = (req as AuthedReq).farmMember;
+    if (requester?.role !== "owner") {
+      return res.status(403).json({ error: "forbidden", message: "Only farm owners can update member permissions" });
+    }
+
+    const { farmId, userId } = req.params as { farmId: string; userId: string };
+    const { permissions } = req.body as { permissions: Partial<FarmPermissions> };
+
+    const existing = await db.select().from(farmMembersTable)
+      .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)))
+      .limit(1);
+
+    if (!existing[0]) {
+      return res.status(404).json({ error: "not_found", message: "Member not found" });
+    }
+
+    if (existing[0].role === "owner") {
+      return res.status(403).json({ error: "forbidden", message: "Cannot modify owner permissions" });
+    }
+
+    const currentPerms = (existing[0].permissions as FarmPermissions | null) ?? DEFAULT_WORKER_PERMISSIONS;
+    const updatedPerms: FarmPermissions = { ...currentPerms, ...permissions };
+
+    const [updated] = await db.update(farmMembersTable)
+      .set({ permissions: updatedPerms })
+      .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)))
+      .returning();
+
+    return res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Update member permissions error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 router.delete("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
+    const requester = (req as AuthedReq).farmMember;
+    if (requester?.role !== "owner") {
+      return res.status(403).json({ error: "forbidden", message: "Only farm owners can remove members" });
+    }
+
     await db.delete(farmMembersTable)
       .where(and(
         eq(farmMembersTable.farmId, req.params["farmId"]!),
@@ -250,7 +310,6 @@ router.get("/farms/:farmId/stats", requireAuth, requireFarmAccess, async (req, r
     const [pregnantCountResult] = await db.select({ count: count() }).from(animalsTable)
       .where(and(eq(animalsTable.farmId, farmId), eq(animalsTable.status, "active"), eq(animalsTable.isPregnant, true)));
 
-    // "Due soon" badge: only animals with events in the next 14 days
     const fourteenDaysOut = new Date();
     fourteenDaysOut.setDate(fourteenDaysOut.getDate() + 14);
     const fourteenDaysOutStr = fourteenDaysOut.toISOString().split("T")[0]!;

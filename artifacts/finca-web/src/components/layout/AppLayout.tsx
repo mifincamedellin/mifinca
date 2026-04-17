@@ -24,7 +24,10 @@ import {
   Pencil,
   Plus,
   Check,
+  ShieldCheck,
 } from "lucide-react";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
+import type { FarmPermissions } from "@/lib/useFarmPermissions";
 import {
   Sidebar,
   SidebarContent,
@@ -165,17 +168,22 @@ export function AppLayout({ children }: { children: ReactNode }) {
     "--sidebar-width-icon": "4rem",
   };
 
-  const navItems = [
-    { title: t('nav.dashboard'), url: "/dashboard", icon: Home },
-    { title: t('nav.animals'), url: "/animals", icon: PawPrint },
-    { title: t('nav.inventory'), url: "/inventory", icon: Package },
-    { title: t('nav.finances'), url: "/finances", icon: DollarSign },
-    { title: t('nav.contacts'), url: "/contacts", icon: Users },
-    { title: t('nav.employees'), url: "/employees", icon: UserCheck },
-    { title: t('nav.calendar'), url: "/calendar", icon: CalendarDays },
-    { title: t('nav.land'), url: "/land", icon: MapIcon },
-    { title: t('nav.settings'), url: "/settings", icon: Settings },
+  const { can } = useFarmPermissions();
+
+  const allNavItems = [
+    { title: t('nav.dashboard'), url: "/dashboard", icon: Home, perm: null },
+    { title: t('nav.animals'), url: "/animals", icon: PawPrint, perm: "can_view_animals" as keyof FarmPermissions },
+    { title: t('nav.inventory'), url: "/inventory", icon: Package, perm: "can_view_inventory" as keyof FarmPermissions },
+    { title: t('nav.finances'), url: "/finances", icon: DollarSign, perm: "can_view_finances" as keyof FarmPermissions },
+    { title: t('nav.contacts'), url: "/contacts", icon: Users, perm: "can_view_contacts" as keyof FarmPermissions },
+    { title: t('nav.employees'), url: "/employees", icon: UserCheck, perm: "can_view_employees" as keyof FarmPermissions },
+    { title: t('nav.calendar'), url: "/calendar", icon: CalendarDays, perm: "can_view_calendar" as keyof FarmPermissions },
+    { title: t('nav.land'), url: "/land", icon: MapIcon, perm: null },
+    { title: t('nav.roles'), url: "/roles", icon: ShieldCheck, perm: null },
+    { title: t('nav.settings'), url: "/settings", icon: Settings, perm: null },
   ];
+
+  const navItems = allNavItems.filter(item => !item.perm || can(item.perm));
 
   const handleLogout = async () => {
     if (isSignedIn) {

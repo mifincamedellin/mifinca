@@ -4,6 +4,7 @@ import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { farmMembersTable, profilesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import type { FarmPermissions } from "@workspace/db";
 
 const JWT_SECRET = process.env["SESSION_SECRET"] || "finca-secret-key";
 
@@ -55,4 +56,22 @@ export async function requireFarmAccess(req: Request & { userId?: string }, res:
 
   (req as Request & { farmMember: typeof member[0] }).farmMember = member[0];
   return next();
+}
+
+export function hasPerm(member: typeof farmMembersTable.$inferSelect | undefined | null, perm: keyof FarmPermissions): boolean {
+  if (!member) return false;
+  if (member.role === "owner") return true;
+  const perms = member.permissions as FarmPermissions | null;
+  if (!perms) return false;
+  return perms[perm] === true;
+}
+
+export function requirePerm(perm: keyof FarmPermissions) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const member = (req as any).farmMember as typeof farmMembersTable.$inferSelect | undefined;
+    if (!hasPerm(member, perm)) {
+      return res.status(403).json({ error: "forbidden", message: "Insufficient permissions" });
+    }
+    return next();
+  };
 }
