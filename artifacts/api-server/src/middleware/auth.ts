@@ -6,6 +6,11 @@ import { farmMembersTable, profilesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import type { FarmPermissions } from "@workspace/db";
 
+export type AuthedReq = Request & {
+  userId?: string;
+  farmMember?: typeof farmMembersTable.$inferSelect;
+};
+
 const JWT_SECRET = process.env["SESSION_SECRET"] || "finca-secret-key";
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -39,7 +44,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   return res.status(401).json({ error: "unauthorized", message: "Authentication required" });
 }
 
-export async function requireFarmAccess(req: Request & { userId?: string }, res: Response, next: NextFunction) {
+export async function requireFarmAccess(req: AuthedReq, res: Response, next: NextFunction) {
   const farmId = req.params["farmId"];
   const userId = req.userId;
   if (!farmId || !userId) {
@@ -54,7 +59,7 @@ export async function requireFarmAccess(req: Request & { userId?: string }, res:
     return res.status(403).json({ error: "forbidden", message: "Not a member of this farm" });
   }
 
-  (req as Request & { farmMember: typeof member[0] }).farmMember = member[0];
+  req.farmMember = member[0];
   return next();
 }
 
@@ -67,8 +72,8 @@ export function hasPerm(member: typeof farmMembersTable.$inferSelect | undefined
 }
 
 export function requirePerm(perm: keyof FarmPermissions) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const member = (req as any).farmMember as typeof farmMembersTable.$inferSelect | undefined;
+  return (req: AuthedReq, res: Response, next: NextFunction) => {
+    const member = req.farmMember;
     if (!hasPerm(member, perm)) {
       return res.status(403).json({ error: "forbidden", message: "Insufficient permissions" });
     }

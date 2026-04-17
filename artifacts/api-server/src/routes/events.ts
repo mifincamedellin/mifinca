@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { farmEventsTable, animalsTable } from "@workspace/db";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { requireAuth, requireFarmAccess, requirePerm } from "../middleware/auth.js";
+import type { AuthedReq } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.get("/farms/:farmId/events", requireAuth, requireFarmAccess, requirePerm(
 router.post("/farms/:farmId/events", requireAuth, requireFarmAccess, requirePerm("can_add_calendar"), async (req, res) => {
   try {
     const { farmId } = req.params as { farmId: string };
-    const userId = (req as any).userId;
+    const userId = (req as AuthedReq).userId;
     const { title, description, startDate, endDate, allDay, category, assignedTo, color, animalId } = req.body;
     if (!title || !startDate) return res.status(400).json({ error: "title and startDate required" });
     if (animalId) {

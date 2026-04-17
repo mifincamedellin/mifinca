@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { farmInvitationsTable, profilesTable, farmMembersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
+import type { AuthedReq } from "../middleware/auth.js";
 import { z } from "zod";
 
 const router = Router();
@@ -24,7 +25,7 @@ router.get("/farms/:farmId/invitations", requireAuth, requireFarmAccess, async (
 router.post("/farms/:farmId/invitations", requireAuth, requireFarmAccess, async (req, res) => {
   try {
     const { farmId } = req.params as { farmId: string };
-    const userId = (req as any).userId as string;
+    const userId = (req as AuthedReq).userId;
     const { email, role } = z.object({
       email: z.string().email(),
       role: z.enum(["owner", "worker"]).default("worker"),

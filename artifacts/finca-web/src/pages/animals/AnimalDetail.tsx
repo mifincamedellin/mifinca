@@ -1095,7 +1095,7 @@ export function AnimalDetail() {
                     </Card>
 
                     {/* Pregnant: separate card below the Cycle card */}
-                    {stage === "pregnant" && (
+                    {stage === "pregnant" && can("can_edit_animals") && (
                       <LifecyclePregnantCard
                         animal={{ ...(animal as any), id: id! }}
                         farmId={activeFarmId}
@@ -1104,7 +1104,7 @@ export function AnimalDetail() {
                     )}
 
                     {/* In heat / nursing / growing: stage detail card */}
-                    {(stage === "in_heat" || stage === "nursing" || stage === "growing") && (
+                    {(stage === "in_heat" || stage === "nursing" || stage === "growing") && can("can_edit_animals") && (
                       <LifecycleActionCard
                         animal={{ ...(animal as any), id: id! }}
                         farmId={activeFarmId}
@@ -1113,7 +1113,7 @@ export function AnimalDetail() {
                     )}
 
                     {/* Can breed: mark in heat + mark pregnant */}
-                    {stage === "can_breed" && (
+                    {stage === "can_breed" && can("can_edit_animals") && (
                       <>
                         <MarkInHeatCard
                           animalId={id!}
@@ -1130,7 +1130,7 @@ export function AnimalDetail() {
                     )}
 
                     {/* In heat can also be marked pregnant */}
-                    {stage === "in_heat" && (
+                    {stage === "in_heat" && can("can_edit_animals") && (
                       <MarkPregnantCard
                         animalId={id!}
                         farmId={activeFarmId}
