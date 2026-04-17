@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
+import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -216,6 +217,7 @@ export function Finances() {
 
   return (
     <div className="space-y-6">
+      <ViewOnlyBanner canAdd={can("can_add_finances")} canEdit={can("can_edit_finances")} canRemove={can("can_remove_finances")} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

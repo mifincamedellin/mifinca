@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
+import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { useListInventoryItems, useCreateInventoryItem } from "@workspace/api-client-react";
 import type { InventoryItem, CreateInventoryItemRequest } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
@@ -149,6 +150,7 @@ export function InventoryList() {
 
   return (
     <div className="space-y-8 pb-10">
+      <ViewOnlyBanner canAdd={can("can_add_inventory")} canEdit={can("can_edit_inventory")} canRemove={can("can_remove_inventory")} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif font-bold text-primary">{t('nav.inventory')}</h1>

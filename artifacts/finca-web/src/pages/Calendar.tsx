@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
+import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -262,6 +263,7 @@ export function Calendar() {
 
   return (
     <div className="space-y-5">
+      <ViewOnlyBanner canAdd={can("can_add_calendar")} canEdit={can("can_edit_calendar")} canRemove={can("can_remove_calendar")} />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

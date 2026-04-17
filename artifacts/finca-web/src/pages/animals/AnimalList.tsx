@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
+import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListAnimals, useCreateAnimal, useGetFarmStats } from "@workspace/api-client-react";
@@ -218,6 +219,7 @@ export function AnimalList() {
 
   return (
     <div className="space-y-6">
+      <ViewOnlyBanner canAdd={can("can_add_animals")} canEdit={can("can_edit_animals")} canRemove={can("can_remove_animals")} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif font-bold text-primary">{t('nav.animals')}</h1>

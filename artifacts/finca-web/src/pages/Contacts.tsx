@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
+import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Plus, X, Pencil, Trash2, Phone, Mail, Search } from "lucide-react";
@@ -126,6 +127,7 @@ export function Contacts() {
 
   return (
     <div className="space-y-6">
+      <ViewOnlyBanner canAdd={can("can_add_contacts")} canEdit={can("can_edit_contacts")} canRemove={can("can_remove_contacts")} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

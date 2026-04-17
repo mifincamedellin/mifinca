@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
+import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListFarms } from "@workspace/api-client-react";
@@ -758,6 +759,7 @@ export function Employees() {
 
   return (
     <div className="space-y-8 pb-10">
+      <ViewOnlyBanner canAdd={can("can_add_employees")} canEdit={can("can_edit_employees")} canRemove={can("can_remove_employees")} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif font-bold text-primary">{t("emp.title")}</h1>
