@@ -251,7 +251,7 @@ export function Roles() {
       qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/invitations`] });
       setInviteEmail("");
       if (status === 202) {
-        toast({ title: t("roles.invitePending") });
+        toast({ title: t("roles.invitePending"), description: t("roles.invitePendingDesc") });
       } else {
         toast({ title: t("roles.memberInvited") });
       }
