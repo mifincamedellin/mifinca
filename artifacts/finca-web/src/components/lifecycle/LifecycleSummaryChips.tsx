@@ -8,6 +8,7 @@ import {
 
 interface Props {
   animals: LifecycleAnimal[];
+  allAnimals?: LifecycleAnimal[];
   selectedStage: LifecycleStage | null;
   onSelect: (stage: LifecycleStage | null) => void;
   selectedMale?: boolean;
@@ -30,20 +31,30 @@ const STAGE_ICONS: Record<LifecycleStage, React.FC<{ className?: string }>> = {
   nursing:   Milk,
 };
 
-export function LifecycleSummaryChips({ animals, selectedStage, onSelect, selectedMale, onSelectMale }: Props) {
+function computeCounts(src: LifecycleAnimal[]): Record<string, number> {
+  const c: Record<string, number> = {};
+  LIFECYCLE_STAGES.forEach(s => { c[s] = 0; });
+  src.forEach(a => {
+    if (!hasLifecycle(a)) return;
+    const stage = deriveLifecycleStage(a);
+    if (stage) c[stage] = (c[stage] ?? 0) + 1;
+  });
+  return c;
+}
+
+export function LifecycleSummaryChips({
+  animals,
+  allAnimals,
+  selectedStage,
+  onSelect,
+  selectedMale,
+  onSelectMale,
+}: Props) {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    LIFECYCLE_STAGES.forEach(s => { c[s] = 0; });
-    animals.forEach(a => {
-      if (!hasLifecycle(a)) return;
-      const stage = deriveLifecycleStage(a);
-      if (stage) c[stage] = (c[stage] ?? 0) + 1;
-    });
-    return c;
-  }, [animals]);
+  const counts     = useMemo(() => computeCounts(animals),              [animals]);
+  const sortCounts = useMemo(() => computeCounts(allAnimals ?? animals), [allAnimals, animals]);
 
   const totalTracked = useMemo(() =>
     animals.filter(a => hasLifecycle(a)).length,
@@ -53,27 +64,31 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect, select
     animals.filter(a => a.sex === "male").length,
   [animals]);
 
+  const sortMaleCount = useMemo(() =>
+    (allAnimals ?? animals).filter(a => a.sex === "male").length,
+  [allAnimals, animals]);
+
   if (totalTracked === 0 && maleCount === 0) return null;
 
   type ChipDef =
-    | { kind: "stage"; stage: LifecycleStage; count: number }
-    | { kind: "male"; count: number };
+    | { kind: "stage"; stage: LifecycleStage; count: number; sortCount: number }
+    | { kind: "male"; count: number; sortCount: number };
 
   const chips = useMemo((): ChipDef[] => {
     const all: ChipDef[] = LIFECYCLE_STAGES.map(stage => ({
       kind: "stage" as const,
       stage,
-      count: counts[stage] ?? 0,
+      count:     counts[stage]     ?? 0,
+      sortCount: sortCounts[stage] ?? 0,
     }));
-    if (onSelectMale && maleCount > 0) {
-      all.push({ kind: "male" as const, count: maleCount });
+    if (onSelectMale && (maleCount > 0 || sortMaleCount > 0)) {
+      all.push({ kind: "male" as const, count: maleCount, sortCount: sortMaleCount });
     }
-    return all.sort((a, b) => b.count - a.count);
-  }, [counts, maleCount, onSelectMale]);
+    return all.sort((a, b) => b.sortCount - a.sortCount);
+  }, [counts, sortCounts, maleCount, sortMaleCount, onSelectMale]);
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-6 pl-6 pr-2 md:mx-0 md:pl-0 md:pr-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-      {/* All chip */}
       <button
         onClick={() => { onSelect(null); onSelectMale?.(false); }}
         className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
@@ -130,7 +145,9 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect, select
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
               selectedMale
                 ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                : "bg-card border-border/50 text-muted-foreground hover:border-border"
+                : chip.count === 0
+                  ? "bg-card border-border/30 text-muted-foreground/40"
+                  : "bg-card border-border/50 text-muted-foreground hover:border-border"
             }`}
           >
             <span className="text-base leading-none">♂</span>

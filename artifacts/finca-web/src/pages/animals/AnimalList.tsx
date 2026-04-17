@@ -524,6 +524,7 @@ export function AnimalList() {
       {!isLoading && animals && (
         <LifecycleSummaryChips
           animals={speciesFiltered as LifecycleAnimal[]}
+          allAnimals={animals as LifecycleAnimal[]}
           selectedStage={selectedLifecycle}
           onSelect={(stage) => { setSelectedLifecycle(stage); if (stage) setSelectedMale(false); }}
           selectedMale={selectedMale}
