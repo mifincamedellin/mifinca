@@ -175,7 +175,7 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
     }
 
     const { farmId, userId } = req.params as { farmId: string; userId: string };
-    const { permissions, role } = req.body as { permissions?: Partial<FarmPermissions>; role?: string };
+    const { permissions, role } = req.body as { permissions?: FarmPermissions; role?: string };
 
     const existing = await db.select().from(farmMembersTable)
       .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)))
@@ -185,18 +185,18 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
       return res.status(404).json({ error: "not_found", message: "Member not found" });
     }
 
-    if (existing[0].role === "owner") {
-      return res.status(403).json({ error: "forbidden", message: "Cannot modify owner permissions" });
-    }
+    const newRole = role !== undefined && (role === "owner" || role === "worker") ? role : existing[0].role;
 
     const updateData: Record<string, unknown> = {};
 
-    if (permissions !== undefined) {
-      updateData.permissions = permissions as FarmPermissions;
+    if (newRole !== existing[0].role) {
+      updateData.role = newRole;
     }
 
-    if (role !== undefined && role === "worker") {
-      updateData.role = role;
+    if (newRole === "owner") {
+      updateData.permissions = DEFAULT_OWNER_PERMISSIONS;
+    } else if (permissions !== undefined) {
+      updateData.permissions = permissions;
     }
 
     const [updated] = await db.update(farmMembersTable)
