@@ -204,9 +204,10 @@ function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePer
   );
 }
 
-function PendingInviteCard({ invite, onUpdatePerms }: {
+function PendingInviteCard({ invite, onUpdatePerms, onCancel }: {
   invite: { id: string; invitedEmail: string; role: string; status: string; permissions: FarmPermissions | null };
   onUpdatePerms: (inviteId: string, perms: FarmPermissions) => void;
+  onCancel: (inviteId: string) => void;
 }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -241,14 +242,28 @@ function PendingInviteCard({ invite, onUpdatePerms }: {
             <span className="text-xs text-muted-foreground">{t("roles.pendingBadge")}</span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-          onClick={() => setExpanded(e => !e)}
-        >
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+            onClick={() => {
+              if (confirm(t("roles.confirmCancelInvite", { email: invite.invitedEmail }))) {
+                onCancel(invite.id);
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+            onClick={() => setExpanded(e => !e)}
+          >
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
 
       {expanded && (
@@ -335,6 +350,18 @@ export function Roles() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/invitations`] });
       toast({ title: t("roles.invitePermsSaved") });
+    },
+    onError: () => toast({ title: t("common.error"), variant: "destructive" }),
+  });
+
+  const cancelInvite = useMutation({
+    mutationFn: async (inviteId: string) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/invitations/${inviteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/invitations`] });
+      toast({ title: t("roles.inviteCancelled") });
     },
     onError: () => toast({ title: t("common.error"), variant: "destructive" }),
   });
@@ -434,6 +461,7 @@ export function Roles() {
               key={invite.id}
               invite={invite}
               onUpdatePerms={(inviteId, permissions) => updateInvitePerms.mutate({ inviteId, permissions })}
+              onCancel={(inviteId) => cancelInvite.mutate(inviteId)}
             />
           ))}
         </div>
