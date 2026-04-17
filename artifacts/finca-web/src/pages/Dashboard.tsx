@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   Activity, AlertTriangle, Syringe, PawPrint, HelpCircle,
-  Users, Phone, TrendingUp, TrendingDown, ArrowRight, Plus, CalendarClock, Wallet, Baby,
+  Users, Phone, TrendingUp, TrendingDown, ArrowRight, Wallet, Baby,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -266,29 +266,6 @@ export function Dashboard() {
             {t("dashboard.welcome")}<span className="text-accent">{firstName}</span>
           </h1>
           <p className="text-muted-foreground capitalize text-sm">{today}</p>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-6 pl-6 pr-2 md:mx-0 md:pl-0 md:pr-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <button
-            onClick={() => navigate("/animals")}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer shrink-0"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {t("dashboard.newAnimal")}
-          </button>
-          <button
-            onClick={() => navigate("/finances")}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border/60 bg-card/60 text-sm font-medium text-foreground hover:bg-accent/10 hover:border-accent/40 transition-all cursor-pointer shrink-0"
-          >
-            <Wallet className="h-3.5 w-3.5 text-accent" />
-            {t("dashboard.newTransaction")}
-          </button>
-          <button
-            onClick={() => navigate("/animals")}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border/60 bg-card/60 text-sm font-medium text-foreground hover:bg-accent/10 hover:border-accent/40 transition-all cursor-pointer shrink-0"
-          >
-            <CalendarClock className="h-3.5 w-3.5 text-accent" />
-            {t("dashboard.medicalEvent")}
-          </button>
         </div>
       </header>
 
