@@ -176,6 +176,12 @@ export function AnimalList() {
     return counts;
   }, [animals]);
 
+  const speciesFiltered = useMemo(() => {
+    if (!animals) return [] as (Animal & LifecycleAnimal)[];
+    if (selectedSpecies === "all") return animals as (Animal & LifecycleAnimal)[];
+    return (animals as (Animal & LifecycleAnimal)[]).filter(a => a.species === selectedSpecies);
+  }, [animals, selectedSpecies]);
+
   const filtered = useMemo(() => {
     if (!animals) return [];
     let result = animals as (Animal & LifecycleAnimal)[];
@@ -513,7 +519,7 @@ export function AnimalList() {
 
       {!isLoading && animals && (
         <LifecycleSummaryChips
-          animals={animals as LifecycleAnimal[]}
+          animals={speciesFiltered as LifecycleAnimal[]}
           selectedStage={selectedLifecycle}
           onSelect={setSelectedLifecycle}
         />
