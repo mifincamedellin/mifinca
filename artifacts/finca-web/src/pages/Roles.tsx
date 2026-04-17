@@ -64,6 +64,60 @@ const INVITE_DEFAULT_PERMS: FarmPermissions = {
   can_view_calendar: true, can_add_calendar: false, can_edit_calendar: false, can_remove_calendar: false,
 };
 
+function PermissionsGrid({
+  perms,
+  onToggle,
+}: {
+  perms: FarmPermissions;
+  onToggle: (perm: keyof FarmPermissions, value: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const cols = [
+    { label: t("roles.perm.view"), key: "view" },
+    { label: t("roles.perm.add"),  key: "add"  },
+    { label: t("roles.perm.edit"), key: "edit" },
+    { label: t("roles.perm.remove"), key: "remove" },
+  ];
+  return (
+    <div>
+      <div className="grid grid-cols-[1fr_repeat(4,_40px)] mb-1.5">
+        <div />
+        {cols.map(c => (
+          <div key={c.key} className="text-center text-[10px] font-medium text-muted-foreground">{c.label}</div>
+        ))}
+      </div>
+      <div className="space-y-2">
+        {SECTIONS.map(section => {
+          const Icon = section.icon;
+          const viewVal = perms[section.viewPerm];
+          return (
+            <div key={section.key} className="grid grid-cols-[1fr_repeat(4,_40px)] items-center">
+              <div className="flex items-center gap-2">
+                <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs font-semibold text-foreground">{t(section.labelKey)}</span>
+              </div>
+              {([
+                { perm: section.viewPerm,   val: perms[section.viewPerm],   disabled: false     },
+                { perm: section.addPerm,    val: perms[section.addPerm],    disabled: !viewVal  },
+                { perm: section.editPerm,   val: perms[section.editPerm],   disabled: !viewVal  },
+                { perm: section.removePerm, val: perms[section.removePerm], disabled: !viewVal  },
+              ] as const).map(({ perm, val, disabled }) => (
+                <div key={perm as string} className="flex justify-center">
+                  <PermToggle
+                    checked={val as boolean}
+                    onChange={(v) => onToggle(perm as keyof FarmPermissions, v)}
+                    disabled={disabled as boolean}
+                  />
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PermToggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
@@ -143,40 +197,7 @@ function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePer
       {expanded && isWorker && currentUserIsOwner && (
         <div className="border-t border-border px-4 py-3 bg-muted/30">
           <p className="text-xs text-muted-foreground mb-3">{t("roles.permissionsLabel")}</p>
-          <div className="space-y-3">
-            {SECTIONS.map(section => {
-              const Icon = section.icon;
-              const viewVal = perms[section.viewPerm];
-              const addVal = perms[section.addPerm];
-              const editVal = perms[section.editPerm];
-              const removeVal = perms[section.removePerm];
-              return (
-                <div key={section.key}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-foreground">{t(section.labelKey)}</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 pl-5">
-                    {([
-                      { label: t("roles.perm.view"), perm: section.viewPerm, val: viewVal, disabled: false },
-                      { label: t("roles.perm.add"), perm: section.addPerm, val: addVal, disabled: !viewVal },
-                      { label: t("roles.perm.edit"), perm: section.editPerm, val: editVal, disabled: !viewVal },
-                      { label: t("roles.perm.remove"), perm: section.removePerm, val: removeVal, disabled: !viewVal },
-                    ] as const).map(({ label, perm, val, disabled }) => (
-                      <div key={perm as string} className="flex flex-col items-center gap-1">
-                        <PermToggle
-                          checked={val as boolean}
-                          onChange={(v) => handleToggle(perm as keyof FarmPermissions, v)}
-                          disabled={disabled as boolean}
-                        />
-                        <span className="text-[10px] text-muted-foreground">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <PermissionsGrid perms={perms} onToggle={handleToggle} />
         </div>
       )}
     </div>
@@ -233,40 +254,7 @@ function PendingInviteCard({ invite, onUpdatePerms }: {
       {expanded && (
         <div className="border-t border-dashed border-border px-4 py-3 bg-muted/30">
           <p className="text-xs text-muted-foreground mb-3">{t("roles.invitePermsLabel")}</p>
-          <div className="space-y-3">
-            {SECTIONS.map(section => {
-              const Icon = section.icon;
-              const viewVal = perms[section.viewPerm];
-              const addVal = perms[section.addPerm];
-              const editVal = perms[section.editPerm];
-              const removeVal = perms[section.removePerm];
-              return (
-                <div key={section.key}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-foreground">{t(section.labelKey)}</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 pl-5">
-                    {([
-                      { label: t("roles.perm.view"), perm: section.viewPerm, val: viewVal, disabled: false },
-                      { label: t("roles.perm.add"), perm: section.addPerm, val: addVal, disabled: !viewVal },
-                      { label: t("roles.perm.edit"), perm: section.editPerm, val: editVal, disabled: !viewVal },
-                      { label: t("roles.perm.remove"), perm: section.removePerm, val: removeVal, disabled: !viewVal },
-                    ] as const).map(({ label, perm, val, disabled }) => (
-                      <div key={perm as string} className="flex flex-col items-center gap-1">
-                        <PermToggle
-                          checked={val as boolean}
-                          onChange={(v) => handleToggle(perm as keyof FarmPermissions, v)}
-                          disabled={disabled as boolean}
-                        />
-                        <span className="text-[10px] text-muted-foreground">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <PermissionsGrid perms={perms} onToggle={handleToggle} />
         </div>
       )}
     </div>
