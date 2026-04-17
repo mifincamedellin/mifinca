@@ -2,7 +2,7 @@ import { Router, Request } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import {
-  farmsTable, farmMembersTable, profilesTable,
+  farmsTable, farmMembersTable, farmInvitationsTable, profilesTable,
   animalsTable, inventoryItemsTable, medicalRecordsTable, activityLogTable,
   employeesTable, contactsTable,
   DEFAULT_OWNER_PERMISSIONS, DEFAULT_WORKER_PERMISSIONS,
@@ -137,30 +137,42 @@ router.get("/farms/:farmId/members", requireAuth, requireFarmAccess, async (req,
 
 router.post("/farms/:farmId/members", requireAuth, requireFarmAccess, async (req, res) => {
   try {
-    const member = (req as AuthedReq).farmMember;
-    if (member?.role !== "owner") {
+    const authedMember = (req as AuthedReq).farmMember;
+    if (authedMember?.role !== "owner") {
       return res.status(403).json({ error: "forbidden", message: "Only farm owners can invite members" });
     }
 
-    const { email, role = "worker" } = req.body;
+    const { email, role = "worker" } = req.body as { email: string; role?: string };
+    const farmId = req.params["farmId"]!;
+    const invitedByUserId = authedMember.userId;
+    const normalizedEmail = email?.toLowerCase?.().trim();
+    if (!normalizedEmail) return res.status(400).json({ error: "email_required" });
 
-    const userResult = await db.execute(sql`SELECT id FROM auth_users WHERE email = ${email}`);
-
+    const safeRole = (role === "owner" || role === "worker") ? role : "worker";
+    const userResult = await db.execute(sql`SELECT id FROM auth_users WHERE email = ${normalizedEmail}`);
     const rows = userResult.rows as Array<{ id: string }>;
+
     if (!rows || rows.length === 0) {
-      return res.status(404).json({ error: "not_found", message: "User not found" });
+      const [invite] = await db.insert(farmInvitationsTable).values({
+        farmId,
+        invitedEmail: normalizedEmail,
+        invitedByUserId,
+        role: safeRole,
+        status: "pending",
+      }).onConflictDoNothing().returning();
+      return res.status(202).json({ pending: true, email: normalizedEmail, role: safeRole, invite });
     }
 
     const inviteeId = rows[0]!.id;
-    const defaultPerms = role === "owner" ? DEFAULT_OWNER_PERMISSIONS : DEFAULT_WORKER_PERMISSIONS;
-    const newMember = await db.insert(farmMembersTable).values({
-      farmId: req.params["farmId"]!,
+    const defaultPerms = safeRole === "owner" ? DEFAULT_OWNER_PERMISSIONS : DEFAULT_WORKER_PERMISSIONS;
+    const [newMember] = await db.insert(farmMembersTable).values({
+      farmId,
       userId: inviteeId,
-      role,
+      role: safeRole,
       permissions: defaultPerms,
-    }).returning();
+    }).onConflictDoNothing().returning();
 
-    return res.status(201).json(newMember[0]);
+    return res.status(201).json(newMember ?? { error: "already_member" });
   } catch (err) {
     req.log.error({ err }, "Invite member error");
     return res.status(500).json({ error: "internal" });
@@ -175,7 +187,31 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
     }
 
     const { farmId, userId } = req.params as { farmId: string; userId: string };
-    const { permissions, role } = req.body as { permissions?: FarmPermissions; role?: string };
+    const { permissions: rawPermissions, role } = req.body as { permissions?: unknown; role?: string };
+
+    const farmPermsSchema = z.object({
+      can_view_animals: z.boolean(), can_add_animals: z.boolean(),
+      can_edit_animals: z.boolean(), can_remove_animals: z.boolean(),
+      can_view_inventory: z.boolean(), can_add_inventory: z.boolean(),
+      can_edit_inventory: z.boolean(), can_remove_inventory: z.boolean(),
+      can_view_finances: z.boolean(), can_add_finances: z.boolean(),
+      can_edit_finances: z.boolean(), can_remove_finances: z.boolean(),
+      can_view_contacts: z.boolean(), can_add_contacts: z.boolean(),
+      can_edit_contacts: z.boolean(), can_remove_contacts: z.boolean(),
+      can_view_employees: z.boolean(), can_add_employees: z.boolean(),
+      can_edit_employees: z.boolean(), can_remove_employees: z.boolean(),
+      can_view_calendar: z.boolean(), can_add_calendar: z.boolean(),
+      can_edit_calendar: z.boolean(), can_remove_calendar: z.boolean(),
+    });
+
+    let permissions: FarmPermissions | undefined;
+    if (rawPermissions !== undefined) {
+      const parsed = farmPermsSchema.safeParse(rawPermissions);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "invalid_permissions", message: "All 24 permission flags required as booleans" });
+      }
+      permissions = parsed.data as FarmPermissions;
+    }
 
     const existing = await db.select().from(farmMembersTable)
       .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)))

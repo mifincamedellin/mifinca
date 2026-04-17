@@ -222,6 +222,17 @@ export function Roles() {
     onError: () => toast({ title: t("common.error"), variant: "destructive" }),
   });
 
+  const { data: pendingInvites = [] } = useQuery<{ id: string; invitedEmail: string; role: string; status: string }[]>({
+    queryKey: [`/api/farms/${activeFarmId}/invitations`],
+    queryFn: async () => {
+      const res = await fetch(`/api/farms/${activeFarmId}/invitations`);
+      if (!res.ok) return [];
+      const all = await res.json();
+      return (all as { id: string; invitedEmail: string; role: string; status: string }[]).filter(i => i.status === "pending");
+    },
+    enabled: !!activeFarmId && isOwner,
+  });
+
   const inviteMember = useMutation({
     mutationFn: async (email: string) => {
       const res = await fetch(`/api/farms/${activeFarmId}/members`, {
@@ -230,23 +241,23 @@ export function Roles() {
         body: JSON.stringify({ email, role: "worker" }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        if (body.error === "not_found") throw new Error("not_found");
         throw new Error("invite_failed");
       }
-      return res.json();
+      const body = await res.json();
+      return { status: res.status, body };
     },
-    onSuccess: () => {
+    onSuccess: ({ status }) => {
       qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/invitations`] });
       setInviteEmail("");
-      toast({ title: t("roles.memberInvited") });
-    },
-    onError: (err: Error) => {
-      if (err.message === "not_found") {
-        toast({ title: t("roles.userNotFound"), variant: "destructive" });
+      if (status === 202) {
+        toast({ title: t("roles.invitePending") });
       } else {
-        toast({ title: t("common.error"), variant: "destructive" });
+        toast({ title: t("roles.memberInvited") });
       }
+    },
+    onError: () => {
+      toast({ title: t("common.error"), variant: "destructive" });
     },
   });
 
@@ -308,6 +319,18 @@ export function Roles() {
           />
         ))}
       </div>
+
+      {isOwner && pendingInvites.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">{t("roles.pendingInvites")}</p>
+          {pendingInvites.map(invite => (
+            <div key={invite.id} className="flex items-center justify-between rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+              <span>{invite.invitedEmail}</span>
+              <Badge variant="outline" className="text-xs">{t("roles.pendingBadge")}</Badge>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-muted/30 p-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
