@@ -143,7 +143,7 @@ router.delete("/farms/:farmId/employees/:employeeId", requireAuth, requireFarmAc
   }
 });
 
-router.patch("/farms/:farmId/pay-day", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/pay-day", requireAuth, requireFarmAccess, requirePerm("can_edit_employees"), async (req, res) => {
   try {
     const { farmId } = req.params as { farmId: string };
     const { payDay } = req.body as { payDay: number };
@@ -156,7 +156,7 @@ router.patch("/farms/:farmId/pay-day", requireAuth, requireFarmAccess, async (re
   }
 });
 
-router.get("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/file", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/file", requireAuth, requireFarmAccess, requirePerm("can_view_employees"), async (req, res) => {
   try {
     const { farmId, employeeId, attachmentId } = req.params as { farmId: string; employeeId: string; attachmentId: string };
     const [att] = await db.select().from(employeeAttachmentsTable)
@@ -193,7 +193,7 @@ router.get("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/file"
   }
 });
 
-router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requireFarmAccess, requirePerm("can_view_employees"), async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
     const attachments = await db.select().from(employeeAttachmentsTable)
@@ -235,7 +235,7 @@ router.get("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requ
   }
 });
 
-router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, requireFarmAccess, requirePerm("can_add_employees"), async (req, res) => {
   try {
     const { farmId, employeeId } = req.params as { farmId: string; employeeId: string };
     const { originalName, mimeType, sizeBytes } = req.body as {
@@ -268,7 +268,7 @@ router.post("/farms/:farmId/employees/:employeeId/attachments", requireAuth, req
   }
 });
 
-router.patch("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/confirm", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/confirm", requireAuth, requireFarmAccess, requirePerm("can_edit_employees"), async (req, res) => {
   try {
     const { farmId, employeeId, attachmentId } = req.params as { farmId: string; employeeId: string; attachmentId: string };
     const [att] = await db.update(employeeAttachmentsTable)
@@ -287,7 +287,7 @@ router.patch("/farms/:farmId/employees/:employeeId/attachments/:attachmentId/con
   }
 });
 
-router.delete("/farms/:farmId/employees/:employeeId/attachments/:attachmentId", requireAuth, requireFarmAccess, async (req, res) => {
+router.delete("/farms/:farmId/employees/:employeeId/attachments/:attachmentId", requireAuth, requireFarmAccess, requirePerm("can_remove_employees"), async (req, res) => {
   try {
     const { farmId, employeeId, attachmentId } = req.params as { farmId: string; employeeId: string; attachmentId: string };
     const [att] = await db.select({ fileKey: employeeAttachmentsTable.fileKey })

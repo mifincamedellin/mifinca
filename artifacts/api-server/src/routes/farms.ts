@@ -192,8 +192,7 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
     const updateData: Record<string, unknown> = {};
 
     if (permissions !== undefined) {
-      const currentPerms = (existing[0].permissions as FarmPermissions | null) ?? DEFAULT_WORKER_PERMISSIONS;
-      updateData.permissions = { ...currentPerms, ...permissions };
+      updateData.permissions = permissions as FarmPermissions;
     }
 
     if (role !== undefined && role === "worker") {

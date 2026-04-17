@@ -72,7 +72,7 @@ function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePer
   member: Member;
   isOwner: boolean;
   onRemove: (userId: string) => void;
-  onUpdatePerms: (userId: string, perms: Partial<FarmPermissions>) => void;
+  onUpdatePerms: (userId: string, perms: FarmPermissions) => void;
 }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -83,18 +83,18 @@ function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePer
   const initials = displayName.substring(0, 2).toUpperCase();
 
   function handleToggle(perm: keyof FarmPermissions, value: boolean) {
-    const patch: Partial<FarmPermissions> = { [perm]: value };
+    const next: FarmPermissions = { ...perms, [perm]: value };
     if (perm.startsWith("can_view_") && !value) {
       const base = perm.replace("can_view_", "");
-      patch[`can_add_${base}` as keyof FarmPermissions] = false;
-      patch[`can_edit_${base}` as keyof FarmPermissions] = false;
-      patch[`can_remove_${base}` as keyof FarmPermissions] = false;
+      next[`can_add_${base}` as keyof FarmPermissions] = false;
+      next[`can_edit_${base}` as keyof FarmPermissions] = false;
+      next[`can_remove_${base}` as keyof FarmPermissions] = false;
     }
     if (!perm.startsWith("can_view_") && value) {
       const base = perm.replace(/^can_(add|edit|remove)_/, "");
-      patch[`can_view_${base}` as keyof FarmPermissions] = true;
+      next[`can_view_${base}` as keyof FarmPermissions] = true;
     }
-    onUpdatePerms(member.userId, patch);
+    onUpdatePerms(member.userId, next);
   }
 
   return (
@@ -207,7 +207,7 @@ export function Roles() {
   });
 
   const updatePerms = useMutation({
-    mutationFn: async ({ userId, permissions }: { userId: string; permissions: Partial<FarmPermissions> }) => {
+    mutationFn: async ({ userId, permissions }: { userId: string; permissions: FarmPermissions }) => {
       const res = await fetch(`/api/farms/${activeFarmId}/members/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
