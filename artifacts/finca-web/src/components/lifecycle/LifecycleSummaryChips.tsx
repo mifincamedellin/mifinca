@@ -73,26 +73,24 @@ export function LifecycleSummaryChips({ animals, selectedStage, onSelect, select
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-6 pl-6 pr-2 md:mx-0 md:pl-0 md:pr-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-      {/* All chip — only shown when there are female-tracked animals */}
-      {totalTracked > 0 && (
-        <button
-          onClick={() => { onSelect(null); onSelectMale?.(false); }}
-          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
-            selectedStage === null && !selectedMale
-              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-              : "bg-card border-border/50 text-muted-foreground hover:border-border"
-          }`}
-        >
-          <span>{isEn ? "All" : "Todas"}</span>
-          <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-            selectedStage === null && !selectedMale
-              ? "bg-primary-foreground/20 text-primary-foreground"
-              : "bg-foreground/10 text-muted-foreground"
-          }`}>
-            {totalTracked}
-          </span>
-        </button>
-      )}
+      {/* All chip */}
+      <button
+        onClick={() => { onSelect(null); onSelectMale?.(false); }}
+        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all shrink-0 ${
+          selectedStage === null && !selectedMale
+            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+            : "bg-card border-border/50 text-muted-foreground hover:border-border"
+        }`}
+      >
+        <span>{isEn ? "All" : "Todas"}</span>
+        <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+          selectedStage === null && !selectedMale
+            ? "bg-primary-foreground/20 text-primary-foreground"
+            : "bg-foreground/10 text-muted-foreground"
+        }`}>
+          {animals.length}
+        </span>
+      </button>
 
       {chips.map(chip => {
         if (chip.kind === "stage") {
