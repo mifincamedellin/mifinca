@@ -146,7 +146,7 @@ router.post("/farms/:farmId/members", requireAuth, requireFarmAccess, async (req
 
     const userResult = await db.execute(sql`SELECT id FROM auth_users WHERE email = ${email}`);
 
-    const rows = (userResult as unknown as { rows: { id: string }[] }).rows ?? (userResult as any);
+    const rows = userResult.rows as Array<{ id: string }>;
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "not_found", message: "User not found" });
     }
@@ -196,7 +196,7 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
       updateData.permissions = { ...currentPerms, ...permissions };
     }
 
-    if (role !== undefined && ["worker", "manager"].includes(role)) {
+    if (role !== undefined && role === "worker") {
       updateData.role = role;
     }
 

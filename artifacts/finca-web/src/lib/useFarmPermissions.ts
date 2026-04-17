@@ -46,16 +46,25 @@ const ALL_FALSE: FarmPermissions = {
   can_view_calendar: false, can_add_calendar: false, can_edit_calendar: false, can_remove_calendar: false,
 };
 
+type FarmWithMembership = {
+  id: string;
+  userRole?: string;
+  userPermissions?: Partial<FarmPermissions>;
+  [key: string]: unknown;
+};
+
 export function useFarmPermissions() {
   const { activeFarmId } = useStore();
   const { data: farms } = useListFarms();
 
-  const farm = farms?.find((f: any) => f.id === activeFarmId);
-  const isOwner = (farm as any)?.userRole === 'owner';
+  const farm = (farms as FarmWithMembership[] | undefined)?.find(f => f.id === activeFarmId);
+  const isOwner = farm?.userRole === 'owner';
 
   const permissions: FarmPermissions = isOwner
     ? ALL_TRUE
-    : ((farm as any)?.userPermissions as FarmPermissions | undefined) ?? ALL_FALSE;
+    : farm?.userPermissions
+      ? { ...ALL_FALSE, ...(farm.userPermissions as FarmPermissions) }
+      : ALL_FALSE;
 
   return {
     isOwner,

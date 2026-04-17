@@ -647,7 +647,11 @@ export function Calendar() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
-                <Button type="submit" disabled={isPending} className="flex-1 rounded-xl py-6 bg-primary hover:bg-primary/90">
+                <Button
+                  type="submit"
+                  disabled={isPending || (editingEvent ? !can("can_edit_calendar") : !can("can_add_calendar"))}
+                  className="flex-1 rounded-xl py-6 bg-primary hover:bg-primary/90"
+                >
                   {isPending ? (isEn ? "Saving..." : "Guardando...") : (isEn ? "Save" : "Guardar")}
                 </Button>
               </div>

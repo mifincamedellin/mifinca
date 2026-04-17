@@ -431,13 +431,15 @@ export function AnimalDetail() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover-elevate"
-            onClick={() => { setPhotoPreview(null); setEditOpen(true); }}
-          >
-            <Edit className="h-4 w-4 mr-2" /> {t('animals.edit')}
-          </Button>
+          {can("can_edit_animals") && (
+            <Button
+              variant="outline"
+              className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover-elevate"
+              onClick={() => { setPhotoPreview(null); setEditOpen(true); }}
+            >
+              <Edit className="h-4 w-4 mr-2" /> {t('animals.edit')}
+            </Button>
+          )}
           {can("can_remove_animals") && (
             <Button
               variant="ghost"
@@ -1172,10 +1174,12 @@ export function AnimalDetail() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
+                            if (!can("can_edit_animals")) return;
                             deathForm.reset({ deathDate: new Date().toISOString().split("T")[0], deathCause: undefined, deathCauseOther: "" });
                             setDeathOpen(true);
                           }}
-                          className="rounded-xl h-8 px-3 text-xs border-red-200 text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                          disabled={!can("can_edit_animals")}
+                          className="rounded-xl h-8 px-3 text-xs border-red-200 text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300 disabled:opacity-40"
                         >
                           <Skull className="h-3.5 w-3.5 mr-1" />
                           {isEn ? "Record death" : "Registrar muerte"}
@@ -1217,9 +1221,11 @@ export function AnimalDetail() {
               <Card className="p-6 rounded-2xl border-border/50 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-xl font-serif text-primary">{t('animals.weightEvolution')}</h3>
-                  <Button size="sm" onClick={() => setWeightOpen(true)} className="rounded-xl bg-primary hover:bg-primary/90 hover-elevate">
-                    <Scale className="h-3.5 w-3.5 mr-1.5" /> {t('animals.recordWeight')}
-                  </Button>
+                  {can("can_add_animals") && (
+                    <Button size="sm" onClick={() => setWeightOpen(true)} className="rounded-xl bg-primary hover:bg-primary/90 hover-elevate">
+                      <Scale className="h-3.5 w-3.5 mr-1.5" /> {t('animals.recordWeight')}
+                    </Button>
+                  )}
                 </div>
                 {weights && weights.length > 0 ? (
                   <div className="h-80 w-full mt-4">
@@ -1255,9 +1261,11 @@ export function AnimalDetail() {
               <Card className="p-6 rounded-2xl border-border/50 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-xl font-serif text-primary">{t('animals.tab.medical')}</h3>
-                  <Button size="sm" onClick={() => setMedicalOpen(true)} className="rounded-xl bg-primary hover:bg-primary/90 hover-elevate">
-                    <Syringe className="h-3.5 w-3.5 mr-1.5" /> {t('animals.addMedical')}
-                  </Button>
+                  {can("can_add_animals") && (
+                    <Button size="sm" onClick={() => setMedicalOpen(true)} className="rounded-xl bg-primary hover:bg-primary/90 hover-elevate">
+                      <Syringe className="h-3.5 w-3.5 mr-1.5" /> {t('animals.addMedical')}
+                    </Button>
+                  )}
                 </div>
                 {animal.medicalRecords && animal.medicalRecords.length > 0 ? (
                   <div className="space-y-4">
@@ -1425,9 +1433,11 @@ export function AnimalDetail() {
                     <h3 className="font-semibold text-primary flex items-center gap-2">
                       <Droplets className="h-4 w-4 text-sky-500" />{isEn ? "Milk Log" : "Registros"}
                     </h3>
-                    <Button size="sm" onClick={() => { setEditingMilk(null); milkForm.reset({ amountLiters: undefined as any, recordedAt: new Date().toISOString().split("T")[0], session: undefined, notes: "" }); setMilkOpen(true); }} className="rounded-xl bg-primary hover:bg-primary/90 gap-1.5">
-                      <Plus className="h-4 w-4" />{t('animals.milk.logBtn')}
-                    </Button>
+                    {can("can_add_animals") && (
+                      <Button size="sm" onClick={() => { setEditingMilk(null); milkForm.reset({ amountLiters: undefined as any, recordedAt: new Date().toISOString().split("T")[0], session: undefined, notes: "" }); setMilkOpen(true); }} className="rounded-xl bg-primary hover:bg-primary/90 gap-1.5">
+                        <Plus className="h-4 w-4" />{t('animals.milk.logBtn')}
+                      </Button>
+                    )}
                   </div>
                   {milkRecords.length === 0 ? (
                     <div className="py-12 text-center flex flex-col items-center text-muted-foreground">
