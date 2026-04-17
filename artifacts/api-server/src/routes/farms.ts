@@ -172,7 +172,10 @@ router.post("/farms/:farmId/members", requireAuth, requireFarmAccess, async (req
       permissions: defaultPerms,
     }).onConflictDoNothing().returning();
 
-    return res.status(201).json(newMember ?? { error: "already_member" });
+    if (!newMember) {
+      return res.status(409).json({ error: "already_member", message: "User is already a member of this farm" });
+    }
+    return res.status(201).json(newMember);
   } catch (err) {
     req.log.error({ err }, "Invite member error");
     return res.status(500).json({ error: "internal" });
@@ -233,6 +236,10 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
       updateData.permissions = DEFAULT_OWNER_PERMISSIONS;
     } else if (permissions !== undefined) {
       updateData.permissions = permissions;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.json(existing[0]);
     }
 
     const [updated] = await db.update(farmMembersTable)
