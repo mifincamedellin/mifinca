@@ -8,9 +8,13 @@ import { z } from "zod";
 
 const router = Router();
 
-// List invitations for a farm
+// List invitations for a farm (owner only)
 router.get("/farms/:farmId/invitations", requireAuth, requireFarmAccess, async (req, res) => {
   try {
+    const authedMember = (req as AuthedReq).farmMember;
+    if (authedMember?.role !== "owner") {
+      return res.status(403).json({ error: "forbidden", message: "Only farm owners can view invitations" });
+    }
     const { farmId } = req.params as { farmId: string };
     const invitations = await db.select().from(farmInvitationsTable)
       .where(eq(farmInvitationsTable.farmId, farmId))
@@ -21,9 +25,13 @@ router.get("/farms/:farmId/invitations", requireAuth, requireFarmAccess, async (
   }
 });
 
-// Create an invitation
+// Create an invitation (owner only)
 router.post("/farms/:farmId/invitations", requireAuth, requireFarmAccess, async (req, res) => {
   try {
+    const authedMember = (req as AuthedReq).farmMember;
+    if (authedMember?.role !== "owner") {
+      return res.status(403).json({ error: "forbidden", message: "Only farm owners can create invitations" });
+    }
     const { farmId } = req.params as { farmId: string };
     const userId = (req as AuthedReq).userId;
     const { email, role } = z.object({
@@ -64,9 +72,13 @@ router.post("/farms/:farmId/invitations", requireAuth, requireFarmAccess, async 
   }
 });
 
-// Delete / revoke an invitation
+// Delete / revoke an invitation (owner only)
 router.delete("/farms/:farmId/invitations/:invitationId", requireAuth, requireFarmAccess, async (req, res) => {
   try {
+    const authedMember = (req as AuthedReq).farmMember;
+    if (authedMember?.role !== "owner") {
+      return res.status(403).json({ error: "forbidden", message: "Only farm owners can revoke invitations" });
+    }
     const { farmId, invitationId } = req.params as { farmId: string; invitationId: string };
     await db.delete(farmInvitationsTable)
       .where(and(
