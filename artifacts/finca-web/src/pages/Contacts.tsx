@@ -206,12 +206,16 @@ export function Contacts() {
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-semibold text-foreground truncate">{c.name}</p>
                     <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
-                      <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-muted-foreground hover:text-red-600">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {can("can_edit_contacts") && (
+                        <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {can("can_remove_contacts") && (
+                        <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-muted-foreground hover:text-red-600">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${CATEGORY_COLORS[c.category] ?? "bg-gray-100 text-gray-600"}`}>

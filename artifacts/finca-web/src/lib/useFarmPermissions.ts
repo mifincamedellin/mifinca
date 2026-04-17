@@ -37,6 +37,15 @@ const ALL_TRUE: FarmPermissions = {
   can_view_calendar: true, can_add_calendar: true, can_edit_calendar: true, can_remove_calendar: true,
 };
 
+const ALL_FALSE: FarmPermissions = {
+  can_view_animals: false, can_add_animals: false, can_edit_animals: false, can_remove_animals: false,
+  can_view_inventory: false, can_add_inventory: false, can_edit_inventory: false, can_remove_inventory: false,
+  can_view_finances: false, can_add_finances: false, can_edit_finances: false, can_remove_finances: false,
+  can_view_contacts: false, can_add_contacts: false, can_edit_contacts: false, can_remove_contacts: false,
+  can_view_employees: false, can_add_employees: false, can_edit_employees: false, can_remove_employees: false,
+  can_view_calendar: false, can_add_calendar: false, can_edit_calendar: false, can_remove_calendar: false,
+};
+
 export function useFarmPermissions() {
   const { activeFarmId } = useStore();
   const { data: farms } = useListFarms();
@@ -46,7 +55,7 @@ export function useFarmPermissions() {
 
   const permissions: FarmPermissions = isOwner
     ? ALL_TRUE
-    : ((farm as any)?.userPermissions as FarmPermissions | undefined) ?? ALL_TRUE;
+    : ((farm as any)?.userPermissions as FarmPermissions | undefined) ?? ALL_FALSE;
 
   return {
     isOwner,

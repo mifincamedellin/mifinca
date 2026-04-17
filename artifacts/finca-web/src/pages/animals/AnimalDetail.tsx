@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useParams, Link, useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
+import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord, useGetFarmStats } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
@@ -99,6 +100,7 @@ export function AnimalDetail() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const { activeFarmId, currency } = useStore();
+  const { can } = useFarmPermissions();
   const isEn = i18n.language === "en";
   const qc = useQueryClient();
 
@@ -436,14 +438,16 @@ export function AnimalDetail() {
           >
             <Edit className="h-4 w-4 mr-2" /> {t('animals.edit')}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 hover-elevate"
-            onClick={() => setDeleteConfirm(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {can("can_remove_animals") && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 hover-elevate"
+              onClick={() => setDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1292,14 +1296,16 @@ export function AnimalDetail() {
                             </div>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => openEditMedical(record)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors flex-shrink-0 mt-0.5"
-                          title={isEn ? "Edit record" : "Editar registro"}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
+                        {can("can_edit_animals") && (
+                          <button
+                            type="button"
+                            onClick={() => openEditMedical(record)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors flex-shrink-0 mt-0.5"
+                            title={isEn ? "Edit record" : "Editar registro"}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                       );
                     })}
@@ -1453,9 +1459,11 @@ export function AnimalDetail() {
                             </div>
                             <div className="flex items-center gap-2">
                               {record.notes && <p className="text-xs text-muted-foreground max-w-[120px] truncate hidden sm:block">{record.notes}</p>}
-                              <button type="button" onClick={() => openEditMilk(record)} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-                                <Edit className="h-3.5 w-3.5" />
-                              </button>
+                              {can("can_edit_animals") && (
+                                <button type="button" onClick={() => openEditMilk(record)} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                                  <Edit className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         );

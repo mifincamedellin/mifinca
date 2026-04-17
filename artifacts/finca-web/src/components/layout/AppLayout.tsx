@@ -168,7 +168,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     "--sidebar-width-icon": "4rem",
   };
 
-  const { can } = useFarmPermissions();
+  const { can, isOwner } = useFarmPermissions();
 
   const allNavItems = [
     { title: t('nav.dashboard'), url: "/dashboard", icon: Home, perm: null },
@@ -179,7 +179,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { title: t('nav.employees'), url: "/employees", icon: UserCheck, perm: "can_view_employees" as keyof FarmPermissions },
     { title: t('nav.calendar'), url: "/calendar", icon: CalendarDays, perm: "can_view_calendar" as keyof FarmPermissions },
     { title: t('nav.land'), url: "/land", icon: MapIcon, perm: null },
-    { title: t('nav.roles'), url: "/roles", icon: ShieldCheck, perm: null },
     { title: t('nav.settings'), url: "/settings", icon: Settings, perm: null },
   ];
 
@@ -248,6 +247,22 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="px-4 pt-2 pb-4">
+            {isOwner && (
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.startsWith("/roles")}
+                    className="hover-elevate rounded-xl transition-all font-medium py-5"
+                  >
+                    <Link href="/roles" className={location.startsWith("/roles") ? "text-accent-foreground" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}>
+                      <ShieldCheck className={`h-5 w-5 ${location.startsWith("/roles") ? "text-accent" : "text-sidebar-foreground/50"}`} />
+                      <span className="ml-3 text-base">{t('nav.roles')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            )}
             <div className="flex items-center gap-3 mt-1 pt-2 border-t border-sidebar-border">
               <Avatar className="h-10 w-10 border-2 border-accent/20">
                 <AvatarFallback className="bg-primary text-primary-foreground font-serif">

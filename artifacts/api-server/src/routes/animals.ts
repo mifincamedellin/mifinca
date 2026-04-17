@@ -220,7 +220,7 @@ router.put("/farms/:farmId/animals/:animalId", requireAuth, requireFarmAccess, r
   }
 });
 
-router.patch("/farms/:farmId/animals/:animalId/pregnancy", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/pregnancy", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -288,7 +288,7 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
-router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-in-heat", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-in-heat", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -326,7 +326,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-in-heat", requireA
   }
 });
 
-router.patch("/farms/:farmId/animals/:animalId/lifecycle/end-heat", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/end-heat", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -358,7 +358,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/end-heat", requireAuth,
   }
 });
 
-router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-pregnant", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-pregnant", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -405,7 +405,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-pregnant", require
   }
 });
 
-router.patch("/farms/:farmId/animals/:animalId/lifecycle/record-check", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/record-check", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -433,7 +433,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/record-check", requireA
   }
 });
 
-router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-delivered", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-delivered", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -479,7 +479,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/mark-delivered", requir
   }
 });
 
-router.patch("/farms/:farmId/animals/:animalId/lifecycle/wean", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/lifecycle/wean", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -513,7 +513,7 @@ router.patch("/farms/:farmId/animals/:animalId/lifecycle/wean", requireAuth, req
   }
 });
 
-router.get("/farms/:farmId/animals/:animalId/lifecycle-history", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/animals/:animalId/lifecycle-history", requireAuth, requireFarmAccess, requirePerm("can_view_animals"), async (req, res) => {
   try {
     const { animalId } = req.params as { animalId: string };
     const events = await db.select().from(animalLifecycleEventsTable)
@@ -526,7 +526,7 @@ router.get("/farms/:farmId/animals/:animalId/lifecycle-history", requireAuth, re
   }
 });
 
-router.patch("/farms/:farmId/animals/:animalId/death", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/death", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -565,7 +565,7 @@ router.patch("/farms/:farmId/animals/:animalId/death", requireAuth, requireFarmA
   }
 });
 
-router.patch("/farms/:farmId/animals/:animalId/lineage", requireAuth, requireFarmAccess, async (req, res) => {
+router.patch("/farms/:farmId/animals/:animalId/lineage", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const { action, parentId, childId, role } = req.body as {
@@ -607,7 +607,7 @@ router.patch("/farms/:farmId/animals/:animalId/lineage", requireAuth, requireFar
   }
 });
 
-router.get("/farms/:farmId/animals/:animalId/weights", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/animals/:animalId/weights", requireAuth, requireFarmAccess, requirePerm("can_view_animals"), async (req, res) => {
   try {
     const { animalId } = req.params as { animalId: string };
     const weights = await db.select().from(weightRecordsTable)
@@ -620,7 +620,7 @@ router.get("/farms/:farmId/animals/:animalId/weights", requireAuth, requireFarmA
   }
 });
 
-router.post("/farms/:farmId/animals/:animalId/weights", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/animals/:animalId/weights", requireAuth, requireFarmAccess, requirePerm("can_add_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -650,7 +650,7 @@ router.post("/farms/:farmId/animals/:animalId/weights", requireAuth, requireFarm
   }
 });
 
-router.get("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarmAccess, requirePerm("can_view_animals"), async (req, res) => {
   try {
     const { animalId } = req.params as { animalId: string };
     const records = await db.select().from(medicalRecordsTable)
@@ -663,7 +663,7 @@ router.get("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarmA
   }
 });
 
-router.post("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarmAccess, requirePerm("can_add_animals"), async (req, res) => {
   try {
     const { farmId, animalId } = req.params as { farmId: string; animalId: string };
     const userId = (req as AuthedReq).userId;
@@ -701,7 +701,7 @@ router.post("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarm
   }
 });
 
-router.get("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAccess, async (req, res) => {
+router.get("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAccess, requirePerm("can_view_animals"), async (req, res) => {
   try {
     const { animalId } = req.params as { farmId: string; animalId: string };
     const records = await db.select().from(milkRecordsTable)
@@ -714,7 +714,7 @@ router.get("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAcce
   }
 });
 
-router.post("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAccess, async (req, res) => {
+router.post("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAccess, requirePerm("can_add_animals"), async (req, res) => {
   try {
     const { animalId } = req.params as { farmId: string; animalId: string };
     const { amountLiters, recordedAt, session, notes } = req.body;
@@ -732,7 +732,7 @@ router.post("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAcc
   }
 });
 
-router.put("/farms/:farmId/animals/:animalId/milk/:recordId", requireAuth, requireFarmAccess, async (req, res) => {
+router.put("/farms/:farmId/animals/:animalId/milk/:recordId", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
     const { amountLiters, recordedAt, session, notes } = req.body;
@@ -748,7 +748,7 @@ router.put("/farms/:farmId/animals/:animalId/milk/:recordId", requireAuth, requi
   }
 });
 
-router.put("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, requireFarmAccess, async (req, res) => {
+router.put("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, requireFarmAccess, requirePerm("can_edit_animals"), async (req, res) => {
   try {
     const { farmId, animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
     const { recordType, title, description, vetName, costCop, recordDate, nextDueDate } = req.body;
@@ -769,7 +769,7 @@ router.put("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, re
   }
 });
 
-router.delete("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, requireFarmAccess, async (req, res) => {
+router.delete("/farms/:farmId/animals/:animalId/medical/:recordId", requireAuth, requireFarmAccess, requirePerm("can_remove_animals"), async (req, res) => {
   try {
     const { farmId, animalId, recordId } = req.params as { farmId: string; animalId: string; recordId: string };
     await db.delete(farmEventsTable).where(

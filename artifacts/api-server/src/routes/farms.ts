@@ -7,7 +7,7 @@ import {
   employeesTable, contactsTable,
   DEFAULT_OWNER_PERMISSIONS, DEFAULT_WORKER_PERMISSIONS,
 } from "@workspace/db";
-import { eq, and, count, lt, lte, isNotNull } from "drizzle-orm";
+import { eq, and, count, lt, lte, isNotNull, sql } from "drizzle-orm";
 import { requireAuth, requireFarmAccess } from "../middleware/auth.js";
 import { getPlanLimits } from "../lib/plans.js";
 import type { FarmPermissions } from "@workspace/db";
@@ -144,12 +144,9 @@ router.post("/farms/:farmId/members", requireAuth, requireFarmAccess, async (req
 
     const { email, role = "worker" } = req.body;
 
-    const userResult = await db.execute({
-      sql: "SELECT id FROM auth_users WHERE email = $1",
-      params: [email],
-    });
+    const userResult = await db.execute(sql`SELECT id FROM auth_users WHERE email = ${email}`);
 
-    const rows = (userResult as { rows: { id: string }[] }).rows;
+    const rows = (userResult as unknown as { rows: { id: string }[] }).rows ?? (userResult as any);
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "not_found", message: "User not found" });
     }
@@ -178,7 +175,7 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
     }
 
     const { farmId, userId } = req.params as { farmId: string; userId: string };
-    const { permissions } = req.body as { permissions: Partial<FarmPermissions> };
+    const { permissions, role } = req.body as { permissions?: Partial<FarmPermissions>; role?: string };
 
     const existing = await db.select().from(farmMembersTable)
       .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)))
@@ -192,11 +189,19 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
       return res.status(403).json({ error: "forbidden", message: "Cannot modify owner permissions" });
     }
 
-    const currentPerms = (existing[0].permissions as FarmPermissions | null) ?? DEFAULT_WORKER_PERMISSIONS;
-    const updatedPerms: FarmPermissions = { ...currentPerms, ...permissions };
+    const updateData: Record<string, unknown> = {};
+
+    if (permissions !== undefined) {
+      const currentPerms = (existing[0].permissions as FarmPermissions | null) ?? DEFAULT_WORKER_PERMISSIONS;
+      updateData.permissions = { ...currentPerms, ...permissions };
+    }
+
+    if (role !== undefined && ["worker", "manager"].includes(role)) {
+      updateData.role = role;
+    }
 
     const [updated] = await db.update(farmMembersTable)
-      .set({ permissions: updatedPerms })
+      .set(updateData)
       .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)))
       .returning();
 

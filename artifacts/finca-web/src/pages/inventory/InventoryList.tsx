@@ -349,6 +349,7 @@ export function InventoryList() {
                           size="sm"
                           className="text-primary hover:text-accent hover:bg-accent/10 rounded-lg"
                           onClick={() => openAdjust(item)}
+                          style={{ display: can("can_edit_inventory") ? undefined : "none" }}
                         >
                           {t('inventory.adjust')}
                         </Button>
@@ -357,6 +358,7 @@ export function InventoryList() {
                           size="icon"
                           className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/8"
                           onClick={() => setDeleteConfirm(item.id)}
+                          style={{ display: can("can_remove_inventory") ? undefined : "none" }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

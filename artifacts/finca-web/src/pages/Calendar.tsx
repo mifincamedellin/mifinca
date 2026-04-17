@@ -481,7 +481,7 @@ export function Calendar() {
                       </div>
                     </div>
                   </button>
-                  {isManualAnimal && (
+                  {isManualAnimal && can("can_edit_calendar") && (
                     <button
                       type="button"
                       title={isEn ? "Edit event" : "Editar evento"}
@@ -636,7 +636,7 @@ export function Calendar() {
               )} />
 
               <div className="flex gap-2 pt-1">
-                {editingEvent && (
+                {editingEvent && can("can_remove_calendar") && (
                   <Button
                     type="button"
                     variant="outline"
