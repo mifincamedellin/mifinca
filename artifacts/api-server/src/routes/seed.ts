@@ -711,7 +711,7 @@ export async function ensureDemoAuthUser() {
 
   await pool.query(`
     INSERT INTO farm_members (farm_id, user_id, role, permissions)
-    VALUES ($1, $2, 'owner', '{"can_edit":true,"can_add_animals":true,"can_log_inventory":true}')
+    VALUES ($1, $2, 'owner', '{"can_view_animals":true,"can_add_animals":true,"can_edit_animals":true,"can_remove_animals":true,"can_view_inventory":true,"can_add_inventory":true,"can_edit_inventory":true,"can_remove_inventory":true,"can_view_finances":true,"can_add_finances":true,"can_edit_finances":true,"can_remove_finances":true,"can_view_contacts":true,"can_add_contacts":true,"can_edit_contacts":true,"can_remove_contacts":true,"can_view_employees":true,"can_add_employees":true,"can_edit_employees":true,"can_remove_employees":true,"can_view_calendar":true,"can_add_calendar":true,"can_edit_calendar":true,"can_remove_calendar":true}')
     ON CONFLICT (farm_id, user_id) DO NOTHING
   `, [DEMO_FARM_ID, DEMO_USER_ID]);
 

@@ -3,7 +3,7 @@ import * as oidcClient from "openid-client";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { db } from "@workspace/db";
-import { profilesTable, farmsTable, farmMembersTable, farmInvitationsTable } from "@workspace/db";
+import { profilesTable, farmsTable, farmMembersTable, farmInvitationsTable, DEFAULT_OWNER_PERMISSIONS, DEFAULT_WORKER_PERMISSIONS } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 
 const router = Router();
@@ -191,11 +191,12 @@ router.get("/auth/google/callback", async (req, res) => {
         .limit(1);
 
       if (invitation.length > 0) {
+        const inviteRole = invitation[0]!.role ?? "worker";
         await db.insert(farmMembersTable).values({
           farmId: invitation[0]!.farmId,
           userId: profileId,
-          role: invitation[0]!.role ?? "worker",
-          permissions: { can_edit: false, can_add_animals: true, can_log_inventory: true },
+          role: inviteRole,
+          permissions: inviteRole === "owner" ? DEFAULT_OWNER_PERMISSIONS : DEFAULT_WORKER_PERMISSIONS,
         });
         await db
           .update(farmInvitationsTable)
@@ -211,7 +212,7 @@ router.get("/auth/google/callback", async (req, res) => {
           farmId: newFarm!.id,
           userId: profileId,
           role: "owner",
-          permissions: { can_edit: true, can_add_animals: true, can_log_inventory: true },
+          permissions: DEFAULT_OWNER_PERMISSIONS,
         });
         farm = [{ id: newFarm!.id }];
       }
