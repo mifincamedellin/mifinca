@@ -86,6 +86,13 @@ export function exportToPdf({ title, subtitle, farmName, columns, rows, filename
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
+export interface MilkRecord {
+  recordedAt: string;
+  amountLiters: number | string;
+  session?: string | null;
+  notes?: string | null;
+}
+
 export interface AnimalPdfOptions {
   animal: {
     customTag?: string | null;
@@ -115,6 +122,7 @@ export interface AnimalPdfOptions {
     weightKg: number | string;
     notes?: string | null;
   }>;
+  milkRecords?: MilkRecord[];
   lifecycleStage?: string | null;
   farmName?: string;
   isEn?: boolean;
@@ -135,7 +143,19 @@ function capitalize(s: string | null | undefined): string {
   return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
 }
 
-export function exportAnimalToPdf({ animal, weights, lifecycleStage, farmName, isEn = true }: AnimalPdfOptions): void {
+function sessionLabel(session: string | null | undefined, isEn: boolean): string {
+  if (!session) return "—";
+  const labels: Record<string, [string, string]> = {
+    morning:   ["Morning",   "Mañana"],
+    afternoon: ["Afternoon", "Tarde"],
+    evening:   ["Evening",   "Noche"],
+    full_day:  ["Full Day",  "Día Completo"],
+  };
+  const pair = labels[session];
+  return pair ? pair[isEn ? 0 : 1] : capitalize(session);
+}
+
+export function exportAnimalToPdf({ animal, weights, milkRecords, lifecycleStage, farmName, isEn = true }: AnimalPdfOptions): void {
   const doc = new jsPDF({ orientation: "portrait" });
   const pageW = doc.internal.pageSize.width;
   const exportDate = new Date().toLocaleDateString(isEn ? "en-US" : "es-CO");
@@ -299,6 +319,179 @@ export function exportAnimalToPdf({ animal, weights, lifecycleStage, farmName, i
       2: { cellWidth: 40 },
       3: { cellWidth: "auto" },
       4: { cellWidth: 35 },
+    },
+  });
+
+  if (milkRecords && milkRecords.length > 0) {
+    y = getLastY(doc) + 10;
+
+    doc.setFontSize(11);
+    doc.setTextColor(...PRIMARY);
+    doc.setFont("helvetica", "bold");
+    doc.text(isEn ? "Milk Production" : "Producción de Leche", 14, y);
+
+    y += 3;
+    doc.setDrawColor(220, 215, 208);
+    doc.line(14, y, pageW - 14, y);
+    y += 3;
+
+    const milkRows = milkRecords
+      .slice()
+      .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+      .map(r => [
+        fmtDate(r.recordedAt, isEn),
+        sessionLabel(r.session, isEn),
+        `${Number(r.amountLiters).toFixed(1)} L`,
+        r.notes || "—",
+      ]);
+
+    autoTable(doc, {
+      head: [[
+        isEn ? "Date" : "Fecha",
+        isEn ? "Session" : "Sesión",
+        isEn ? "Amount" : "Cantidad",
+        isEn ? "Notes" : "Notas",
+      ]],
+      body: milkRows,
+      startY: y,
+      theme: "striped",
+      headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+      alternateRowStyles: { fillColor: [253, 250, 245] },
+      styles: { fontSize: 8.5, cellPadding: 3 },
+      tableLineColor: [220, 215, 208],
+      tableLineWidth: 0.1,
+      columnStyles: {
+        0: { cellWidth: 32 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: "auto" },
+      },
+    });
+  }
+
+  const pageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+  const footerLabel = farmName ?? "miFinca";
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7.5);
+    doc.setTextColor(160, 160, 160);
+    doc.setFont("helvetica", "normal");
+    const footer = `${footerLabel} · ${displayName} · ${exportDate} · ${i} / ${pageCount}`;
+    doc.text(footer, pageW - 14, doc.internal.pageSize.height - 8, { align: "right" });
+  }
+
+  doc.save(filename);
+}
+
+export interface MilkLogPdfOptions {
+  animal: {
+    customTag?: string | null;
+    name?: string | null;
+    species?: string | null;
+  };
+  milkRecords: MilkRecord[];
+  farmName?: string;
+  isEn?: boolean;
+}
+
+export function exportMilkLogToPdf({ animal, milkRecords, farmName, isEn = true }: MilkLogPdfOptions): void {
+  const doc = new jsPDF({ orientation: "portrait" });
+  const pageW = doc.internal.pageSize.width;
+  const exportDate = new Date().toLocaleDateString(isEn ? "en-US" : "es-CO");
+
+  const tag = animal.customTag || "—";
+  const displayName = animal.name || tag;
+  const filename = `leche-${tag.replace(/[^a-zA-Z0-9-]/g, "-")}-${new Date().toISOString().split("T")[0]}.pdf`;
+
+  let y = 14;
+
+  doc.setFontSize(18);
+  doc.setTextColor(...PRIMARY);
+  doc.setFont("helvetica", "bold");
+  doc.text(isEn ? "Milk Production Log" : "Registro de Leche", 14, y);
+
+  doc.setFontSize(8);
+  doc.setTextColor(160, 160, 160);
+  doc.setFont("helvetica", "normal");
+  doc.text(exportDate, pageW - 14, y, { align: "right" });
+
+  y += 5;
+  doc.setFontSize(9);
+  doc.setTextColor(...MUTED);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${displayName}  ·  ${isEn ? "Tag" : "Arete"}: ${tag}`, 14, y);
+
+  y += 6;
+
+  if (milkRecords.length > 0) {
+    const sorted = milkRecords.slice().sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
+    const totalLiters = milkRecords.reduce((s, r) => s + Number(r.amountLiters), 0);
+    const dateFrom = sorted[sorted.length - 1].recordedAt;
+    const dateTo = sorted[0].recordedAt;
+
+    const summaryRows: [string, string][] = [
+      [isEn ? "Total Records" : "Registros Totales", String(milkRecords.length)],
+      [isEn ? "Period" : "Período", `${fmtDate(dateFrom, isEn)} – ${fmtDate(dateTo, isEn)}`],
+      [isEn ? "Total Produced" : "Total Producido", `${totalLiters.toFixed(1)} L`],
+    ];
+
+    autoTable(doc, {
+      body: summaryRows,
+      startY: y,
+      theme: "plain",
+      columnStyles: {
+        0: { fontStyle: "bold", textColor: PRIMARY, cellWidth: 50, fontSize: 8.5 },
+        1: { textColor: [40, 40, 40], fontSize: 8.5 },
+      },
+      styles: { cellPadding: { top: 2, bottom: 2, left: 2, right: 2 } },
+      alternateRowStyles: { fillColor: [253, 250, 245] },
+      tableLineColor: [235, 230, 225],
+      tableLineWidth: 0.1,
+    });
+
+    y = getLastY(doc) + 8;
+  }
+
+  doc.setFontSize(11);
+  doc.setTextColor(...PRIMARY);
+  doc.setFont("helvetica", "bold");
+  doc.text(isEn ? "Records" : "Registros", 14, y);
+  y += 3;
+  doc.setDrawColor(220, 215, 208);
+  doc.setLineWidth(0.3);
+  doc.line(14, y, pageW - 14, y);
+  y += 3;
+
+  const rows = milkRecords
+    .slice()
+    .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+    .map(r => [
+      fmtDate(r.recordedAt, isEn),
+      sessionLabel(r.session, isEn),
+      `${Number(r.amountLiters).toFixed(1)} L`,
+      r.notes || "—",
+    ]);
+
+  autoTable(doc, {
+    head: [[
+      isEn ? "Date" : "Fecha",
+      isEn ? "Session" : "Sesión",
+      isEn ? "Amount" : "Cantidad",
+      isEn ? "Notes" : "Notas",
+    ]],
+    body: rows.length > 0 ? rows : [[{ content: "—", colSpan: 4, styles: { halign: "center" } }]],
+    startY: y,
+    theme: "striped",
+    headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+    alternateRowStyles: { fillColor: [253, 250, 245] },
+    styles: { fontSize: 8.5, cellPadding: 3 },
+    tableLineColor: [220, 215, 208],
+    tableLineWidth: 0.1,
+    columnStyles: {
+      0: { cellWidth: 32 },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 22 },
+      3: { cellWidth: "auto" },
     },
   });
 

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull, DollarSign } from "lucide-react";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull, DollarSign, FileDown } from "lucide-react";
 import { LifecycleActionCard } from "@/components/lifecycle/LifecycleActionCard";
 import { LifecyclePregnantCard } from "@/components/lifecycle/LifecyclePregnantCard";
 import { LifecycleBar } from "@/components/lifecycle/LifecycleBar";
@@ -22,6 +22,7 @@ import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { AnimalLineage } from "./AnimalLineage";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { exportMilkLogToPdf } from "@/lib/exportPdf";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -459,6 +460,7 @@ export function AnimalDetail() {
                 deathCause: (animal as unknown as { deathCause?: string | null }).deathCause,
               },
               weights: weights ?? [],
+              milkRecords: animal.species === "cattle" ? milkRecords : undefined,
               lifecycleStage: lifecycleStage ?? undefined,
               farmName: activeFarmName,
               isEn,
@@ -1466,11 +1468,29 @@ export function AnimalDetail() {
                     <h3 className="font-semibold text-primary flex items-center gap-2">
                       <Droplets className="h-4 w-4 text-sky-500" />{isEn ? "Milk Log" : "Registros"}
                     </h3>
-                    {can("can_add_animals") && (
-                      <Button size="sm" onClick={() => { setEditingMilk(null); milkForm.reset({ amountLiters: undefined as any, recordedAt: new Date().toISOString().split("T")[0], session: undefined, notes: "" }); setMilkOpen(true); }} className="rounded-xl bg-primary hover:bg-primary/90 gap-1.5">
-                        <Plus className="h-4 w-4" />{t('animals.milk.logBtn')}
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {milkRecords.length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 gap-1.5"
+                          onClick={() => exportMilkLogToPdf({
+                            animal: { customTag: animal.customTag, name: animal.name, species: animal.species },
+                            milkRecords,
+                            farmName: activeFarmName,
+                            isEn,
+                          })}
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          {isEn ? "Export PDF" : "Exportar PDF"}
+                        </Button>
+                      )}
+                      {can("can_add_animals") && (
+                        <Button size="sm" onClick={() => { setEditingMilk(null); milkForm.reset({ amountLiters: undefined as any, recordedAt: new Date().toISOString().split("T")[0], session: undefined, notes: "" }); setMilkOpen(true); }} className="rounded-xl bg-primary hover:bg-primary/90 gap-1.5">
+                          <Plus className="h-4 w-4" />{t('animals.milk.logBtn')}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {milkRecords.length === 0 ? (
                     <div className="py-12 text-center flex flex-col items-center text-muted-foreground">
