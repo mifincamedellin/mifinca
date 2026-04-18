@@ -55,10 +55,11 @@ type FarmWithMembership = {
 
 export function useFarmPermissions() {
   const { activeFarmId } = useStore();
-  const { data: farms } = useListFarms();
+  const { data: farms, isLoading: farmsLoading } = useListFarms();
 
   const farm = (farms as FarmWithMembership[] | undefined)?.find(f => f.id === activeFarmId);
   const isOwner = farm?.userRole === 'owner';
+  const farmsLoaded = !farmsLoading && farms !== undefined;
 
   const permissions: FarmPermissions = isOwner
     ? ALL_TRUE
@@ -68,6 +69,7 @@ export function useFarmPermissions() {
 
   return {
     isOwner,
+    farmsLoaded,
     permissions,
     can: (perm: keyof FarmPermissions) => isOwner || permissions[perm] === true,
   };

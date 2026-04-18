@@ -328,7 +328,7 @@ function PendingInviteCard({ invite, onUpdatePerms, onCancel }: {
 export function Roles() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
-  const { isOwner, permissions: myPermissions } = useFarmPermissions();
+  const { isOwner, farmsLoaded, permissions: myPermissions } = useFarmPermissions();
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -466,7 +466,7 @@ export function Roles() {
         </div>
       </div>
 
-      {!isOwner && (
+      {farmsLoaded && !isOwner && (
         <div className="rounded-2xl border border-border bg-card shadow-sm p-5 space-y-4">
           <div>
             <h2 className="text-base font-serif font-semibold text-foreground flex items-center gap-2">
@@ -479,7 +479,7 @@ export function Roles() {
         </div>
       )}
 
-      {isOwner && (
+      {farmsLoaded && isOwner && (
         <form onSubmit={handleInvite} className="space-y-2">
           <div className="flex gap-2">
             <Input
@@ -546,7 +546,7 @@ export function Roles() {
         ))}
       </div>
 
-      {isOwner && pendingInvites.length > 0 && (
+      {farmsLoaded && isOwner && pendingInvites.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{t("roles.pendingInvites")}</p>
           {pendingInvites.map(invite => (
@@ -560,7 +560,7 @@ export function Roles() {
         </div>
       )}
 
-      {isOwner && (
+      {farmsLoaded && isOwner && (
         <div className="rounded-2xl border border-border bg-muted/30 p-4">
           <p className="text-xs text-muted-foreground leading-relaxed">{t("roles.ownerHint")}</p>
         </div>
