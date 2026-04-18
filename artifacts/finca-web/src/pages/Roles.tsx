@@ -389,13 +389,22 @@ export function Roles() {
   const removeMember = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch(`/api/farms/${activeFarmId}/members/${userId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Remove failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "remove_failed");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
       toast({ title: t("roles.memberRemoved") });
     },
-    onError: () => toast({ title: t("common.error"), variant: "destructive" }),
+    onError: (err: Error) => {
+      if (err.message === "last_owner") {
+        toast({ title: t("roles.lastOwnerError"), variant: "destructive" });
+      } else {
+        toast({ title: t("common.error"), variant: "destructive" });
+      }
+    },
   });
 
   const updatePerms = useMutation({
@@ -421,14 +430,23 @@ export function Roles() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),
       });
-      if (!res.ok) throw new Error("Update failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "update_failed");
+      }
       return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
       toast({ title: t("roles.roleChanged") });
     },
-    onError: () => toast({ title: t("common.error"), variant: "destructive" }),
+    onError: (err: Error) => {
+      if (err.message === "last_owner") {
+        toast({ title: t("roles.lastOwnerError"), variant: "destructive" });
+      } else {
+        toast({ title: t("common.error"), variant: "destructive" });
+      }
+    },
   });
 
   type PendingInvite = { id: string; invitedEmail: string; role: string; status: string; permissions: FarmPermissions | null };

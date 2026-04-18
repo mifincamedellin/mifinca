@@ -244,6 +244,16 @@ router.put("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, asy
 
     const newRole = role !== undefined && (role === "owner" || role === "worker") ? role : existing[0].role;
 
+    if (newRole === "worker" && existing[0].role === "owner") {
+      const [{ ownerCount }] = await db
+        .select({ ownerCount: count() })
+        .from(farmMembersTable)
+        .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.role, "owner")));
+      if (ownerCount <= 1) {
+        return res.status(400).json({ error: "last_owner", message: "Cannot demote the last owner of a farm" });
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
 
     if (newRole !== existing[0].role) {
@@ -279,10 +289,26 @@ router.delete("/farms/:farmId/members/:userId", requireAuth, requireFarmAccess, 
       return res.status(403).json({ error: "forbidden", message: "Only farm owners can remove members" });
     }
 
+    const { farmId, userId } = req.params as { farmId: string; userId: string };
+
+    const [target] = await db.select().from(farmMembersTable)
+      .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.userId, userId)))
+      .limit(1);
+
+    if (target?.role === "owner") {
+      const [{ ownerCount }] = await db
+        .select({ ownerCount: count() })
+        .from(farmMembersTable)
+        .where(and(eq(farmMembersTable.farmId, farmId), eq(farmMembersTable.role, "owner")));
+      if (ownerCount <= 1) {
+        return res.status(400).json({ error: "last_owner", message: "Cannot remove the last owner of a farm" });
+      }
+    }
+
     await db.delete(farmMembersTable)
       .where(and(
-        eq(farmMembersTable.farmId, req.params["farmId"]!),
-        eq(farmMembersTable.userId, req.params["userId"]!)
+        eq(farmMembersTable.farmId, farmId),
+        eq(farmMembersTable.userId, userId)
       ));
     return res.status(204).end();
   } catch (err) {
