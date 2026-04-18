@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
-import { useGetAnimal, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord, useGetFarmStats, getGetAnimalQueryKey, getListWeightRecordsQueryKey, getGetFarmStatsQueryKey } from "@workspace/api-client-react";
+import { useGetAnimal, useListFarms, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord, useGetFarmStats, getGetAnimalQueryKey, getListWeightRecordsQueryKey, getGetFarmStatsQueryKey } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { AnimalLineage } from "./AnimalLineage";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -129,6 +130,9 @@ export function AnimalDetail() {
     query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ''), enabled: !!activeFarmId }
   });
   const hasUpcomingMedical = !!(id && farmStats?.upcomingMedicalAnimalIds?.includes(id));
+
+  const { data: farms } = useListFarms();
+  const activeFarmName = farms?.find(f => f.id === activeFarmId)?.name;
 
   const updateAnimal = useUpdateAnimal();
   const createWeightRecord = useCreateWeightRecord();
@@ -411,6 +415,10 @@ export function AnimalDetail() {
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">{t('animals.loadingDetails')}</div>;
   if (!animal) return <div className="p-8 text-center text-destructive">{t('animals.notFound')}</div>;
 
+  const lifecycleStage = hasLifecycle(animal as unknown as LifecycleAnimal)
+    ? deriveLifecycleStage(animal as unknown as LifecycleAnimal)
+    : null;
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       <div className="flex items-center gap-4">
@@ -431,6 +439,31 @@ export function AnimalDetail() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportPdfButton
+            label={isEn ? "Export PDF" : "Exportar PDF"}
+            options={{
+              animal: {
+                customTag: animal.customTag,
+                name: animal.name,
+                species: animal.species,
+                breed: animal.breed,
+                sex: animal.sex,
+                dateOfBirth: animal.dateOfBirth,
+                currentWeight: animal.currentWeight,
+                status: animal.status,
+                medicalRecords: animal.medicalRecords,
+                pregnancyCount: animal.pregnancyCount,
+                purchaseDate: (animal as unknown as { purchaseDate?: string | null }).purchaseDate,
+                purchasePrice: (animal as unknown as { purchasePrice?: number | null }).purchasePrice,
+                deathDate: (animal as unknown as { deathDate?: string | null }).deathDate,
+                deathCause: (animal as unknown as { deathCause?: string | null }).deathCause,
+              },
+              weights: weights ?? [],
+              lifecycleStage: lifecycleStage ?? undefined,
+              farmName: activeFarmName,
+              isEn,
+            }}
+          />
           {can("can_edit_animals") && (
             <Button
               variant="outline"
