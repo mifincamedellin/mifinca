@@ -175,10 +175,11 @@ function PermToggle({ checked, onChange, disabled }: { checked: boolean; onChang
   );
 }
 
-function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, onRemove, onUpdatePerms, onUpdateRole }: {
+function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, isLastOwner, onRemove, onUpdatePerms, onUpdateRole }: {
   member: Member;
   isOwner: boolean;
   currentUserId: string;
+  isLastOwner: boolean;
   onRemove: (userId: string) => void;
   onUpdatePerms: (userId: string, perms: FarmPermissions) => void;
   onUpdateRole: (userId: string, role: "worker" | "owner") => void;
@@ -229,20 +230,27 @@ function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, onRemo
           <div className="font-medium text-sm text-foreground truncate">{displayName}</div>
           {canShowControls ? (
             <div className="flex items-center gap-1 mt-1">
-              {(["worker", "owner"] as const).map(r => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => handleRoleChange(r)}
-                  className={`px-2 py-0.5 rounded-md text-xs font-medium border transition-colors ${
-                    member.role === r
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
-                  }`}
-                >
-                  {t(r === "owner" ? "roles.owner" : "roles.worker")}
-                </button>
-              ))}
+              {(["worker", "owner"] as const).map(r => {
+                const isDisabled = r === "worker" && isLastOwner;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    disabled={isDisabled}
+                    title={isDisabled ? t("roles.lastOwnerHint") : undefined}
+                    onClick={() => handleRoleChange(r)}
+                    className={`px-2 py-0.5 rounded-md text-xs font-medium border transition-colors ${
+                      isDisabled
+                        ? "opacity-35 cursor-not-allowed border-border text-muted-foreground"
+                        : member.role === r
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+                    }`}
+                  >
+                    {t(r === "owner" ? "roles.owner" : "roles.worker")}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <Badge variant={member.role === "owner" ? "default" : "secondary"} className="text-xs mt-0.5">
@@ -265,9 +273,11 @@ function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, onRemo
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              disabled={isLastOwner}
+              title={isLastOwner ? t("roles.lastOwnerHint") : undefined}
+              className={`h-8 w-8 p-0 ${isLastOwner ? "opacity-35 cursor-not-allowed text-muted-foreground" : "text-destructive hover:text-destructive"}`}
               onClick={() => {
-                if (confirm(t("roles.confirmRemove"))) onRemove(member.userId);
+                if (!isLastOwner && confirm(t("roles.confirmRemove"))) onRemove(member.userId);
               }}
             >
               <Trash2 className="h-4 w-4" />
@@ -606,17 +616,21 @@ export function Roles() {
         {!isLoading && members.length === 0 && (
           <div className="text-center py-8 text-muted-foreground text-sm">{t("roles.noMembers")}</div>
         )}
-        {members.map(member => (
-          <MemberCard
-            key={member.id}
-            member={member}
-            isOwner={isOwner}
-            currentUserId={me?.id ?? ""}
-            onRemove={(userId) => removeMember.mutate(userId)}
-            onUpdatePerms={(userId, permissions) => updatePerms.mutate({ userId, permissions })}
-            onUpdateRole={(userId, role) => updateRole.mutate({ userId, role })}
-          />
-        ))}
+        {(() => {
+          const ownerCount = members.filter(m => m.role === "owner").length;
+          return members.map(member => (
+            <MemberCard
+              key={member.id}
+              member={member}
+              isOwner={isOwner}
+              currentUserId={me?.id ?? ""}
+              isLastOwner={member.role === "owner" && ownerCount === 1}
+              onRemove={(userId) => removeMember.mutate(userId)}
+              onUpdatePerms={(userId, permissions) => updatePerms.mutate({ userId, permissions })}
+              onUpdateRole={(userId, role) => updateRole.mutate({ userId, role })}
+            />
+          ));
+        })()}
       </div>
 
       {farmsLoaded && isOwner && pendingInvites.length > 0 && (
