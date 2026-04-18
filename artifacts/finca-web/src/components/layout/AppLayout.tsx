@@ -25,6 +25,7 @@ import {
   Plus,
   Check,
   ShieldCheck,
+  Droplets,
 } from "lucide-react";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import type { FarmPermissions } from "@/lib/useFarmPermissions";
@@ -173,6 +174,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const allNavItems = [
     { title: t('nav.dashboard'), url: "/dashboard", icon: Home, perm: null },
     { title: t('nav.animals'), url: "/animals", icon: PawPrint, perm: "can_view_animals" as keyof FarmPermissions },
+    { title: t('nav.milk'), url: "/milk", icon: Droplets, perm: "can_view_animals" as keyof FarmPermissions },
     { title: t('nav.inventory'), url: "/inventory", icon: Package, perm: "can_view_inventory" as keyof FarmPermissions },
     { title: t('nav.finances'), url: "/finances", icon: DollarSign, perm: "can_view_finances" as keyof FarmPermissions },
     { title: t('nav.contacts'), url: "/contacts", icon: Users, perm: "can_view_contacts" as keyof FarmPermissions },

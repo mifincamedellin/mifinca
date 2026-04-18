@@ -142,6 +142,8 @@ export function AnimalDetail() {
 
   const [milkOpen, setMilkOpen] = useState(false);
   const [editingMilk, setEditingMilk] = useState<any | null>(null);
+  const [milkFrom, setMilkFrom] = useState("");
+  const [milkTo, setMilkTo] = useState("");
   const [pregnancyOpen, setPregnancyOpen] = useState(false);
   const [deathOpen, setDeathOpen] = useState(false);
 
@@ -1469,22 +1471,54 @@ export function AnimalDetail() {
 
                 {/* Records list + Log button */}
                 <Card className="p-6 rounded-2xl shadow-sm border-border/40">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <h3 className="font-semibold text-primary flex items-center gap-2">
                       <Droplets className="h-4 w-4 text-sky-500" />{isEn ? "Milk Log" : "Registros"}
                     </h3>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="date"
+                          value={milkFrom}
+                          max={milkTo || new Date().toISOString().split("T")[0]}
+                          onChange={e => setMilkFrom(e.target.value)}
+                          className="rounded-xl h-8 text-xs w-36"
+                          placeholder={isEn ? "From" : "Desde"}
+                        />
+                        <span className="text-muted-foreground text-xs">–</span>
+                        <Input
+                          type="date"
+                          value={milkTo}
+                          min={milkFrom}
+                          max={new Date().toISOString().split("T")[0]}
+                          onChange={e => setMilkTo(e.target.value)}
+                          className="rounded-xl h-8 text-xs w-36"
+                          placeholder={isEn ? "To" : "Hasta"}
+                        />
+                        {(milkFrom || milkTo) && (
+                          <button type="button" onClick={() => { setMilkFrom(""); setMilkTo(""); }} className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title={isEn ? "Clear filter" : "Limpiar filtro"}>
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                       {milkRecords.length > 0 && (
                         <Button
                           size="sm"
                           variant="outline"
                           className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 gap-1.5"
-                          onClick={() => exportMilkLogToPdf({
-                            animal: { customTag: animal.customTag, name: animal.name },
-                            milkRecords,
-                            farmName: activeFarmName,
-                            isEn,
-                          })}
+                          onClick={() => {
+                            const filtered = milkRecords.filter((r: any) => {
+                              if (milkFrom && r.recordedAt < milkFrom) return false;
+                              if (milkTo && r.recordedAt > milkTo) return false;
+                              return true;
+                            });
+                            exportMilkLogToPdf({
+                              animal: { customTag: animal.customTag, name: animal.name },
+                              milkRecords: filtered,
+                              farmName: activeFarmName,
+                              isEn,
+                            });
+                          }}
                         >
                           <FileDown className="h-3.5 w-3.5" />
                           {isEn ? "Export PDF" : "Exportar PDF"}
@@ -1497,14 +1531,30 @@ export function AnimalDetail() {
                       )}
                     </div>
                   </div>
-                  {milkRecords.length === 0 ? (
+                  {(() => {
+                    const displayRecords = milkRecords.filter((r: any) => {
+                      if (milkFrom && r.recordedAt < milkFrom) return false;
+                      if (milkTo && r.recordedAt > milkTo) return false;
+                      return true;
+                    });
+                    return displayRecords;
+                  })().length === 0 && (milkFrom || milkTo) ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">
+                      <Droplets className="h-8 w-8 text-border mx-auto mb-2" />
+                      {isEn ? "No records in this date range." : "Sin registros en este período."}
+                    </div>
+                  ) : milkRecords.length === 0 ? (
                     <div className="py-12 text-center flex flex-col items-center text-muted-foreground">
                       <Droplets className="h-10 w-10 text-border mb-3" />
                       <p className="text-sm">{t('animals.milk.noRecords')}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {milkRecords.map((record: any) => {
+                      {milkRecords.filter((r: any) => {
+                        if (milkFrom && r.recordedAt < milkFrom) return false;
+                        if (milkTo && r.recordedAt > milkTo) return false;
+                        return true;
+                      }).map((record: any) => {
                         const sessionLabel: Record<string, string> = {
                           morning: t('animals.milk.session.morning'),
                           afternoon: t('animals.milk.session.afternoon'),

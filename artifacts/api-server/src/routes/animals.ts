@@ -704,12 +704,75 @@ router.post("/farms/:farmId/animals/:animalId/medical", requireAuth, requireFarm
 router.get("/farms/:farmId/animals/:animalId/milk", requireAuth, requireFarmAccess, requirePerm("can_view_animals"), async (req, res) => {
   try {
     const { animalId } = req.params as { farmId: string; animalId: string };
+    const { from, to } = req.query as { from?: string; to?: string };
+    const conditions = [eq(milkRecordsTable.animalId, animalId)];
+    if (from) conditions.push(sql`${milkRecordsTable.recordedAt} >= ${from}`);
+    if (to)   conditions.push(sql`${milkRecordsTable.recordedAt} <= ${to}`);
     const records = await db.select().from(milkRecordsTable)
-      .where(eq(milkRecordsTable.animalId, animalId))
+      .where(and(...conditions))
       .orderBy(desc(milkRecordsTable.recordedAt));
     return res.json(records);
   } catch (err) {
     req.log.error({ err }, "List milk error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.get("/farms/:farmId/milk", requireAuth, requireFarmAccess, requirePerm("can_view_animals"), async (req, res) => {
+  try {
+    const { farmId } = req.params as { farmId: string };
+    const { from, to, animalId: filterAnimalId } = req.query as { from?: string; to?: string; animalId?: string };
+
+    const cattleRows = await db
+      .select({ id: animalsTable.id, name: animalsTable.name, customTag: animalsTable.customTag, status: animalsTable.status })
+      .from(animalsTable)
+      .where(and(eq(animalsTable.farmId, farmId), eq(animalsTable.species, "cattle")));
+
+    const cattleIds = cattleRows.map(a => a.id);
+    if (cattleIds.length === 0) return res.json({ animals: [], summary: { totalLiters: 0, totalRecords: 0, from: from ?? null, to: to ?? null } });
+
+    const conditions = [sql`${milkRecordsTable.animalId} = ANY(${sql.raw(`ARRAY[${cattleIds.map(id => `'${id}'`).join(",")}]::uuid[]`)})` ];
+    if (filterAnimalId) conditions.push(eq(milkRecordsTable.animalId, filterAnimalId));
+    if (from) conditions.push(sql`${milkRecordsTable.recordedAt} >= ${from}`);
+    if (to)   conditions.push(sql`${milkRecordsTable.recordedAt} <= ${to}`);
+
+    const records = await db.select().from(milkRecordsTable)
+      .where(and(...conditions))
+      .orderBy(desc(milkRecordsTable.recordedAt));
+
+    const byAnimal: Record<string, { totalLiters: number; records: typeof records }> = {};
+    for (const r of records) {
+      if (!byAnimal[r.animalId]) byAnimal[r.animalId] = { totalLiters: 0, records: [] };
+      byAnimal[r.animalId].totalLiters += Number(r.amountLiters);
+      byAnimal[r.animalId].records.push(r);
+    }
+
+    const animals = cattleRows
+      .filter(a => !filterAnimalId || a.id === filterAnimalId)
+      .map(a => {
+        const agg = byAnimal[a.id] ?? { totalLiters: 0, records: [] };
+        const days = agg.records.length > 0
+          ? new Set(agg.records.map(r => r.recordedAt)).size
+          : 0;
+        return {
+          id: a.id,
+          name: a.name,
+          customTag: a.customTag,
+          status: a.status,
+          totalLiters: Number(agg.totalLiters.toFixed(2)),
+          recordCount: agg.records.length,
+          dailyAvg: days > 0 ? Number((agg.totalLiters / days).toFixed(2)) : 0,
+          lastRecordedAt: agg.records[0]?.recordedAt ?? null,
+        };
+      })
+      .sort((a, b) => b.totalLiters - a.totalLiters);
+
+    const totalLiters = animals.reduce((s, a) => s + a.totalLiters, 0);
+    const totalRecords = animals.reduce((s, a) => s + a.recordCount, 0);
+
+    return res.json({ animals, summary: { totalLiters: Number(totalLiters.toFixed(2)), totalRecords, from: from ?? null, to: to ?? null } });
+  } catch (err) {
+    req.log.error({ err }, "Farm milk report error");
     return res.status(500).json({ error: "internal" });
   }
 });

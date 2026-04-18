@@ -507,3 +507,124 @@ export function exportMilkLogToPdf({ animal, milkRecords, farmName, isEn = true 
 
   doc.save(filename);
 }
+
+export interface FarmMilkAnimalRow {
+  customTag?: string | null;
+  name?: string | null;
+  totalLiters: number;
+  dailyAvg: number;
+  recordCount: number;
+  lastRecordedAt?: string | null;
+}
+
+export interface FarmMilkPdfOptions {
+  animals: FarmMilkAnimalRow[];
+  summary: { totalLiters: number; totalRecords: number; from: string | null; to: string | null };
+  farmName?: string;
+  isEn?: boolean;
+}
+
+export function exportFarmMilkToPdf({ animals, summary, farmName, isEn = true }: FarmMilkPdfOptions): void {
+  const doc = new jsPDF({ orientation: "landscape" });
+  const pageW = doc.internal.pageSize.width;
+  const exportDate = new Date().toLocaleDateString(isEn ? "en-US" : "es-CO");
+  const filename = `leche-finca-${new Date().toISOString().split("T")[0]}.pdf`;
+
+  let y = 14;
+
+  doc.setFontSize(18);
+  doc.setTextColor(...PRIMARY);
+  doc.setFont("helvetica", "bold");
+  doc.text(isEn ? "Farm Milk Production Report" : "Informe de Producción Láctea", 14, y);
+
+  doc.setFontSize(8);
+  doc.setTextColor(160, 160, 160);
+  doc.setFont("helvetica", "normal");
+  doc.text(exportDate, pageW - 14, y, { align: "right" });
+
+  y += 5;
+  if (farmName) {
+    doc.setFontSize(9);
+    doc.setTextColor(...MUTED);
+    doc.text(farmName, 14, y);
+    y += 5;
+  }
+
+  const period = summary.from && summary.to
+    ? `${fmtDate(summary.from, isEn)} – ${fmtDate(summary.to, isEn)}`
+    : isEn ? "All time" : "Todo el período";
+
+  const summaryRows: [string, string][] = [
+    [isEn ? "Period" : "Período", period],
+    [isEn ? "Cattle with records" : "Vacas con registros", String(animals.filter(a => a.recordCount > 0).length)],
+    [isEn ? "Total Records" : "Registros Totales", String(summary.totalRecords)],
+    [isEn ? "Total Produced" : "Total Producido", `${summary.totalLiters.toFixed(1)} L`],
+  ];
+
+  autoTable(doc, {
+    body: summaryRows,
+    startY: y,
+    theme: "plain",
+    columnStyles: {
+      0: { fontStyle: "bold", textColor: PRIMARY, cellWidth: 55, fontSize: 8.5 },
+      1: { textColor: [40, 40, 40], fontSize: 8.5 },
+    },
+    styles: { cellPadding: { top: 2, bottom: 2, left: 2, right: 2 } },
+    alternateRowStyles: { fillColor: [253, 250, 245] },
+    tableLineColor: [235, 230, 225],
+    tableLineWidth: 0.1,
+  });
+
+  y = getLastY(doc) + 10;
+
+  doc.setFontSize(11);
+  doc.setTextColor(...PRIMARY);
+  doc.setFont("helvetica", "bold");
+  doc.text(isEn ? "By Animal" : "Por Animal", 14, y);
+  y += 3;
+  doc.setDrawColor(220, 215, 208);
+  doc.setLineWidth(0.3);
+  doc.line(14, y, pageW - 14, y);
+  y += 3;
+
+  const rows = animals.map(a => [
+    a.customTag ?? "—",
+    a.name ?? "—",
+    `${a.totalLiters.toFixed(1)} L`,
+    `${a.dailyAvg.toFixed(1)} L`,
+    String(a.recordCount),
+    a.lastRecordedAt ? fmtDate(a.lastRecordedAt, isEn) : "—",
+  ]);
+
+  autoTable(doc, {
+    head: [[
+      isEn ? "Tag" : "Arete",
+      isEn ? "Name" : "Nombre",
+      isEn ? "Total" : "Total",
+      isEn ? "Daily Avg" : "Prom. Diario",
+      isEn ? "Records" : "Registros",
+      isEn ? "Last Entry" : "Último Registro",
+    ]],
+    body: rows.length > 0 ? rows : [[{ content: "—", colSpan: 6, styles: { halign: "center" } }]],
+    startY: y,
+    theme: "striped",
+    headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+    alternateRowStyles: { fillColor: [253, 250, 245] },
+    styles: { fontSize: 8.5, cellPadding: 3 },
+    tableLineColor: [220, 215, 208],
+    tableLineWidth: 0.1,
+  });
+
+  const farmPageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+  const farmFooterLabel = farmName ?? "miFinca";
+  for (let i = 1; i <= farmPageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7.5);
+    doc.setTextColor(160, 160, 160);
+    doc.setFont("helvetica", "normal");
+    const footer = `${farmFooterLabel} · ${isEn ? "Milk Report" : "Informe de Leche"} · ${exportDate} · ${i} / ${farmPageCount}`;
+    doc.text(footer, pageW - 14, doc.internal.pageSize.height - 8, { align: "right" });
+  }
+
+  doc.save(filename);
+}
