@@ -1475,7 +1475,7 @@ export function AnimalDetail() {
                           variant="outline"
                           className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 gap-1.5"
                           onClick={() => exportMilkLogToPdf({
-                            animal: { customTag: animal.customTag, name: animal.name, species: animal.species },
+                            animal: { customTag: animal.customTag, name: animal.name },
                             milkRecords,
                             farmName: activeFarmName,
                             isEn,

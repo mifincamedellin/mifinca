@@ -387,7 +387,6 @@ export interface MilkLogPdfOptions {
   animal: {
     customTag?: string | null;
     name?: string | null;
-    species?: string | null;
   };
   milkRecords: MilkRecord[];
   farmName?: string;
