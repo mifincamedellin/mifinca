@@ -99,7 +99,7 @@ export function AnimalList() {
   const queryClient = useQueryClient();
 
   const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
-  const farmName = farms?.find((f: any) => f.id === activeFarmId)?.name ?? "miFinca";
+  const farmName = (farms as Array<{ id: string; name: string }> | undefined)?.find(f => f.id === activeFarmId)?.name ?? "miFinca";
 
   const { data: animals, isLoading } = useListAnimals(activeFarmId || '',
     { search: search || undefined },
@@ -248,22 +248,24 @@ export function AnimalList() {
     return {
       title: `${farmName} · ${isEn ? "Animals" : "Animales"} (${filtered.length})`,
       subtitle: filterParts.length ? filterParts.join(" · ") : undefined,
+      farmName,
       columns: isEn
-        ? ["Tag", "Name", "Species", "Sex", "Age", "Weight (kg)", "Lifecycle Stage"]
-        : ["Tag", "Nombre", "Especie", "Sexo", "Edad", "Peso (kg)", "Etapa"],
+        ? ["Tag", "Name", "Species", "Sex", "Age", "Weight (kg)", "Lifecycle Stage", "Alert"]
+        : ["Tag", "Nombre", "Especie", "Sexo", "Edad", "Peso (kg)", "Etapa", "Alerta"],
       rows: filtered.map(a => {
-        const dob = (a as any).dateOfBirth;
+        const dob = a.dateOfBirth;
         const ageDays = dob ? Math.floor((Date.now() - new Date(dob + "T12:00:00").getTime()) / 86400000) : null;
         const ageStr = ageDays != null ? `${(ageDays / 365).toFixed(1)} ${isEn ? "yr" : "años"}` : "—";
         const weight = a.currentWeight != null ? `${Number(a.currentWeight)}` : "—";
         const sex = a.sex === "male" ? (isEn ? "Male" : "Macho") : a.sex === "female" ? (isEn ? "Female" : "Hembra") : "—";
         const stage = deriveLifecycleStage(a as LifecycleAnimal);
         const stageLabel = stage ? (isEn ? (EXPORT_STAGE_LABELS[stage]?.[1] ?? stage) : (EXPORT_STAGE_LABELS[stage]?.[0] ?? stage)) : "—";
-        return [a.customTag ?? "—", a.name ?? "—", t(`animals.sp.${a.species}`), sex, ageStr, weight, stageLabel];
+        const alert = upcomingMedicalSet.has(a.id ?? "") ? (isEn ? "⚠ Medical" : "⚠ Médico") : "—";
+        return [a.customTag ?? "—", a.name ?? "—", t(`animals.sp.${a.species}`), sex, ageStr, weight, stageLabel, alert];
       }),
       filename: `${isEn ? "animals" : "animales"}-${date}.pdf`,
     };
-  }, [filtered, farmName, selectedSpecies, selectedLifecycle, selectedMale, search, isEn, t]);
+  }, [filtered, farmName, upcomingMedicalSet, selectedSpecies, selectedLifecycle, selectedMale, search, isEn, t]);
 
   if (!activeFarmId) return null;
 

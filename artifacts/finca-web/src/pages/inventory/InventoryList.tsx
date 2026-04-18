@@ -116,7 +116,7 @@ export function InventoryList() {
   }, [allItems, category]);
 
   const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
-  const farmName = farms?.find((f: any) => f.id === activeFarmId)?.name ?? "miFinca";
+  const farmName = (farms as Array<{ id: string; name: string }> | undefined)?.find(f => f.id === activeFarmId)?.name ?? "miFinca";
 
   const exportOptions = useMemo(() => {
     const date = new Date().toISOString().slice(0, 10);
@@ -125,6 +125,7 @@ export function InventoryList() {
     return {
       title: `${farmName} · ${isEn ? "Inventory" : "Inventario"} (${displayItems.length})`,
       subtitle: catLabel,
+      farmName,
       columns: isEn
         ? ["Product", "Category", "Quantity", "Unit", "Min Alert", "Status"]
         : ["Producto", "Categoría", "Cantidad", "Unidad", "Alerta Mínima", "Estado"],

@@ -164,7 +164,7 @@ export function Finances() {
   const profit       = totalIncome - totalExpense;
 
   const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
-  const farmName = farms?.find((f: any) => f.id === activeFarmId)?.name ?? "miFinca";
+  const farmName = (farms as Array<{ id: string; name: string }> | undefined)?.find(f => f.id === activeFarmId)?.name ?? "miFinca";
 
   const PERIODS_MAP: Record<string, [string, string]> = {
     all:   ["Todo", "All"],
@@ -184,6 +184,7 @@ export function Finances() {
     return {
       title: `${farmName} · ${isEn ? "Finances" : "Finanzas"} (${filtered.length})`,
       subtitle: subtitleParts.join(" · "),
+      farmName,
       columns: isEn
         ? ["Date", "Description", "Category", "Type", "Amount"]
         : ["Fecha", "Descripción", "Categoría", "Tipo", "Monto"],
