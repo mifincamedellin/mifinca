@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
-import { useListInventoryItems, useCreateInventoryItem, getListInventoryItemsQueryKey } from "@workspace/api-client-react";
+import { useListInventoryItems, useCreateInventoryItem, useListFarms, getListInventoryItemsQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import type { InventoryItem, CreateInventoryItemRequest } from "@workspace/api-client-react";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +34,8 @@ const createItemSchema = z.object({
 type AdjustItem = { id: string; name: string; quantity: string; unit: string };
 
 export function InventoryList() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === "en";
   const { activeFarmId } = useStore();
   const { can } = useFarmPermissions();
   const [search, setSearch] = useState("");
@@ -113,6 +115,35 @@ export function InventoryList() {
     return allItems.filter((item: InventoryItem) => item.category === category);
   }, [allItems, category]);
 
+  const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
+  const farmName = farms?.find((f: any) => f.id === activeFarmId)?.name ?? "miFinca";
+
+  const exportOptions = useMemo(() => {
+    const date = new Date().toISOString().slice(0, 10);
+    const catLabel = category !== "all" ? t(`inventory.cat.${category}`) : undefined;
+    const displayItems = items ?? [];
+    return {
+      title: `${farmName} · ${isEn ? "Inventory" : "Inventario"} (${displayItems.length})`,
+      subtitle: catLabel,
+      columns: isEn
+        ? ["Product", "Category", "Quantity", "Unit", "Min Alert", "Status"]
+        : ["Producto", "Categoría", "Cantidad", "Unidad", "Alerta Mínima", "Estado"],
+      rows: displayItems.map((item: InventoryItem) => [
+        item.name,
+        item.category ? t(`inventory.cat.${item.category}`) : "—",
+        Number(item.quantity),
+        item.unit ?? "—",
+        item.lowStockThreshold != null ? Number(item.lowStockThreshold) : "—",
+        item.status === "expired"
+          ? t("inventory.status.expired")
+          : (item.status === "low" || (item.lowStockThreshold != null && item.quantity <= item.lowStockThreshold))
+            ? t("inventory.status.low")
+            : t("inventory.status.ok"),
+      ]),
+      filename: `${isEn ? "inventory" : "inventario"}-${date}.pdf`,
+    };
+  }, [items, farmName, category, isEn, t]);
+
   const createItem = useCreateInventoryItem();
 
   const form = useForm<z.infer<typeof createItemSchema>>({
@@ -156,6 +187,12 @@ export function InventoryList() {
           <h1 className="text-3xl font-serif font-bold text-primary">{t('nav.inventory')}</h1>
           <p className="text-muted-foreground mt-1">{t('inventory.subtitle')}</p>
         </div>
+        <div className="flex items-center gap-2">
+          <ExportPdfButton
+            options={exportOptions}
+            label={isEn ? "Export PDF" : "Exportar PDF"}
+            disabled={!items || items.length === 0}
+          />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           {can("can_add_inventory") && (
             <DialogTrigger asChild>
@@ -252,6 +289,7 @@ export function InventoryList() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">

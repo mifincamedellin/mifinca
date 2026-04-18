@@ -6,8 +6,9 @@ import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
-import { useListAnimals, useCreateAnimal, useGetFarmStats, getListAnimalsQueryKey, getGetFarmStatsQueryKey } from "@workspace/api-client-react";
+import { useListAnimals, useCreateAnimal, useGetFarmStats, useListFarms, getListAnimalsQueryKey, getGetFarmStatsQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,6 +97,9 @@ export function AnimalList() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
+  const farmName = farms?.find((f: any) => f.id === activeFarmId)?.name ?? "miFinca";
 
   const { data: animals, isLoading } = useListAnimals(activeFarmId || '',
     { search: search || undefined },
@@ -225,6 +229,42 @@ export function AnimalList() {
     return result;
   }, [animals, selectedSpecies, selectedLifecycle, selectedMale, sortCol, sortDir]);
 
+  const EXPORT_STAGE_LABELS: Record<string, [string, string]> = {
+    growing: ["Crecimiento", "Growing"],
+    can_breed: ["Puede reproducir", "Can Breed"],
+    in_heat: ["En celo", "In Heat"],
+    pregnant: ["Preñada", "Pregnant"],
+    nursing: ["Lactancia", "Nursing"],
+  };
+
+  const exportOptions = useMemo(() => {
+    const date = new Date().toISOString().slice(0, 10);
+    const filterParts: string[] = [];
+    if (selectedSpecies !== "all") filterParts.push(t(`animals.sp.${selectedSpecies}`));
+    if (selectedLifecycle) filterParts.push(isEn ? (EXPORT_STAGE_LABELS[selectedLifecycle]?.[1] ?? selectedLifecycle) : (EXPORT_STAGE_LABELS[selectedLifecycle]?.[0] ?? selectedLifecycle));
+    if (selectedMale) filterParts.push(isEn ? "Males" : "Machos");
+    if (search) filterParts.push(`"${search}"`);
+
+    return {
+      title: `${farmName} · ${isEn ? "Animals" : "Animales"} (${filtered.length})`,
+      subtitle: filterParts.length ? filterParts.join(" · ") : undefined,
+      columns: isEn
+        ? ["Tag", "Name", "Species", "Sex", "Age", "Weight (kg)", "Lifecycle Stage"]
+        : ["Tag", "Nombre", "Especie", "Sexo", "Edad", "Peso (kg)", "Etapa"],
+      rows: filtered.map(a => {
+        const dob = (a as any).dateOfBirth;
+        const ageDays = dob ? Math.floor((Date.now() - new Date(dob + "T12:00:00").getTime()) / 86400000) : null;
+        const ageStr = ageDays != null ? `${(ageDays / 365).toFixed(1)} ${isEn ? "yr" : "años"}` : "—";
+        const weight = a.currentWeight != null ? `${Number(a.currentWeight)}` : "—";
+        const sex = a.sex === "male" ? (isEn ? "Male" : "Macho") : a.sex === "female" ? (isEn ? "Female" : "Hembra") : "—";
+        const stage = deriveLifecycleStage(a as LifecycleAnimal);
+        const stageLabel = stage ? (isEn ? (EXPORT_STAGE_LABELS[stage]?.[1] ?? stage) : (EXPORT_STAGE_LABELS[stage]?.[0] ?? stage)) : "—";
+        return [a.customTag ?? "—", a.name ?? "—", t(`animals.sp.${a.species}`), sex, ageStr, weight, stageLabel];
+      }),
+      filename: `${isEn ? "animals" : "animales"}-${date}.pdf`,
+    };
+  }, [filtered, farmName, selectedSpecies, selectedLifecycle, selectedMale, search, isEn, t]);
+
   if (!activeFarmId) return null;
 
   return (
@@ -235,6 +275,12 @@ export function AnimalList() {
           <h1 className="text-3xl font-serif font-bold text-primary">{t('nav.animals')}</h1>
           <p className="text-muted-foreground mt-1">{t('animals.subtitle')}</p>
         </div>
+        <div className="flex items-center gap-2">
+          <ExportPdfButton
+            options={exportOptions}
+            label={isEn ? "Export PDF" : "Exportar PDF"}
+            disabled={filtered.length === 0}
+          />
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) { setPhotoPreview(null); form.reset(); }
@@ -434,6 +480,7 @@ export function AnimalList() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Search + Filter row */}

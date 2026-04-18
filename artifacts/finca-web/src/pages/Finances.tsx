@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
+import { useListFarms, getListFarmsQueryKey } from "@workspace/api-client-react";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -161,6 +163,41 @@ export function Finances() {
   const totalExpense = filtered.filter(r => r.type === "expense").reduce((s, r) => s + parseFloat(r.amount), 0);
   const profit       = totalIncome - totalExpense;
 
+  const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
+  const farmName = farms?.find((f: any) => f.id === activeFarmId)?.name ?? "miFinca";
+
+  const PERIODS_MAP: Record<string, [string, string]> = {
+    all:   ["Todo", "All"],
+    year:  ["Este año", "This Year"],
+    "6m":  ["6 meses", "6 Months"],
+    "3m":  ["3 meses", "3 Months"],
+    last:  ["Mes anterior", "Last Month"],
+    month: ["Este mes", "This Month"],
+  };
+
+  const exportOptions = useMemo(() => {
+    const date = new Date().toISOString().slice(0, 10);
+    const locale = isEn ? "en-US" : "es-CO";
+    const periodLabel = isEn ? (PERIODS_MAP[period]?.[1] ?? period) : (PERIODS_MAP[period]?.[0] ?? period);
+    const typeLabel = filterType === "all" ? undefined : filterType === "income" ? t("fin.income") : t("fin.expense");
+    const subtitleParts = [periodLabel, typeLabel].filter(Boolean);
+    return {
+      title: `${farmName} · ${isEn ? "Finances" : "Finanzas"} (${filtered.length})`,
+      subtitle: subtitleParts.join(" · "),
+      columns: isEn
+        ? ["Date", "Description", "Category", "Type", "Amount"]
+        : ["Fecha", "Descripción", "Categoría", "Tipo", "Monto"],
+      rows: filtered.map(r => [
+        new Date(r.date + "T12:00:00").toLocaleDateString(locale),
+        r.description,
+        catLabel(r.category, t),
+        r.type === "income" ? t("fin.income") : t("fin.expense"),
+        `${r.type === "income" ? "+" : "-"}${formatCurrency(parseFloat(r.amount), currency)}`,
+      ]),
+      filename: `${isEn ? "finances" : "finanzas"}-${date}.pdf`,
+    };
+  }, [filtered, farmName, period, filterType, isEn, t, currency]);
+
   const chartData = useMemo(() => {
     const locale = isEn ? "en-US" : "es-CO";
     const months: Record<string, { month: string; income: number; expense: number }> = {};
@@ -224,11 +261,18 @@ export function Finances() {
           <h1 className="text-3xl font-serif font-bold text-primary">{t("fin.title")}</h1>
           <p className="text-muted-foreground mt-1">{t("fin.subtitle")}</p>
         </div>
-        {can("can_add_finances") && (
-          <Button onClick={openNew} className="rounded-xl gap-2">
-            <Plus className="h-4 w-4" /> {t("fin.add")}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportPdfButton
+            options={exportOptions}
+            label={isEn ? "Export PDF" : "Exportar PDF"}
+            disabled={filtered.length === 0}
+          />
+          {can("can_add_finances") && (
+            <Button onClick={openNew} className="rounded-xl gap-2">
+              <Plus className="h-4 w-4" /> {t("fin.add")}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Period selector */}
