@@ -614,6 +614,29 @@ paths:
           in: query
           schema:
             type: integer
+        - name: userId
+          in: query
+          description: Filter by profile/user ID
+          schema:
+            type: string
+            format: uuid
+        - name: entityType
+          in: query
+          description: Filter by entity type (animal, inventory, finance, contact, employee)
+          schema:
+            type: string
+        - name: from
+          in: query
+          description: Filter entries on or after this date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: Filter entries on or before this date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
       responses:
         "200":
           description: Activity log entries

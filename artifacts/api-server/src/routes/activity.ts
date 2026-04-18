@@ -21,6 +21,16 @@ router.get("/farms/:farmId/activity", requireAuth, requireFarmAccess, async (req
     const filterFrom = query["from"] || null;
     const filterTo = query["to"] || null;
 
+    // Validate date inputs — reject anything that can't be parsed as a valid date
+    if (filterFrom) {
+      const d = new Date(filterFrom);
+      if (isNaN(d.getTime())) return res.status(400).json({ error: "invalid_from_date" });
+    }
+    if (filterTo) {
+      const d = new Date(filterTo);
+      if (isNaN(d.getTime())) return res.status(400).json({ error: "invalid_to_date" });
+    }
+
     const conditions: SQL[] = [eq(activityLogTable.farmId, farmId)];
 
     if (filterUserId) {
