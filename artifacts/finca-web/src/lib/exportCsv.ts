@@ -1,9 +1,6 @@
 function escapeCsv(value: string | number): string {
   const s = String(value ?? "");
-  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
+  return `"${s.replace(/"/g, '""')}"`;
 }
 
 export interface ExportCsvOptions {
