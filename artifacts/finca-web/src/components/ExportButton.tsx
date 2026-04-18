@@ -1,17 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { FileDown, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { exportToPdf, type ExportPdfOptions } from "@/lib/exportPdf";
-import { exportToCsv } from "@/lib/exportCsv";
-
-interface CsvOptions {
-  filename: string;
-  columns: string[];
-  rows: (string | number)[][];
-}
+import { exportToCsv, type ExportCsvOptions } from "@/lib/exportCsv";
 
 interface Props {
   pdfOptions: ExportPdfOptions;
-  csvOptions: CsvOptions;
+  csvOptions: ExportCsvOptions;
   disabled?: boolean;
   label?: string;
   labelCsv?: string;
@@ -42,7 +36,7 @@ export function ExportButton({
 
   const handleCsv = () => {
     setOpen(false);
-    exportToCsv(csvOptions.filename, csvOptions.columns, csvOptions.rows);
+    exportToCsv(csvOptions);
   };
 
   const handlePdf = () => {

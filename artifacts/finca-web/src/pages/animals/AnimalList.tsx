@@ -271,6 +271,8 @@ export function AnimalList() {
       },
       csvOptions: {
         filename: `${baseFilename}.csv`,
+        title: `${farmName} · ${isEn ? "Animals" : "Animales"} (${filtered.length})`,
+        subtitle: filterParts.length ? filterParts.join(" · ") : undefined,
         columns,
         rows,
       },

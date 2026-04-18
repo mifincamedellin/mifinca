@@ -149,6 +149,8 @@ export function InventoryList() {
       },
       csvOptions: {
         filename: `${baseFilename}.csv`,
+        title: `${farmName} · ${isEn ? "Inventory" : "Inventario"} (${displayItems.length})`,
+        subtitle: catLabel,
         columns,
         rows,
       },

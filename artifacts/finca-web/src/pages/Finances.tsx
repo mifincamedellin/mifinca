@@ -203,6 +203,8 @@ export function Finances() {
       },
       csvOptions: {
         filename: `${baseFilename}.csv`,
+        title: `${farmName} · ${isEn ? "Finances" : "Finanzas"} (${filtered.length})`,
+        subtitle: subtitleParts.join(" · ") || undefined,
         columns,
         rows,
       },
