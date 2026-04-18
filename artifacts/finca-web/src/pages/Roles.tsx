@@ -374,7 +374,7 @@ export function Roles() {
   });
 
   const inviteMember = useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: string }) => {
+    mutationFn: async ({ email, role }: { email: string; role: "worker" | "owner" }) => {
       const res = await fetch(`/api/farms/${activeFarmId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
