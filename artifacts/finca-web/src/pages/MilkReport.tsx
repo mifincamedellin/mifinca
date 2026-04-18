@@ -152,7 +152,7 @@ export function MilkReport() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">{t("milk.filterAnimal")}</label>
+            <label className="text-xs text-muted-foreground font-medium">{t("milk.animalLabel")}</label>
             <Select value={selectedAnimalId} onValueChange={setSelectedAnimalId}>
               <SelectTrigger className="rounded-xl h-9 text-sm w-52">
                 <SelectValue placeholder={t("milk.filterAnimal")} />
