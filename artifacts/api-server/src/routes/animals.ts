@@ -747,6 +747,34 @@ router.get("/farms/:farmId/milk", requireAuth, requireFarmAccess, requirePerm("c
       byAnimal[r.animalId].records.push(r);
     }
 
+    // Determine the midpoint of the selected date range for trend calculation
+    const allDates = records.map(r => r.recordedAt).sort();
+    const rangeStart = from ?? allDates[0] ?? null;
+    const rangeEnd = to ?? allDates[allDates.length - 1] ?? null;
+    let midpoint: string | null = null;
+    if (rangeStart && rangeEnd) {
+      const startMs = new Date(rangeStart + "T00:00:00").getTime();
+      const endMs = new Date(rangeEnd + "T23:59:59").getTime();
+      const midMs = (startMs + endMs) / 2;
+      midpoint = new Date(midMs).toISOString().split("T")[0]!;
+    }
+
+    function computeTrend(animalRecords: typeof records): "up" | "down" | "flat" {
+      if (!midpoint || animalRecords.length < 2) return "flat";
+      const firstHalf = animalRecords.filter(r => r.recordedAt <= midpoint!);
+      const secondHalf = animalRecords.filter(r => r.recordedAt > midpoint!);
+      if (firstHalf.length === 0 || secondHalf.length === 0) return "flat";
+      const firstDays = new Set(firstHalf.map(r => r.recordedAt)).size;
+      const secondDays = new Set(secondHalf.map(r => r.recordedAt)).size;
+      const firstAvg = firstHalf.reduce((s, r) => s + Number(r.amountLiters), 0) / firstDays;
+      const secondAvg = secondHalf.reduce((s, r) => s + Number(r.amountLiters), 0) / secondDays;
+      if (firstAvg === 0) return "flat";
+      const change = (secondAvg - firstAvg) / firstAvg;
+      if (change >= 0.1) return "up";
+      if (change <= -0.1) return "down";
+      return "flat";
+    }
+
     const animals = cattleRows
       .filter(a => !filterAnimalId || a.id === filterAnimalId)
       .map(a => {
@@ -763,6 +791,7 @@ router.get("/farms/:farmId/milk", requireAuth, requireFarmAccess, requirePerm("c
           recordCount: agg.records.length,
           dailyAvg: days > 0 ? Number((agg.totalLiters / days).toFixed(2)) : 0,
           lastRecordedAt: agg.records[0]?.recordedAt ?? null,
+          trend: computeTrend(agg.records),
         };
       })
       .sort((a, b) => b.totalLiters - a.totalLiters);

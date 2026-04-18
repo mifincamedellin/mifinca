@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Droplets, FileDown, X, TrendingUp, Hash, PawPrint } from "lucide-react";
+import { Droplets, FileDown, X, TrendingUp, TrendingDown, Minus, Hash, PawPrint } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -24,6 +24,7 @@ interface MilkAnimal {
   recordCount: number;
   dailyAvg: number;
   lastRecordedAt: string | null;
+  trend: "up" | "down" | "flat";
 }
 
 interface MilkReportData {
@@ -241,6 +242,7 @@ export function MilkReport() {
                   <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colDailyAvg")}</th>
                   <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colRecords")}</th>
                   <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colLast")}</th>
+                  <th className="text-center px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colTrend")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -265,6 +267,23 @@ export function MilkReport() {
                     <td className="px-4 py-3 text-right text-muted-foreground">{animal.dailyAvg.toFixed(1)} L</td>
                     <td className="px-4 py-3 text-right text-muted-foreground">{animal.recordCount}</td>
                     <td className="px-4 py-3 text-muted-foreground">{fmtDate(animal.lastRecordedAt)}</td>
+                    <td className="px-4 py-3 text-center">
+                      {animal.recordCount === 0 ? (
+                        <span className="text-muted-foreground/40">—</span>
+                      ) : animal.trend === "up" ? (
+                        <span className="inline-flex items-center justify-center gap-1 text-emerald-600 font-semibold text-xs" title={isEn ? "Improving ≥10%" : "Mejorando ≥10%"}>
+                          <TrendingUp className="h-4 w-4" />
+                        </span>
+                      ) : animal.trend === "down" ? (
+                        <span className="inline-flex items-center justify-center gap-1 text-red-500 font-semibold text-xs" title={isEn ? "Declining ≥10%" : "Bajando ≥10%"}>
+                          <TrendingDown className="h-4 w-4" />
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center justify-center gap-1 text-muted-foreground text-xs" title={isEn ? "Stable" : "Estable"}>
+                          <Minus className="h-4 w-4" />
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
