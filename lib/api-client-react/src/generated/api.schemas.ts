@@ -517,6 +517,10 @@ export type ListInventoryItemsParams = {
 export type ListActivityParams = {
   limit?: number;
   offset?: number;
+  userId?: string;
+  entityType?: string;
+  from?: string;
+  to?: string;
 };
 
 export type GlobalSearchParams = {
