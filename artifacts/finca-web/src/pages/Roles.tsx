@@ -186,7 +186,10 @@ function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, onRemo
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const isWorker = member.role === "worker";
-  const isSelf = member.userId === currentUserId;
+  // currentUserId is "" while useGetMe() is still loading — treat as "unknown self" to prevent flicker
+  const meLoaded = currentUserId !== "";
+  const isSelf = meLoaded && member.userId === currentUserId;
+  const canShowControls = currentUserIsOwner && meLoaded && !isSelf;
   const perms: FarmPermissions = member.permissions ?? DEFAULT_WORKER_PERMS;
 
   const displayName = member.profile.fullName || t("common.user");
@@ -224,7 +227,7 @@ function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, onRemo
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm text-foreground truncate">{displayName}</div>
-          {currentUserIsOwner && !isSelf ? (
+          {canShowControls ? (
             <div className="flex items-center gap-1 mt-1">
               {(["worker", "owner"] as const).map(r => (
                 <button
@@ -247,7 +250,7 @@ function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, onRemo
             </Badge>
           )}
         </div>
-        {currentUserIsOwner && !isSelf && (
+        {canShowControls && (
           <div className="flex items-center gap-1">
             {isWorker && (
               <Button
@@ -273,7 +276,7 @@ function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, onRemo
         )}
       </div>
 
-      {expanded && isWorker && currentUserIsOwner && !isSelf && (
+      {expanded && isWorker && canShowControls && (
         <div className="border-t border-border px-4 py-3 bg-muted/30">
           <p className="text-xs text-muted-foreground mb-3">{t("roles.permissionsLabel")}</p>
           <PermissionsGrid perms={perms} onToggle={handleToggle} />
