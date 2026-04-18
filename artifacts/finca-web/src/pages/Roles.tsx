@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { useGetMe } from "@workspace/api-client-react";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import type { FarmPermissions } from "@/lib/useFarmPermissions";
 import { Button } from "@/components/ui/button";
@@ -174,15 +175,18 @@ function PermToggle({ checked, onChange, disabled }: { checked: boolean; onChang
   );
 }
 
-function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePerms }: {
+function MemberCard({ member, isOwner: currentUserIsOwner, currentUserId, onRemove, onUpdatePerms, onUpdateRole }: {
   member: Member;
   isOwner: boolean;
+  currentUserId: string;
   onRemove: (userId: string) => void;
   onUpdatePerms: (userId: string, perms: FarmPermissions) => void;
+  onUpdateRole: (userId: string, role: "worker" | "owner") => void;
 }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const isWorker = member.role === "worker";
+  const isSelf = member.userId === currentUserId;
   const perms: FarmPermissions = member.permissions ?? DEFAULT_WORKER_PERMS;
 
   const displayName = member.profile.fullName || t("common.user");
@@ -203,6 +207,15 @@ function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePer
     onUpdatePerms(member.userId, next);
   }
 
+  function handleRoleChange(newRole: "worker" | "owner") {
+    if (newRole === member.role) return;
+    const msg = newRole === "owner"
+      ? t("roles.confirmPromote", { name: displayName })
+      : t("roles.confirmDemote", { name: displayName });
+    if (!confirm(msg)) return;
+    onUpdateRole(member.userId, newRole);
+  }
+
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3">
@@ -211,25 +224,48 @@ function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePer
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm text-foreground truncate">{displayName}</div>
-          <Badge variant={member.role === "owner" ? "default" : "secondary"} className="text-xs mt-0.5">
-            {t(member.role === "owner" ? "roles.owner" : "roles.worker")}
-          </Badge>
+          {currentUserIsOwner && !isSelf ? (
+            <div className="flex items-center gap-1 mt-1">
+              {(["worker", "owner"] as const).map(r => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => handleRoleChange(r)}
+                  className={`px-2 py-0.5 rounded-md text-xs font-medium border transition-colors ${
+                    member.role === r
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+                  }`}
+                >
+                  {t(r === "owner" ? "roles.owner" : "roles.worker")}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Badge variant={member.role === "owner" ? "default" : "secondary"} className="text-xs mt-0.5">
+              {t(member.role === "owner" ? "roles.owner" : "roles.worker")}
+            </Badge>
+          )}
         </div>
-        {currentUserIsOwner && isWorker && (
+        {currentUserIsOwner && !isSelf && (
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-              onClick={() => setExpanded(e => !e)}
-            >
-              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
+            {isWorker && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                onClick={() => setExpanded(e => !e)}
+              >
+                {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-              onClick={() => onRemove(member.userId)}
+              onClick={() => {
+                if (confirm(t("roles.confirmRemove"))) onRemove(member.userId);
+              }}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -237,7 +273,7 @@ function MemberCard({ member, isOwner: currentUserIsOwner, onRemove, onUpdatePer
         )}
       </div>
 
-      {expanded && isWorker && currentUserIsOwner && (
+      {expanded && isWorker && currentUserIsOwner && !isSelf && (
         <div className="border-t border-border px-4 py-3 bg-muted/30">
           <p className="text-xs text-muted-foreground mb-3">{t("roles.permissionsLabel")}</p>
           <PermissionsGrid perms={perms} onToggle={handleToggle} />
@@ -329,6 +365,7 @@ export function Roles() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
   const { isOwner, farmsLoaded, permissions: myPermissions } = useFarmPermissions();
+  const { data: me } = useGetMe();
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -370,6 +407,23 @@ export function Roles() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
+    },
+    onError: () => toast({ title: t("common.error"), variant: "destructive" }),
+  });
+
+  const updateRole = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: "worker" | "owner" }) => {
+      const res = await fetch(`/api/farms/${activeFarmId}/members/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
+      toast({ title: t("roles.roleChanged") });
     },
     onError: () => toast({ title: t("common.error"), variant: "destructive" }),
   });
@@ -536,12 +590,10 @@ export function Roles() {
             key={member.id}
             member={member}
             isOwner={isOwner}
-            onRemove={(userId) => {
-              if (confirm(t("roles.confirmRemove"))) {
-                removeMember.mutate(userId);
-              }
-            }}
+            currentUserId={me?.id ?? ""}
+            onRemove={(userId) => removeMember.mutate(userId)}
             onUpdatePerms={(userId, permissions) => updatePerms.mutate({ userId, permissions })}
+            onUpdateRole={(userId, role) => updateRole.mutate({ userId, role })}
           />
         ))}
       </div>
