@@ -591,7 +591,7 @@ export function InventoryList() {
             )}
           </SheetHeader>
           {historyItem && activeFarmId && (
-            <ActivityFeed farmId={activeFarmId} entityId={historyItem.id} limit={30} bgColor="#ffffff" />
+            <ActivityFeed farmId={activeFarmId} entityId={historyItem.id} entityType="inventory" limit={30} bgColor="#ffffff" />
           )}
         </SheetContent>
       </Sheet>

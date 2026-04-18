@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 interface ActivityFeedProps {
   farmId: string;
   entityId: string;
+  entityType?: string;
   limit?: number;
   bgColor?: string;
 }
@@ -20,13 +21,13 @@ const dotColor = (actionType: string | null | undefined) => {
   return "bg-secondary";
 };
 
-export function ActivityFeed({ farmId, entityId, limit = 20, bgColor = "#FDFAF5" }: ActivityFeedProps) {
+export function ActivityFeed({ farmId, entityId, entityType, limit = 20, bgColor = "#FDFAF5" }: ActivityFeedProps) {
   const { i18n } = useTranslation();
   const isEn = i18n.language === "en";
 
   const { data: entries = [], isLoading } = useQuery<ActivityEntry[]>({
-    queryKey: ["activity", farmId, entityId, limit],
-    queryFn: () => listActivity(farmId, { entityId, limit }),
+    queryKey: ["activity", farmId, entityId, entityType, limit],
+    queryFn: () => listActivity(farmId, { entityId, ...(entityType ? { entityType } : {}), limit }),
     enabled: !!farmId && !!entityId,
   });
 

@@ -1548,7 +1548,7 @@ export function AnimalDetail() {
                   {isEn ? "Activity History" : "Historial de Actividad"}
                 </h3>
                 {activeFarmId && id && (
-                  <ActivityFeed farmId={activeFarmId} entityId={id} limit={20} />
+                  <ActivityFeed farmId={activeFarmId} entityId={id} entityType="animal" limit={20} />
                 )}
               </Card>
             </TabsContent>
