@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { listActivity } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Activity, ArrowLeft, ChevronDown, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -199,18 +200,22 @@ export function AllActivity() {
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   {isEn ? "Worker" : "Trabajador"}
                 </label>
-                <select
-                  value={stagedFilters.userId}
-                  onChange={e => setStagedFilters(f => ({ ...f, userId: e.target.value }))}
-                  className="w-full h-9 px-3 rounded-xl border border-border/60 bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                <Select
+                  value={stagedFilters.userId || "__all__"}
+                  onValueChange={v => setStagedFilters(f => ({ ...f, userId: v === "__all__" ? "" : v }))}
                 >
-                  <option value="">{isEn ? "All workers" : "Todos"}</option>
-                  {members.map(m => (
-                    <option key={m.userId} value={m.userId}>
-                      {m.profile.fullName || (isEn ? "Unknown" : "Desconocido")}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-9 rounded-xl border-border/60 bg-white text-sm">
+                    <SelectValue placeholder={isEn ? "All workers" : "Todos"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">{isEn ? "All workers" : "Todos"}</SelectItem>
+                    {members.map(m => (
+                      <SelectItem key={m.userId} value={m.userId}>
+                        {m.profile.fullName || (isEn ? "Unknown" : "Desconocido")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Entity type filter */}
@@ -218,16 +223,20 @@ export function AllActivity() {
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   {isEn ? "Category" : "Categoría"}
                 </label>
-                <select
-                  value={stagedFilters.entityType}
-                  onChange={e => setStagedFilters(f => ({ ...f, entityType: e.target.value }))}
-                  className="w-full h-9 px-3 rounded-xl border border-border/60 bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                <Select
+                  value={stagedFilters.entityType || "__all__"}
+                  onValueChange={v => setStagedFilters(f => ({ ...f, entityType: v === "__all__" ? "" : v }))}
                 >
-                  <option value="">{isEn ? "All categories" : "Todas"}</option>
-                  {ENTITY_TYPES.map(type => (
-                    <option key={type} value={type}>{entityLabel(type, isEn)}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-9 rounded-xl border-border/60 bg-white text-sm">
+                    <SelectValue placeholder={isEn ? "All categories" : "Todas"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">{isEn ? "All categories" : "Todas"}</SelectItem>
+                    {ENTITY_TYPES.map(type => (
+                      <SelectItem key={type} value={type}>{entityLabel(type, isEn)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Date from */}
