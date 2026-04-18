@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ShieldCheck, UserPlus, Trash2, ChevronDown, ChevronUp,
   PawPrint, Package, DollarSign, Users, UserCheck, CalendarDays, Clock,
+  Check, Minus,
 } from "lucide-react";
 
 type Member = {
@@ -108,6 +109,48 @@ function PermissionsGrid({
                     onChange={(v) => onToggle(perm as keyof FarmPermissions, v)}
                     disabled={disabled as boolean}
                   />
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ReadOnlyPermissionsGrid({ perms }: { perms: FarmPermissions }) {
+  const { t } = useTranslation();
+  const cols = [
+    { label: t("roles.perm.view"),   key: "view"   },
+    { label: t("roles.perm.add"),    key: "add"    },
+    { label: t("roles.perm.edit"),   key: "edit"   },
+    { label: t("roles.perm.remove"), key: "remove" },
+  ];
+  return (
+    <div>
+      <div className="grid grid-cols-[1fr_repeat(4,_40px)] mb-1.5">
+        <div />
+        {cols.map(c => (
+          <div key={c.key} className="text-center text-[10px] font-medium text-muted-foreground">{c.label}</div>
+        ))}
+      </div>
+      <div className="space-y-2.5">
+        {SECTIONS.map(section => {
+          const Icon = section.icon;
+          const permsRow = [section.viewPerm, section.addPerm, section.editPerm, section.removePerm] as const;
+          return (
+            <div key={section.key} className="grid grid-cols-[1fr_repeat(4,_40px)] items-center">
+              <div className="flex items-center gap-2">
+                <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs font-semibold text-foreground">{t(section.labelKey)}</span>
+              </div>
+              {permsRow.map(perm => (
+                <div key={perm} className="flex justify-center">
+                  {perms[perm]
+                    ? <Check className="h-4 w-4 text-emerald-500" />
+                    : <Minus className="h-4 w-4 text-muted-foreground/30" />
+                  }
                 </div>
               ))}
             </div>
@@ -285,7 +328,7 @@ function PendingInviteCard({ invite, onUpdatePerms, onCancel }: {
 export function Roles() {
   const { t } = useTranslation();
   const { activeFarmId } = useStore();
-  const { isOwner } = useFarmPermissions();
+  const { isOwner, permissions: myPermissions } = useFarmPermissions();
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -423,6 +466,19 @@ export function Roles() {
         </div>
       </div>
 
+      {!isOwner && (
+        <div className="rounded-2xl border border-border bg-card shadow-sm p-5 space-y-4">
+          <div>
+            <h2 className="text-base font-serif font-semibold text-foreground flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              {t("roles.myPerms")}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("roles.myPermsSubtitle")}</p>
+          </div>
+          <ReadOnlyPermissionsGrid perms={myPermissions} />
+        </div>
+      )}
+
       {isOwner && (
         <form onSubmit={handleInvite} className="space-y-2">
           <div className="flex gap-2">
@@ -504,11 +560,11 @@ export function Roles() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-border bg-muted/30 p-4">
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          {isOwner ? t("roles.ownerHint") : t("roles.workerHint")}
-        </p>
-      </div>
+      {isOwner && (
+        <div className="rounded-2xl border border-border bg-muted/30 p-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">{t("roles.ownerHint")}</p>
+        </div>
+      )}
     </div>
   );
 }

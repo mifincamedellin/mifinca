@@ -453,6 +453,8 @@ const resources = {
       "roles.inviteRoleWorker": "Trabajador",
       "roles.inviteRoleOwner": "Propietario",
       "roles.ownerFullAccess": "Los propietarios tienen acceso completo a la finca.",
+      "roles.myPerms": "Tus permisos",
+      "roles.myPermsSubtitle": "El propietario de la finca puede ajustar estos permisos en cualquier momento.",
     }
   },
   en: {
@@ -906,6 +908,8 @@ const resources = {
       "roles.inviteRoleWorker": "Worker",
       "roles.inviteRoleOwner": "Owner",
       "roles.ownerFullAccess": "Owners have full access to the farm.",
+      "roles.myPerms": "Your permissions",
+      "roles.myPermsSubtitle": "The farm owner can adjust these permissions at any time.",
     }
   }
 };
