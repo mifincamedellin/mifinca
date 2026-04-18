@@ -625,6 +625,12 @@ paths:
           description: Filter by entity type (animal, inventory, finance, contact, employee)
           schema:
             type: string
+        - name: entityId
+          in: query
+          description: Filter by specific entity ID (e.g. a specific animal or inventory item UUID)
+          schema:
+            type: string
+            format: uuid
         - name: from
           in: query
           description: Filter entries on or after this date (YYYY-MM-DD)

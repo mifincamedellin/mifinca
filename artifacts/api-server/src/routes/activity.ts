@@ -18,6 +18,7 @@ router.get("/farms/:farmId/activity", requireAuth, requireFarmAccess, async (req
 
     const filterUserId = query["userId"] || null;
     const filterEntityType = query["entityType"] || null;
+    const filterEntityId = query["entityId"] || null;
     const filterFrom = query["from"] || null;
     const filterTo = query["to"] || null;
 
@@ -38,6 +39,9 @@ router.get("/farms/:farmId/activity", requireAuth, requireFarmAccess, async (req
     }
     if (filterEntityType) {
       conditions.push(eq(activityLogTable.entityType, filterEntityType));
+    }
+    if (filterEntityId) {
+      conditions.push(eq(activityLogTable.entityId, filterEntityId));
     }
     if (filterFrom) {
       conditions.push(gte(activityLogTable.createdAt, new Date(filterFrom)));

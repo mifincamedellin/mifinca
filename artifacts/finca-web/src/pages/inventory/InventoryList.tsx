@@ -9,9 +9,11 @@ import { ExportButton } from "@/components/ExportButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, PackageOpen, AlertCircle, ArrowUpCircle, ArrowDownCircle, Info, Trash2 } from "lucide-react";
+import { Search, Plus, PackageOpen, AlertCircle, ArrowUpCircle, ArrowDownCircle, Info, Trash2, Clock } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
@@ -46,6 +48,7 @@ export function InventoryList() {
   const [adjustAmt, setAdjustAmt] = useState("");
   const [adjustNotes, setAdjustNotes] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const queryClient = useQueryClient();
 
   const deleteItem = useMutation({
@@ -409,6 +412,19 @@ export function InventoryList() {
                         >
                           {t('inventory.adjust')}
                         </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8"
+                              onClick={() => setHistoryItem(item)}
+                            >
+                              <Clock className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{isEn ? "View history" : "Ver historial"}</TooltipContent>
+                        </Tooltip>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -561,6 +577,24 @@ export function InventoryList() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Item history sheet */}
+      <Sheet open={!!historyItem} onOpenChange={(v) => { if (!v) setHistoryItem(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="font-serif text-xl text-primary flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              {isEn ? "Item History" : "Historial del Artículo"}
+            </SheetTitle>
+            {historyItem && (
+              <p className="text-sm text-muted-foreground font-normal">{historyItem.name}</p>
+            )}
+          </SheetHeader>
+          {historyItem && activeFarmId && (
+            <ActivityFeed farmId={activeFarmId} entityId={historyItem.id} limit={30} bgColor="#ffffff" />
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={(v) => { if (!v) setDeleteConfirm(null); }}>

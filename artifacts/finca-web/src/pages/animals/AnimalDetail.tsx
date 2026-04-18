@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull, DollarSign, FileDown } from "lucide-react";
+import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull, DollarSign, FileDown, History } from "lucide-react";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { LifecycleActionCard } from "@/components/lifecycle/LifecycleActionCard";
 import { LifecyclePregnantCard } from "@/components/lifecycle/LifecyclePregnantCard";
 import { LifecycleBar } from "@/components/lifecycle/LifecycleBar";
@@ -1081,6 +1082,10 @@ export function AnimalDetail() {
                   {t('animals.tab.milk')}
                 </TabsTrigger>
               )}
+              <TabsTrigger value="activity" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1 flex items-center gap-1.5">
+                <History className="h-3.5 w-3.5" />
+                {isEn ? "History" : "Historial"}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 mt-0">
@@ -1536,6 +1541,17 @@ export function AnimalDetail() {
                 </Card>
               </TabsContent>
             )}
+
+            <TabsContent value="activity" className="mt-0">
+              <Card className="p-6 rounded-2xl shadow-sm border-border/50">
+                <h3 className="font-serif text-lg text-primary mb-5">
+                  {isEn ? "Activity History" : "Historial de Actividad"}
+                </h3>
+                {activeFarmId && id && (
+                  <ActivityFeed farmId={activeFarmId} entityId={id} limit={20} />
+                )}
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </div>

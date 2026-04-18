@@ -519,6 +519,7 @@ export type ListActivityParams = {
   offset?: number;
   userId?: string;
   entityType?: string;
+  entityId?: string;
   from?: string;
   to?: string;
 };
