@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/lib/store";
@@ -9,10 +9,12 @@ import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListAnimals, useCreateAnimal, useGetFarmStats, useListFarms, getListAnimalsQueryKey, getGetFarmStatsQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
 import { ExportButton } from "@/components/ExportButton";
+import { exportAnimalToPdf, type MilkRecord } from "@/lib/exportPdf";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell, TrendingUp, CheckCircle2, Flame, Baby, Milk, LayoutGrid, Table2, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Search, Plus, ArrowRight, PawPrint, X, Camera, Upload, Bell, TrendingUp, CheckCircle2, Flame, Baby, Milk, LayoutGrid, Table2, ChevronUp, ChevronDown, ChevronsUpDown, FileDown, Loader2 } from "lucide-react";
 import { LifecycleSummaryChips } from "@/components/lifecycle/LifecycleSummaryChips";
 import { deriveLifecycleStage, hasLifecycle, type LifecycleStage, type LifecycleAnimal } from "@/lib/lifecycle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -22,6 +24,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const createAnimalSchema = z.object({
   species: z.enum(["cattle", "chicken", "pig", "goat", "sheep", "horse", "other"]),
@@ -64,6 +67,7 @@ export function AnimalList() {
   const { activeFarmId, currency } = useStore();
   const { can } = useFarmPermissions();
   const { openUpgradeModal } = useUpgradeStore();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<string>("all");
   const [selectedLifecycle, setSelectedLifecycle] = useState<LifecycleStage | null>(null);
@@ -77,6 +81,8 @@ export function AnimalList() {
   type SortDir = "asc" | "desc";
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleSort = (col: SortCol) => {
     if (sortCol === col) {
@@ -93,6 +99,86 @@ export function AnimalList() {
     return sortDir === "asc"
       ? <ChevronUp className="h-3 w-3 ml-1" />
       : <ChevronDown className="h-3 w-3 ml-1" />;
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length && filtered.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(a => a.id).filter(Boolean) as string[]));
+    }
+  };
+
+  const batchExportPdfs = async () => {
+    if (!activeFarmId || selectedIds.size === 0) return;
+    setIsExporting(true);
+    let succeeded = 0;
+    let failed = 0;
+    try {
+      for (const animalId of Array.from(selectedIds)) {
+        try {
+          const requests: Promise<Response>[] = [
+            fetch(`/api/farms/${activeFarmId}/animals/${animalId}`),
+            fetch(`/api/farms/${activeFarmId}/animals/${animalId}/weights`),
+          ];
+          const [animalRes, weightsRes] = await Promise.all(requests);
+          if (!animalRes.ok) { failed++; continue; }
+          const animalData = await animalRes.json();
+          const weightsData = weightsRes.ok ? await weightsRes.json() : [];
+
+          let milkRecords: MilkRecord[] | undefined;
+          if (animalData.species === "cattle") {
+            try {
+              const milkRes = await fetch(`/api/farms/${activeFarmId}/animals/${animalId}/milk`);
+              if (milkRes.ok) milkRecords = (await milkRes.json()) as MilkRecord[];
+            } catch {
+              milkRecords = undefined;
+            }
+          }
+
+          const lifecycleStage = hasLifecycle(animalData as LifecycleAnimal)
+            ? deriveLifecycleStage(animalData as LifecycleAnimal) ?? undefined
+            : undefined;
+
+          exportAnimalToPdf({
+            animal: animalData,
+            weights: weightsData,
+            milkRecords,
+            lifecycleStage,
+            farmName,
+            isEn,
+          });
+          succeeded++;
+          await new Promise(r => setTimeout(r, 200));
+        } catch {
+          failed++;
+        }
+      }
+    } finally {
+      setIsExporting(false);
+      if (failed === 0) {
+        toast({
+          title: isEn ? `${succeeded} PDF${succeeded === 1 ? "" : "s"} exported` : `${succeeded} PDF${succeeded === 1 ? "" : "s"} exportados`,
+          description: isEn ? "Check your downloads folder." : "Revisa tu carpeta de descargas.",
+        });
+      } else {
+        toast({
+          title: isEn ? "Some exports failed" : "Algunos fallos al exportar",
+          description: isEn
+            ? `${succeeded} exported, ${failed} failed.`
+            : `${succeeded} exportados, ${failed} fallidos.`,
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -228,6 +314,15 @@ export function AnimalList() {
     }
     return result;
   }, [animals, selectedSpecies, selectedLifecycle, selectedMale, sortCol, sortDir]);
+
+  useEffect(() => {
+    if (selectedIds.size === 0) return;
+    const visibleIds = new Set(filtered.map(a => a.id).filter(Boolean) as string[]);
+    setSelectedIds(prev => {
+      const pruned = new Set([...prev].filter(id => visibleIds.has(id)));
+      return pruned.size === prev.size ? prev : pruned;
+    });
+  }, [filtered]);
 
   const EXPORT_STAGE_LABELS: Record<string, [string, string]> = {
     growing: ["Crecimiento", "Growing"],
@@ -489,6 +584,23 @@ export function AnimalList() {
             </Form>
           </DialogContent>
         </Dialog>
+          {selectedIds.size > 0 && (
+            <Button
+              variant="outline"
+              className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover-elevate"
+              onClick={batchExportPdfs}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4 mr-2" />
+              )}
+              {isEn
+                ? `Export ${selectedIds.size} PDF${selectedIds.size === 1 ? "" : "s"}`
+                : `Exportar ${selectedIds.size} PDF${selectedIds.size === 1 ? "" : "s"}`}
+            </Button>
+          )}
           <ExportButton
             pdfOptions={exportOptions.pdfOptions}
             csvOptions={exportOptions.csvOptions}
@@ -622,6 +734,13 @@ export function AnimalList() {
               <table className="w-full text-sm min-w-[640px]">
                 <thead>
                   <tr className="border-b border-border/50 bg-muted/30">
+                    <th className="px-4 py-3 w-10">
+                      <Checkbox
+                        checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label={isEn ? "Select all" : "Seleccionar todos"}
+                      />
+                    </th>
                     <th className="text-left px-5 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
                       <button onClick={() => handleSort("tag")} className="flex items-center hover:text-foreground transition-colors">
                         ID<SortIcon col="tag" />
@@ -687,6 +806,13 @@ export function AnimalList() {
                         onClick={() => navigate(`/animals/${animal.id}`)}
                         className="hover:bg-muted/30 cursor-pointer transition-colors group"
                       >
+                          <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                            <Checkbox
+                              checked={!!animal.id && selectedIds.has(animal.id)}
+                              onCheckedChange={() => { if (animal.id) toggleSelect(animal.id); }}
+                              aria-label={isEn ? "Select animal" : "Seleccionar animal"}
+                            />
+                          </td>
                           <td className="px-5 py-3 font-mono text-xs font-semibold text-primary whitespace-nowrap">
                             {animal.customTag || <span className="text-muted-foreground">—</span>}
                           </td>
@@ -739,8 +865,20 @@ export function AnimalList() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filtered.map((animal: Animal) => (
-              <Link key={animal.id} href={`/animals/${animal.id}`}>
-                <Card className="group cursor-pointer overflow-hidden border-border/50 hover:border-accent/50 transition-all duration-300 hover-elevate bg-card/60 backdrop-blur-sm rounded-2xl h-full flex flex-col">
+              <div key={animal.id} className="relative">
+                <div
+                  className="absolute top-3 left-3 z-10"
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); }}
+                >
+                  <Checkbox
+                    checked={!!animal.id && selectedIds.has(animal.id)}
+                    onCheckedChange={() => { if (animal.id) toggleSelect(animal.id); }}
+                    className="bg-white/80 backdrop-blur-sm shadow-sm"
+                    aria-label={isEn ? "Select animal" : "Seleccionar animal"}
+                  />
+                </div>
+              <Link href={`/animals/${animal.id}`}>
+                <Card className={`group cursor-pointer overflow-hidden border-border/50 hover:border-accent/50 transition-all duration-300 hover-elevate bg-card/60 backdrop-blur-sm rounded-2xl h-full flex flex-col ${animal.id && selectedIds.has(animal.id) ? "ring-2 ring-primary/40" : ""}`}>
                   <div className="h-32 bg-primary/5 relative flex items-center justify-center border-b border-border/30">
                     {animal.photoUrl ? (
                       <>
@@ -845,6 +983,7 @@ export function AnimalList() {
                   </div>
                 </Card>
               </Link>
+              </div>
             ))}
           </div>
         )
