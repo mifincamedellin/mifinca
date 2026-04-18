@@ -240,6 +240,10 @@ function PendingInviteCard({ invite, onUpdatePerms, onCancel }: {
           <div className="flex items-center gap-1.5 mt-0.5">
             <Clock className="h-3 w-3 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">{t("roles.pendingBadge")}</span>
+            <span className="text-xs text-muted-foreground">·</span>
+            <span className="text-xs font-medium text-foreground/70">
+              {t(invite.role === "owner" ? "roles.inviteRoleOwner" : "roles.inviteRoleWorker")}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -255,18 +259,20 @@ function PendingInviteCard({ invite, onUpdatePerms, onCancel }: {
           >
             <Trash2 className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-            onClick={() => setExpanded(e => !e)}
-          >
-            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
+          {invite.role !== "owner" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+              onClick={() => setExpanded(e => !e)}
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
       </div>
 
-      {expanded && (
+      {invite.role !== "owner" && expanded && (
         <div className="border-t border-dashed border-border px-4 py-3 bg-muted/30">
           <p className="text-xs text-muted-foreground mb-3">{t("roles.invitePermsLabel")}</p>
           <PermissionsGrid perms={perms} onToggle={handleToggle} />
@@ -284,6 +290,7 @@ export function Roles() {
   const { toast } = useToast();
 
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"worker" | "owner">("worker");
   const [inviting, setInviting] = useState(false);
 
   const { data: members = [], isLoading } = useQuery<Member[]>({
@@ -367,11 +374,11 @@ export function Roles() {
   });
 
   const inviteMember = useMutation({
-    mutationFn: async (email: string) => {
+    mutationFn: async ({ email, role }: { email: string; role: string }) => {
       const res = await fetch(`/api/farms/${activeFarmId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, role: "worker" }),
+        body: JSON.stringify({ email, role }),
       });
       if (!res.ok) {
         throw new Error("invite_failed");
@@ -383,6 +390,7 @@ export function Roles() {
       qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/members`] });
       qc.invalidateQueries({ queryKey: [`/api/farms/${activeFarmId}/invitations`] });
       setInviteEmail("");
+      setInviteRole("worker");
       if (status === 202) {
         toast({ title: t("roles.invitePending"), description: t("roles.invitePendingDesc") });
       } else {
@@ -399,7 +407,7 @@ export function Roles() {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     try {
-      await inviteMember.mutateAsync(inviteEmail.trim());
+      await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
     } finally {
       setInviting(false);
     }
@@ -416,18 +424,47 @@ export function Roles() {
       </div>
 
       {isOwner && (
-        <form onSubmit={handleInvite} className="flex gap-2">
-          <Input
-            type="email"
-            placeholder={t("roles.invitePlaceholder")}
-            value={inviteEmail}
-            onChange={e => setInviteEmail(e.target.value)}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={inviting || !inviteEmail.trim()}>
-            <UserPlus className="h-4 w-4 mr-1" />
-            {t("roles.invite")}
-          </Button>
+        <form onSubmit={handleInvite} className="space-y-2">
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder={t("roles.invitePlaceholder")}
+              value={inviteEmail}
+              onChange={e => setInviteEmail(e.target.value)}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={inviting || !inviteEmail.trim()}>
+              <UserPlus className="h-4 w-4 mr-1" />
+              {t("roles.invite")}
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setInviteRole("worker")}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                inviteRole === "worker"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+              }`}
+            >
+              {t("roles.inviteRoleWorker")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInviteRole("owner")}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                inviteRole === "owner"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+              }`}
+            >
+              {t("roles.inviteRoleOwner")}
+            </button>
+            {inviteRole === "owner" && (
+              <span className="text-xs text-muted-foreground">{t("roles.ownerFullAccess")}</span>
+            )}
+          </div>
         </form>
       )}
 

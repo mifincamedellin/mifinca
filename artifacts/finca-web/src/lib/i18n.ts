@@ -450,6 +450,9 @@ const resources = {
       "roles.perm.add": "Agregar",
       "roles.perm.edit": "Editar",
       "roles.perm.remove": "Eliminar",
+      "roles.inviteRoleWorker": "Trabajador",
+      "roles.inviteRoleOwner": "Propietario",
+      "roles.ownerFullAccess": "Los propietarios tienen acceso completo a la finca.",
     }
   },
   en: {
@@ -900,6 +903,9 @@ const resources = {
       "roles.perm.add": "Add",
       "roles.perm.edit": "Edit",
       "roles.perm.remove": "Remove",
+      "roles.inviteRoleWorker": "Worker",
+      "roles.inviteRoleOwner": "Owner",
+      "roles.ownerFullAccess": "Owners have full access to the farm.",
     }
   }
 };
