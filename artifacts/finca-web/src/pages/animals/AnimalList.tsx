@@ -8,7 +8,7 @@ import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListAnimals, useCreateAnimal, useGetFarmStats, useListFarms, getListAnimalsQueryKey, getGetFarmStatsQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
-import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { ExportButton } from "@/components/ExportButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -245,25 +245,35 @@ export function AnimalList() {
     if (selectedMale) filterParts.push(isEn ? "Males" : "Machos");
     if (search) filterParts.push(`"${search}"`);
 
+    const baseFilename = `${isEn ? "animals" : "animales"}-${date}`;
+    const columns = isEn
+      ? ["Tag", "Name", "Species", "Sex", "Age", "Weight (kg)", "Lifecycle Stage", "Status"]
+      : ["Tag", "Nombre", "Especie", "Sexo", "Edad", "Peso (kg)", "Etapa", "Estado"];
+    const rows = filtered.map(a => {
+      const dob = a.dateOfBirth;
+      const ageDays = dob ? Math.floor((Date.now() - new Date(dob + "T12:00:00").getTime()) / 86400000) : null;
+      const ageStr = ageDays != null ? `${(ageDays / 365).toFixed(1)} ${isEn ? "yr" : "años"}` : "—";
+      const weight = a.currentWeight != null ? `${Number(a.currentWeight)}` : "—";
+      const sex = a.sex === "male" ? (isEn ? "Male" : "Macho") : a.sex === "female" ? (isEn ? "Female" : "Hembra") : "—";
+      const stage = deriveLifecycleStage(a as LifecycleAnimal);
+      const stageLabel = stage ? (isEn ? (EXPORT_STAGE_LABELS[stage]?.[1] ?? stage) : (EXPORT_STAGE_LABELS[stage]?.[0] ?? stage)) : "—";
+      const status = upcomingMedicalSet.has(a.id ?? "") ? (isEn ? "⚠ Medical alert" : "⚠ Alerta médica") : (isEn ? "OK" : "OK");
+      return [a.customTag ?? "—", a.name ?? "—", t(`animals.sp.${a.species}`), sex, ageStr, weight, stageLabel, status];
+    });
     return {
-      title: `${farmName} · ${isEn ? "Animals" : "Animales"} (${filtered.length})`,
-      subtitle: filterParts.length ? filterParts.join(" · ") : undefined,
-      farmName,
-      columns: isEn
-        ? ["Tag", "Name", "Species", "Sex", "Age", "Weight (kg)", "Lifecycle Stage", "Alert"]
-        : ["Tag", "Nombre", "Especie", "Sexo", "Edad", "Peso (kg)", "Etapa", "Alerta"],
-      rows: filtered.map(a => {
-        const dob = a.dateOfBirth;
-        const ageDays = dob ? Math.floor((Date.now() - new Date(dob + "T12:00:00").getTime()) / 86400000) : null;
-        const ageStr = ageDays != null ? `${(ageDays / 365).toFixed(1)} ${isEn ? "yr" : "años"}` : "—";
-        const weight = a.currentWeight != null ? `${Number(a.currentWeight)}` : "—";
-        const sex = a.sex === "male" ? (isEn ? "Male" : "Macho") : a.sex === "female" ? (isEn ? "Female" : "Hembra") : "—";
-        const stage = deriveLifecycleStage(a as LifecycleAnimal);
-        const stageLabel = stage ? (isEn ? (EXPORT_STAGE_LABELS[stage]?.[1] ?? stage) : (EXPORT_STAGE_LABELS[stage]?.[0] ?? stage)) : "—";
-        const alert = upcomingMedicalSet.has(a.id ?? "") ? (isEn ? "⚠ Medical" : "⚠ Médico") : "—";
-        return [a.customTag ?? "—", a.name ?? "—", t(`animals.sp.${a.species}`), sex, ageStr, weight, stageLabel, alert];
-      }),
-      filename: `${isEn ? "animals" : "animales"}-${date}.pdf`,
+      pdfOptions: {
+        title: `${farmName} · ${isEn ? "Animals" : "Animales"} (${filtered.length})`,
+        subtitle: filterParts.length ? filterParts.join(" · ") : undefined,
+        farmName,
+        columns,
+        rows,
+        filename: `${baseFilename}.pdf`,
+      },
+      csvOptions: {
+        filename: `${baseFilename}.csv`,
+        columns,
+        rows,
+      },
     };
   }, [filtered, farmName, upcomingMedicalSet, selectedSpecies, selectedLifecycle, selectedMale, search, isEn, t]);
 
@@ -278,10 +288,13 @@ export function AnimalList() {
           <p className="text-muted-foreground mt-1">{t('animals.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportPdfButton
-            options={exportOptions}
-            label={isEn ? "Export PDF" : "Exportar PDF"}
+          <ExportButton
+            pdfOptions={exportOptions.pdfOptions}
+            csvOptions={exportOptions.csvOptions}
             disabled={filtered.length === 0}
+            label={isEn ? "Export" : "Exportar"}
+            labelCsv={isEn ? "Export CSV" : "Exportar CSV"}
+            labelPdf={isEn ? "Export PDF" : "Exportar PDF"}
           />
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);

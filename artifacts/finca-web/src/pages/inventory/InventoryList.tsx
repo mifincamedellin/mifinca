@@ -5,7 +5,7 @@ import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { useListInventoryItems, useCreateInventoryItem, useListFarms, getListInventoryItemsQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import type { InventoryItem, CreateInventoryItemRequest } from "@workspace/api-client-react";
-import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { ExportButton } from "@/components/ExportButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,26 +122,36 @@ export function InventoryList() {
     const date = new Date().toISOString().slice(0, 10);
     const catLabel = category !== "all" ? t(`inventory.cat.${category}`) : undefined;
     const displayItems = items ?? [];
+    const baseFilename = `${isEn ? "inventory" : "inventario"}-${date}`;
+    const columns = isEn
+      ? ["Product", "Category", "Quantity", "Unit", "Min Alert", "Status"]
+      : ["Producto", "Categoría", "Cantidad", "Unidad", "Alerta Mínima", "Estado"];
+    const rows = displayItems.map((item: InventoryItem) => [
+      item.name,
+      item.category ? t(`inventory.cat.${item.category}`) : "—",
+      Number(item.quantity),
+      item.unit ?? "—",
+      item.lowStockThreshold != null ? Number(item.lowStockThreshold) : "—",
+      item.status === "expired"
+        ? t("inventory.status.expired")
+        : (item.status === "low" || (item.lowStockThreshold != null && item.quantity <= item.lowStockThreshold))
+          ? t("inventory.status.low")
+          : t("inventory.status.ok"),
+    ]);
     return {
-      title: `${farmName} · ${isEn ? "Inventory" : "Inventario"} (${displayItems.length})`,
-      subtitle: catLabel,
-      farmName,
-      columns: isEn
-        ? ["Product", "Category", "Quantity", "Unit", "Min Alert", "Status"]
-        : ["Producto", "Categoría", "Cantidad", "Unidad", "Alerta Mínima", "Estado"],
-      rows: displayItems.map((item: InventoryItem) => [
-        item.name,
-        item.category ? t(`inventory.cat.${item.category}`) : "—",
-        Number(item.quantity),
-        item.unit ?? "—",
-        item.lowStockThreshold != null ? Number(item.lowStockThreshold) : "—",
-        item.status === "expired"
-          ? t("inventory.status.expired")
-          : (item.status === "low" || (item.lowStockThreshold != null && item.quantity <= item.lowStockThreshold))
-            ? t("inventory.status.low")
-            : t("inventory.status.ok"),
-      ]),
-      filename: `${isEn ? "inventory" : "inventario"}-${date}.pdf`,
+      pdfOptions: {
+        title: `${farmName} · ${isEn ? "Inventory" : "Inventario"} (${displayItems.length})`,
+        subtitle: catLabel,
+        farmName,
+        columns,
+        rows,
+        filename: `${baseFilename}.pdf`,
+      },
+      csvOptions: {
+        filename: `${baseFilename}.csv`,
+        columns,
+        rows,
+      },
     };
   }, [items, farmName, category, isEn, t]);
 
@@ -189,10 +199,13 @@ export function InventoryList() {
           <p className="text-muted-foreground mt-1">{t('inventory.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportPdfButton
-            options={exportOptions}
-            label={isEn ? "Export PDF" : "Exportar PDF"}
+          <ExportButton
+            pdfOptions={exportOptions.pdfOptions}
+            csvOptions={exportOptions.csvOptions}
             disabled={!items || items.length === 0}
+            label={isEn ? "Export" : "Exportar"}
+            labelCsv={isEn ? "Export CSV" : "Exportar CSV"}
+            labelPdf={isEn ? "Export PDF" : "Exportar PDF"}
           />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           {can("can_add_inventory") && (

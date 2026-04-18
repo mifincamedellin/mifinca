@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { useListFarms, getListFarmsQueryKey } from "@workspace/api-client-react";
-import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { ExportButton } from "@/components/ExportButton";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -181,21 +181,31 @@ export function Finances() {
     const periodLabel = isEn ? (PERIODS_MAP[period]?.[1] ?? period) : (PERIODS_MAP[period]?.[0] ?? period);
     const typeLabel = filterType === "all" ? undefined : filterType === "income" ? t("fin.income") : t("fin.expense");
     const subtitleParts = [periodLabel, typeLabel].filter(Boolean);
+    const baseFilename = `${isEn ? "finances" : "finanzas"}-${date}`;
+    const columns = isEn
+      ? ["Date", "Description", "Category", "Type", "Amount"]
+      : ["Fecha", "Descripción", "Categoría", "Tipo", "Monto"];
+    const rows = filtered.map(r => [
+      new Date(r.date + "T12:00:00").toLocaleDateString(locale),
+      r.description,
+      catLabel(r.category, t),
+      r.type === "income" ? t("fin.income") : t("fin.expense"),
+      `${r.type === "income" ? "+" : "-"}${formatCurrency(parseFloat(r.amount), currency)}`,
+    ]);
     return {
-      title: `${farmName} · ${isEn ? "Finances" : "Finanzas"} (${filtered.length})`,
-      subtitle: subtitleParts.join(" · "),
-      farmName,
-      columns: isEn
-        ? ["Date", "Description", "Category", "Type", "Amount"]
-        : ["Fecha", "Descripción", "Categoría", "Tipo", "Monto"],
-      rows: filtered.map(r => [
-        new Date(r.date + "T12:00:00").toLocaleDateString(locale),
-        r.description,
-        catLabel(r.category, t),
-        r.type === "income" ? t("fin.income") : t("fin.expense"),
-        `${r.type === "income" ? "+" : "-"}${formatCurrency(parseFloat(r.amount), currency)}`,
-      ]),
-      filename: `${isEn ? "finances" : "finanzas"}-${date}.pdf`,
+      pdfOptions: {
+        title: `${farmName} · ${isEn ? "Finances" : "Finanzas"} (${filtered.length})`,
+        subtitle: subtitleParts.join(" · "),
+        farmName,
+        columns,
+        rows,
+        filename: `${baseFilename}.pdf`,
+      },
+      csvOptions: {
+        filename: `${baseFilename}.csv`,
+        columns,
+        rows,
+      },
     };
   }, [filtered, farmName, period, filterType, isEn, t, currency]);
 
@@ -263,10 +273,13 @@ export function Finances() {
           <p className="text-muted-foreground mt-1">{t("fin.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportPdfButton
-            options={exportOptions}
-            label={isEn ? "Export PDF" : "Exportar PDF"}
+          <ExportButton
+            pdfOptions={exportOptions.pdfOptions}
+            csvOptions={exportOptions.csvOptions}
             disabled={filtered.length === 0}
+            label={isEn ? "Export" : "Exportar"}
+            labelCsv={isEn ? "Export CSV" : "Exportar CSV"}
+            labelPdf={isEn ? "Export PDF" : "Exportar PDF"}
           />
           {can("can_add_finances") && (
             <Button onClick={openNew} className="rounded-xl gap-2">

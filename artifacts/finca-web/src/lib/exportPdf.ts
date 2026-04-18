@@ -12,7 +12,7 @@ export interface ExportPdfOptions {
   filename: string;
 }
 
-export function exportToPdf({ title, subtitle, farmName, columns, rows, filename }: ExportPdfOptions) {
+export function exportToPdf({ title, subtitle, farmName, columns, rows, filename }: ExportPdfOptions): void {
   const doc = new jsPDF({ orientation: "landscape" });
   const pageW = doc.internal.pageSize.width;
   const exportDate = new Date().toLocaleDateString();
@@ -67,5 +67,12 @@ export function exportToPdf({ title, subtitle, farmName, columns, rows, filename
     doc.text(footer, pageW - 14, doc.internal.pageSize.height - 8, { align: "right" });
   }
 
-  doc.save(filename);
+  doc.autoPrint();
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+  const printWindow = window.open(url, "_blank");
+  if (!printWindow) {
+    doc.save(filename);
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
