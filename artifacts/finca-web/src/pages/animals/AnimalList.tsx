@@ -290,14 +290,6 @@ export function AnimalList() {
           <p className="text-muted-foreground mt-1">{t('animals.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportButton
-            pdfOptions={exportOptions.pdfOptions}
-            csvOptions={exportOptions.csvOptions}
-            disabled={filtered.length === 0}
-            label={isEn ? "Export" : "Exportar"}
-            labelCsv={isEn ? "Export CSV" : "Exportar CSV"}
-            labelPdf={isEn ? "Export PDF" : "Exportar PDF"}
-          />
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) { setPhotoPreview(null); form.reset(); }
@@ -497,6 +489,14 @@ export function AnimalList() {
             </Form>
           </DialogContent>
         </Dialog>
+          <ExportButton
+            pdfOptions={exportOptions.pdfOptions}
+            csvOptions={exportOptions.csvOptions}
+            disabled={filtered.length === 0}
+            label={isEn ? "Export" : "Exportar"}
+            labelCsv={isEn ? "Export CSV" : "Exportar CSV"}
+            labelPdf={isEn ? "Export PDF" : "Exportar PDF"}
+          />
         </div>
       </div>
 

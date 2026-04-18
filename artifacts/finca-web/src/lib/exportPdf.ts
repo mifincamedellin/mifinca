@@ -63,7 +63,7 @@ export function exportToPdf({ title, subtitle, farmName, columns, rows, filename
     doc.setFontSize(7.5);
     doc.setTextColor(160, 160, 160);
     doc.setFont("helvetica", "normal");
-    const footer = `${footerLabel} · ${i} / ${pageCount}`;
+    const footer = `${footerLabel} · ${exportDate} · ${i} / ${pageCount}`;
     doc.text(footer, pageW - 14, doc.internal.pageSize.height - 8, { align: "right" });
   }
 

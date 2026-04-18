@@ -201,14 +201,6 @@ export function InventoryList() {
           <p className="text-muted-foreground mt-1">{t('inventory.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportButton
-            pdfOptions={exportOptions.pdfOptions}
-            csvOptions={exportOptions.csvOptions}
-            disabled={!items || items.length === 0}
-            label={isEn ? "Export" : "Exportar"}
-            labelCsv={isEn ? "Export CSV" : "Exportar CSV"}
-            labelPdf={isEn ? "Export PDF" : "Exportar PDF"}
-          />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           {can("can_add_inventory") && (
             <DialogTrigger asChild>
@@ -305,6 +297,14 @@ export function InventoryList() {
             </Form>
           </DialogContent>
         </Dialog>
+          <ExportButton
+            pdfOptions={exportOptions.pdfOptions}
+            csvOptions={exportOptions.csvOptions}
+            disabled={!items || items.length === 0}
+            label={isEn ? "Export" : "Exportar"}
+            labelCsv={isEn ? "Export CSV" : "Exportar CSV"}
+            labelPdf={isEn ? "Export PDF" : "Exportar PDF"}
+          />
         </div>
       </div>
 

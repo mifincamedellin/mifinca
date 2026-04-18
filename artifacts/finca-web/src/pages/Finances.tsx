@@ -275,6 +275,11 @@ export function Finances() {
           <p className="text-muted-foreground mt-1">{t("fin.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
+          {can("can_add_finances") && (
+            <Button onClick={openNew} className="rounded-xl gap-2">
+              <Plus className="h-4 w-4" /> {t("fin.add")}
+            </Button>
+          )}
           <ExportButton
             pdfOptions={exportOptions.pdfOptions}
             csvOptions={exportOptions.csvOptions}
@@ -283,11 +288,6 @@ export function Finances() {
             labelCsv={isEn ? "Export CSV" : "Exportar CSV"}
             labelPdf={isEn ? "Export PDF" : "Exportar PDF"}
           />
-          {can("can_add_finances") && (
-            <Button onClick={openNew} className="rounded-xl gap-2">
-              <Plus className="h-4 w-4" /> {t("fin.add")}
-            </Button>
-          )}
         </div>
       </div>
 
