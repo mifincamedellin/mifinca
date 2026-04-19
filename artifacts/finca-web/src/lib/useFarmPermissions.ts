@@ -1,4 +1,4 @@
-import { useStore } from './store';
+import { useStore, ALL_FARMS_ID } from './store';
 import { useListFarms } from '@workspace/api-client-react';
 
 export type FarmPermissions = {
@@ -46,6 +46,15 @@ const ALL_FALSE: FarmPermissions = {
   can_view_calendar: false, can_add_calendar: false, can_edit_calendar: false, can_remove_calendar: false,
 };
 
+const ALL_FARMS_READ: FarmPermissions = {
+  can_view_animals: true, can_add_animals: false, can_edit_animals: false, can_remove_animals: false,
+  can_view_inventory: true, can_add_inventory: false, can_edit_inventory: false, can_remove_inventory: false,
+  can_view_finances: true, can_add_finances: false, can_edit_finances: false, can_remove_finances: false,
+  can_view_contacts: true, can_add_contacts: false, can_edit_contacts: false, can_remove_contacts: false,
+  can_view_employees: true, can_add_employees: false, can_edit_employees: false, can_remove_employees: false,
+  can_view_calendar: true, can_add_calendar: false, can_edit_calendar: false, can_remove_calendar: false,
+};
+
 type FarmWithMembership = {
   id: string;
   userRole?: string;
@@ -57,20 +66,24 @@ export function useFarmPermissions() {
   const { activeFarmId } = useStore();
   const { data: farms, isLoading: farmsLoading } = useListFarms();
 
+  const isAllFarms = activeFarmId === ALL_FARMS_ID;
   const farm = (farms as FarmWithMembership[] | undefined)?.find(f => f.id === activeFarmId);
-  const isOwner = farm?.userRole === 'owner';
+  const isOwner = isAllFarms ? true : farm?.userRole === 'owner';
   const farmsLoaded = !farmsLoading && farms !== undefined;
 
-  const permissions: FarmPermissions = isOwner
-    ? ALL_TRUE
-    : farm?.userPermissions
-      ? { ...ALL_FALSE, ...(farm.userPermissions as FarmPermissions) }
-      : ALL_FALSE;
+  const permissions: FarmPermissions = isAllFarms
+    ? ALL_FARMS_READ
+    : isOwner
+      ? ALL_TRUE
+      : farm?.userPermissions
+        ? { ...ALL_FALSE, ...(farm.userPermissions as FarmPermissions) }
+        : ALL_FALSE;
 
   return {
     isOwner,
+    isAllFarms,
     farmsLoaded,
     permissions,
-    can: (perm: keyof FarmPermissions) => isOwner || permissions[perm] === true,
+    can: (perm: keyof FarmPermissions) => isAllFarms ? ALL_FARMS_READ[perm] === true : (isOwner || permissions[perm] === true),
   };
 }

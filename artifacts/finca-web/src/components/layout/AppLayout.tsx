@@ -6,7 +6,7 @@ import { SeedButton } from "@/components/SeedButton";
 import { SidebarThemePicker } from "@/components/SidebarThemePicker";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
 import { useGetMe, useListFarms, getGetMeQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import { useAuth, useClerk } from "@clerk/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,6 +26,7 @@ import {
   Check,
   ShieldCheck,
   Droplets,
+  Layers,
 } from "lucide-react";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import type { FarmPermissions } from "@/lib/useFarmPermissions";
@@ -137,7 +138,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     }
   }, [authFailed, token, logout, setLocation]);
 
-  // Set initial active farm
+  // Set initial active farm (don't override an already-set activeFarmId, including ALL_FARMS_ID)
   useEffect(() => {
     if (farms && farms.length > 0 && !activeFarmId) {
       setActiveFarmId(farms[0].id);
@@ -289,10 +290,28 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="font-serif text-lg text-primary hover:bg-black/5 hover-elevate border border-transparent hover:border-black/5 px-4 h-10 rounded-xl">
-                      {farms.find(f => f.id === activeFarmId)?.name || t('common.selectFarm')}
+                      {activeFarmId === ALL_FARMS_ID
+                        ? t('farms.allFarms')
+                        : (farms.find(f => f.id === activeFarmId)?.name || t('common.selectFarm'))}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 rounded-xl border-border/50 shadow-lg p-1">
+                    {farms.length >= 2 && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => setActiveFarmId(ALL_FARMS_ID)}
+                          className={`rounded-lg cursor-pointer my-0.5 py-2.5 px-3 flex items-center gap-2 ${activeFarmId === ALL_FARMS_ID ? 'bg-primary/5 text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                          <Layers className="h-4 w-4 shrink-0" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm">{t('farms.allFarms')}</span>
+                            <span className="text-xs opacity-60 truncate">{t('farms.allFarmsHint')}</span>
+                          </div>
+                          {activeFarmId === ALL_FARMS_ID && <Check className="h-4 w-4 ml-auto shrink-0" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="my-1" />
+                      </>
+                    )}
                     {farms.map(farm => {
                       const isActive = activeFarmId === farm.id;
                       return (

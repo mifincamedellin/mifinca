@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Currency } from './currency';
 
+export const ALL_FARMS_ID = "__all__";
+
 export type SidebarTheme = "tierra" | "bosque" | "oceano" | "vaca";
 
 interface AuthState {

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
+import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import { useGetMe } from "@workspace/api-client-react";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import type { FarmPermissions } from "@/lib/useFarmPermissions";
@@ -540,6 +541,8 @@ export function Roles() {
       setInviting(false);
     }
   }
+
+  if (activeFarmId === ALL_FARMS_ID) return <SelectFarmPrompt />;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">

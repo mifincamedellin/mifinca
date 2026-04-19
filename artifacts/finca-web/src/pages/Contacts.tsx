@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
+import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { useUpgradeStore } from "@/lib/upgradeStore";
@@ -124,6 +125,8 @@ export function Contacts() {
         !(c.notes ?? "").toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  if (activeFarmId === ALL_FARMS_ID) return <SelectFarmPrompt />;
 
   return (
     <div className="space-y-6">

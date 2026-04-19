@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
+import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -260,6 +261,8 @@ export function Calendar() {
     const c = CATEGORY_COLORS[cat || "other"]!;
     return isEn ? c.label : c.labelEs;
   };
+
+  if (activeFarmId === ALL_FARMS_ID) return <SelectFarmPrompt />;
 
   return (
     <div className="space-y-5">

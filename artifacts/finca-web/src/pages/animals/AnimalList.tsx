@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
@@ -23,7 +23,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 const createAnimalSchema = z.object({
@@ -122,12 +122,20 @@ export function AnimalList() {
     setIsExporting(true);
     let succeeded = 0;
     let failed = 0;
+    const animalFarmMap = new Map<string, string>(
+      (animals as any[] ?? []).map((a: any) => [a.id, a._farmId ?? activeFarmId])
+    );
+    const animalFarmNameMap = new Map<string, string>(
+      (animals as any[] ?? []).map((a: any) => [a.id, a._farmName ?? farmName])
+    );
     try {
       for (const animalId of Array.from(selectedIds)) {
         try {
+          const farmIdForAnimal = animalFarmMap.get(animalId) ?? activeFarmId;
+          const farmNameForAnimal = animalFarmNameMap.get(animalId) ?? farmName;
           const requests: Promise<Response>[] = [
-            fetch(`/api/farms/${activeFarmId}/animals/${animalId}`),
-            fetch(`/api/farms/${activeFarmId}/animals/${animalId}/weights`),
+            fetch(`/api/farms/${farmIdForAnimal}/animals/${animalId}`),
+            fetch(`/api/farms/${farmIdForAnimal}/animals/${animalId}/weights`),
           ];
           const [animalRes, weightsRes] = await Promise.all(requests);
           if (!animalRes.ok) { failed++; continue; }
@@ -137,7 +145,7 @@ export function AnimalList() {
           let milkRecords: MilkRecord[] | undefined;
           if (animalData.species === "cattle") {
             try {
-              const milkRes = await fetch(`/api/farms/${activeFarmId}/animals/${animalId}/milk`);
+              const milkRes = await fetch(`/api/farms/${farmIdForAnimal}/animals/${animalId}/milk`);
               if (milkRes.ok) milkRecords = (await milkRes.json()) as MilkRecord[];
             } catch {
               milkRecords = undefined;
@@ -153,7 +161,7 @@ export function AnimalList() {
             weights: weightsData,
             milkRecords,
             lifecycleStage,
-            farmName,
+            farmName: farmNameForAnimal,
             isEn,
           });
           succeeded++;
@@ -185,15 +193,38 @@ export function AnimalList() {
   const queryClient = useQueryClient();
 
   const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
-  const farmName = (farms as Array<{ id: string; name: string }> | undefined)?.find(f => f.id === activeFarmId)?.name ?? "miFinca";
+  const farmsList = (farms as Array<{ id: string; name: string }> | undefined) ?? [];
+  const farmName = farmsList.find(f => f.id === activeFarmId)?.name ?? "miFinca";
+  const isAllFarms = activeFarmId === ALL_FARMS_ID;
+  const farmIds = farmsList.map(f => f.id);
 
-  const { data: animals, isLoading } = useListAnimals(activeFarmId || '',
+  const { data: singleAnimals, isLoading: singleLoading } = useListAnimals(activeFarmId || '',
     { search: search || undefined },
-    { query: { queryKey: getListAnimalsQueryKey(activeFarmId || '', { search: search || undefined }), enabled: !!activeFarmId } }
+    { query: { queryKey: getListAnimalsQueryKey(activeFarmId || '', { search: search || undefined }), enabled: !!activeFarmId && !isAllFarms } }
   );
 
+  const { data: allFarmsAnimals, isLoading: allLoading } = useQuery<(Animal & { _farmName: string; _farmId: string })[]>({
+    queryKey: ["all-farms-animals", farmIds.join(","), search],
+    enabled: isAllFarms && farmIds.length > 0,
+    queryFn: async () => {
+      const results = await Promise.all(
+        farmIds.map((id, i) =>
+          fetch(`/api/farms/${id}/animals${search ? `?search=${encodeURIComponent(search)}` : ""}`).then(r =>
+            r.ok ? r.json().then((items: Animal[]) =>
+              items.map(a => ({ ...a, _farmName: farmsList[i]?.name ?? "", _farmId: id }))
+            ) : []
+          )
+        )
+      );
+      return results.flat();
+    },
+  });
+
+  const animals = isAllFarms ? allFarmsAnimals : singleAnimals;
+  const isLoading = isAllFarms ? allLoading : singleLoading;
+
   const { data: farmStats } = useGetFarmStats(activeFarmId || '', {
-    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ''), enabled: !!activeFarmId },
+    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ''), enabled: !!activeFarmId && !isAllFarms },
   });
   const upcomingMedicalSet = new Set<string>(farmStats?.upcomingMedicalAnimalIds ?? []);
 
@@ -766,6 +797,7 @@ export function AnimalList() {
                     </th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{isEn ? "Stage" : "Etapa"}</th>
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{isEn ? "Alert" : "Alerta"}</th>
+                    {isAllFarms && <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{isEn ? "Farm" : "Finca"}</th>}
                     <th className="px-4 py-3 w-8"></th>
                   </tr>
                 </thead>
@@ -852,6 +884,11 @@ export function AnimalList() {
                               <span className="text-muted-foreground/30 text-xs">·</span>
                             )}
                           </td>
+                          {isAllFarms && (
+                            <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                              {(animal as any)._farmName || "—"}
+                            </td>
+                          )}
                           <td className="px-4 py-3">
                             <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-accent transition-colors transform group-hover:translate-x-0.5" />
                           </td>
@@ -946,9 +983,14 @@ export function AnimalList() {
                           animal.customTag || animal.name || t('animals.noName')
                         )}
                       </h3>
-                      <p className="text-muted-foreground text-sm capitalize mt-1 flex items-center gap-2">
-                        <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+                      <p className="text-muted-foreground text-sm capitalize mt-1 flex items-center gap-2 flex-wrap">
+                        <span className="inline-block w-2 h-2 rounded-full bg-secondary shrink-0"></span>
                         {t(`animals.sp.${animal.species}`)} {animal.breed ? `• ${animal.breed}` : ''}
+                        {(animal as any)._farmName && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/8 text-primary/60 font-sans font-medium ml-auto capitalize normal-case">
+                            {(animal as any)._farmName}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">

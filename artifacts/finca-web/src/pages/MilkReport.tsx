@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
 import { useListFarms } from "@workspace/api-client-react";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { exportFarmMilkToPdf } from "@/lib/exportPdf";
@@ -47,23 +47,58 @@ export function MilkReport() {
 
   const isEn = t("nav.dashboard") === "Dashboard";
 
-  const activeFarm = (farms as any[] | undefined)?.find((f: any) => f.id === activeFarmId);
+  const farmsList = (farms as Array<{ id: string; name: string }> | undefined) ?? [];
+  const isAllFarms = activeFarmId === ALL_FARMS_ID;
+  const farmIds = farmsList.map(f => f.id);
+  const activeFarm = farmsList.find(f => f.id === activeFarmId);
   const farmName = activeFarm?.name;
 
   const qs = new URLSearchParams();
   if (from) qs.set("from", from);
   if (to) qs.set("to", to);
-  if (selectedAnimalId !== "__all__") qs.set("animalId", selectedAnimalId);
+  if (!isAllFarms && selectedAnimalId !== "__all__") qs.set("animalId", selectedAnimalId);
 
-  const { data, isLoading } = useQuery<MilkReportData>({
+  const { data: singleData, isLoading: singleLoading } = useQuery<MilkReportData>({
     queryKey: [`/api/farms/${activeFarmId}/milk`, from, to, selectedAnimalId],
-    enabled: !!activeFarmId && can("can_view_animals"),
+    enabled: !!activeFarmId && !isAllFarms && can("can_view_animals"),
     queryFn: async () => {
       const res = await fetch(`/api/farms/${activeFarmId}/milk?${qs.toString()}`);
       if (!res.ok) throw new Error("fetch failed");
       return res.json();
     },
   });
+
+  const { data: allFarmsData, isLoading: allLoading } = useQuery<MilkReportData>({
+    queryKey: ["all-farms-milk", farmIds.join(","), from, to],
+    enabled: isAllFarms && farmIds.length > 0,
+    queryFn: async () => {
+      const allQs = new URLSearchParams();
+      if (from) allQs.set("from", from);
+      if (to) allQs.set("to", to);
+      const results = await Promise.all(
+        farmIds.map((id, i) =>
+          fetch(`/api/farms/${id}/milk?${allQs.toString()}`).then(r =>
+            r.ok ? r.json().then((d: MilkReportData) => ({
+              ...d,
+              animals: d.animals.map(a => ({ ...a, _farmName: farmsList[i]?.name ?? "" })),
+            })) : null
+          )
+        )
+      );
+      const valid = results.filter(Boolean) as (MilkReportData & { animals: (MilkAnimal & { _farmName?: string })[] })[];
+      const merged = valid.flatMap(d => d.animals);
+      merged.sort((a, b) => b.totalLiters - a.totalLiters);
+      const totalLiters = valid.reduce((s, d) => s + (d.summary?.totalLiters ?? 0), 0);
+      const totalRecords = valid.reduce((s, d) => s + (d.summary?.totalRecords ?? 0), 0);
+      return {
+        animals: merged as MilkAnimal[],
+        summary: { totalLiters, totalRecords, from, to },
+      };
+    },
+  });
+
+  const data = isAllFarms ? allFarmsData : singleData;
+  const isLoading = isAllFarms ? allLoading : singleLoading;
 
   const allAnimals = useMemo(() => data?.animals ?? [], [data]);
   const summary = data?.summary ?? { totalLiters: 0, totalRecords: 0, from: null, to: null };
@@ -152,20 +187,22 @@ export function MilkReport() {
               className="rounded-xl h-9 text-sm w-40"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">{t("milk.animalLabel")}</label>
-            <Select value={selectedAnimalId} onValueChange={setSelectedAnimalId}>
-              <SelectTrigger className="rounded-xl h-9 text-sm w-52">
-                <SelectValue placeholder={t("milk.filterAnimal")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">{t("milk.filterAnimal")}</SelectItem>
-                {animalOptions.map(a => (
-                  <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!isAllFarms && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground font-medium">{t("milk.animalLabel")}</label>
+              <Select value={selectedAnimalId} onValueChange={setSelectedAnimalId}>
+                <SelectTrigger className="rounded-xl h-9 text-sm w-52">
+                  <SelectValue placeholder={t("milk.filterAnimal")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">{t("milk.filterAnimal")}</SelectItem>
+                  {animalOptions.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {hasFilter && (
             <Button variant="ghost" size="sm" className="rounded-xl h-9 gap-1 text-muted-foreground" onClick={clearFilter}>
               <X className="h-3.5 w-3.5" />
@@ -238,6 +275,7 @@ export function MilkReport() {
                 <tr className="border-b border-border/40 bg-muted/30">
                   <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colTag")}</th>
                   <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colName")}</th>
+                  {isAllFarms && <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{isEn ? "Farm" : "Finca"}</th>}
                   <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colTotal")}</th>
                   <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colDailyAvg")}</th>
                   <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colRecords")}</th>
@@ -259,6 +297,11 @@ export function MilkReport() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-foreground whitespace-nowrap">{animal.name ?? <span className="text-muted-foreground">—</span>}</td>
+                    {isAllFarms && (
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {(animal as any)._farmName || "—"}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <span className={`font-semibold ${animal.totalLiters > 0 ? "text-sky-600" : "text-muted-foreground"}`}>
                         {animal.totalLiters.toFixed(1)} L

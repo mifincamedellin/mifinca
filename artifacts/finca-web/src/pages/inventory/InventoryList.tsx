@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
+import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { useListInventoryItems, useCreateInventoryItem, useListFarms, getListInventoryItemsQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
@@ -182,6 +183,7 @@ export function InventoryList() {
   };
 
   if (!activeFarmId) return null;
+  if (activeFarmId === ALL_FARMS_ID) return <SelectFarmPrompt />;
 
   const getStatusColor = (status: string | undefined, qty: number, threshold?: number) => {
     if (status === 'expired') return 'bg-destructive/10 text-destructive border-destructive/20';

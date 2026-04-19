@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
 import { formatCurrencyCompact } from "@/lib/currency";
 import { useGetFarmStats, useListActivity, useListFarms, useGetMe, getGetMeQueryKey, getListFarmsQueryKey, getGetFarmStatsQueryKey, getListActivityQueryKey, type FarmStats } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
@@ -152,14 +152,16 @@ export function Dashboard() {
 
   const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: true } });
   const activeFarm = farms?.find(f => f.id === activeFarmId);
+  const isAllFarms = activeFarmId === ALL_FARMS_ID;
+  const farmsList = (farms as Array<{ id: string; name: string }> | undefined) ?? [];
+  const farmIds = farmsList.map(f => f.id);
 
-  const { data: rawStats, isLoading: statsLoading } = useGetFarmStats(activeFarmId || "", {
-    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ""), enabled: !!activeFarmId },
+  const { data: rawStats, isLoading: rawStatsLoading } = useGetFarmStats(activeFarmId || "", {
+    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ""), enabled: !!activeFarmId && !isAllFarms },
   });
-  const stats = rawStats as StatsExt | undefined;
 
   const { data: activity } = useListActivity(activeFarmId || "", { limit: 5 }, {
-    query: { queryKey: getListActivityQueryKey(activeFarmId || "", { limit: 5 }), enabled: !!activeFarmId },
+    query: { queryKey: getListActivityQueryKey(activeFarmId || "", { limit: 5 }), enabled: !!activeFarmId && !isAllFarms },
   });
 
   const { data: finances } = useQuery<FinanceRow[]>({
@@ -169,8 +171,63 @@ export function Dashboard() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!activeFarmId,
+    enabled: !!activeFarmId && !isAllFarms,
   });
+
+  type ActivityItem = { id?: string; actionType?: string; entityType?: string; description?: string; createdAt?: string; profile?: { fullName?: string }; _farmName?: string };
+
+  const { data: allFarmsStats, isLoading: allStatsLoading } = useQuery<StatsExt>({
+    queryKey: ["all-farms-stats", farmIds.join(",")],
+    enabled: isAllFarms && farmIds.length > 0,
+    queryFn: async () => {
+      const results = await Promise.all(
+        farmIds.map(id => fetch(`/api/farms/${id}/stats`).then(r => r.ok ? r.json() : null))
+      );
+      const valid = results.filter(Boolean) as StatsExt[];
+      const speciesMap: Record<string, number> = {};
+      valid.forEach(r => {
+        (r.animalsBySpecies ?? []).forEach((s: { species?: string; count?: number }) => {
+          speciesMap[s.species ?? "other"] = (speciesMap[s.species ?? "other"] ?? 0) + (s.count ?? 0);
+        });
+      });
+      return {
+        totalAnimals: valid.reduce((s, r) => s + (r.totalAnimals ?? 0), 0),
+        pregnantCount: valid.reduce((s, r) => s + (r.pregnantCount ?? 0), 0),
+        upcomingMedicalCount: valid.reduce((s, r) => s + (r.upcomingMedicalCount ?? 0), 0),
+        lowStockCount: valid.reduce((s, r) => s + (r.lowStockCount ?? 0), 0),
+        employeeCount: valid.reduce((s, r) => s + (r.employeeCount ?? 0), 0),
+        contactCount: valid.reduce((s, r) => s + (r.contactCount ?? 0), 0),
+        recentActivityCount: valid.reduce((s, r) => s + (r.recentActivityCount ?? 0), 0),
+        animalsBySpecies: Object.entries(speciesMap).map(([species, count]) => ({ species, count })),
+        upcomingMedical: valid.flatMap(r => r.upcomingMedical ?? []).slice(0, 5),
+        lowStockItems: valid.flatMap(r => r.lowStockItems ?? []).slice(0, 5),
+        upcomingMedicalAnimalIds: valid.flatMap(r => r.upcomingMedicalAnimalIds ?? []),
+      } as unknown as StatsExt;
+    },
+  });
+
+  const { data: allFarmsActivity } = useQuery<ActivityItem[]>({
+    queryKey: ["all-farms-activity", farmIds.join(",")],
+    enabled: isAllFarms && farmIds.length > 0,
+    queryFn: async () => {
+      const results = await Promise.all(
+        farmIds.map((id, i) =>
+          fetch(`/api/farms/${id}/activity?limit=10`).then(r =>
+            r.ok ? r.json().then((items: ActivityItem[]) =>
+              items.map(item => ({ ...item, _farmName: farmsList[i]?.name }))
+            ) : []
+          )
+        )
+      );
+      return results.flat().sort((a, b) =>
+        new Date(b.createdAt ?? "").getTime() - new Date(a.createdAt ?? "").getTime()
+      ).slice(0, 10);
+    },
+  });
+
+  const stats = (isAllFarms ? allFarmsStats : rawStats) as StatsExt | undefined;
+  const statsLoading = isAllFarms ? allStatsLoading : rawStatsLoading;
+  const displayActivity = (isAllFarms ? allFarmsActivity : activity) as ActivityItem[] | undefined;
 
   const now = new Date();
   const thisMonth = (finances || []).filter(t => {
@@ -547,7 +604,7 @@ export function Dashboard() {
           </div>
         </div>
         <div className="space-y-5">
-          {activity && activity.length > 0 ? activity.map((item, i) => {
+          {displayActivity && displayActivity.length > 0 ? displayActivity.map((item, i) => {
             const dotColor =
               item.actionType === "deleted"
                 ? "bg-destructive"
@@ -557,8 +614,8 @@ export function Dashboard() {
                     ? "bg-accent"
                     : "bg-secondary";
             return (
-              <div key={item.id} className="relative pl-6">
-                {i !== activity.length - 1 && (
+              <div key={`${item._farmName}-${item.id}`} className="relative pl-6">
+                {i !== displayActivity.length - 1 && (
                   <div className="absolute left-[7px] top-6 bottom-[-20px] w-0.5 bg-border/60" />
                 )}
                 <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-background ${dotColor}`} />
@@ -569,6 +626,11 @@ export function Dashboard() {
                     if (!isEn && label) return label.es;
                     return item.description || item.actionType;
                   })()}
+                  {item._farmName && (
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-md bg-primary/8 text-primary/60 font-sans font-normal">
+                      {item._farmName}
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {format(new Date(item.createdAt || ""), "dd MMM, HH:mm")} · {item.profile?.fullName || (isEn ? "User" : "Usuario")}

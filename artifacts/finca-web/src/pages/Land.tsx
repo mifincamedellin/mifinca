@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
+import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
@@ -751,6 +752,8 @@ export function Land() {
     ? [parseFloat(farmData!.mapLat!), parseFloat(farmData!.mapLng!)]
     : COLOMBIA_CENTER;
   const mapZoom = farmData?.mapZoom ?? 15;
+
+  if (activeFarmId === ALL_FARMS_ID) return <SelectFarmPrompt />;
 
   return (
     <div className="-mx-6 -mt-6 md:-mx-8 md:-mt-8 h-[calc(100vh-4rem)] overflow-hidden relative">

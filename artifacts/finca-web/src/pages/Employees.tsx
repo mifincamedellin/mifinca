@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
+import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { ViewOnlyBanner } from "@/components/ViewOnlyBanner";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
@@ -756,6 +757,8 @@ export function Employees() {
     { icon: Receipt, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100/60 dark:bg-violet-950/40", label: t("emp.totalPrimas"), value: formatCurrency(totals.primas, currency), sub: t("emp.perSemester") },
     { icon: Coins, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100/60 dark:bg-amber-950/40", label: t("emp.totalCesantias"), value: formatCurrency(totals.cesantias, currency), sub: t("emp.perYear") },
   ];
+
+  if (activeFarmId === ALL_FARMS_ID) return <SelectFarmPrompt />;
 
   return (
     <div className="space-y-8 pb-10">
