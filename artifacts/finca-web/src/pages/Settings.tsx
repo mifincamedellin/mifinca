@@ -1,6 +1,6 @@
 import { useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
 import { useGetFarm, useUpdateFarm, getGetFarmQueryKey } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -229,7 +229,7 @@ export function Settings() {
     });
   };
 
-  if (!activeFarmId) return <SelectFarmPrompt />;
+  if (!activeFarmId || activeFarmId === ALL_FARMS_ID) return <SelectFarmPrompt />;
   const lang = i18n.language === "en" ? "en" : "es";
 
   return (

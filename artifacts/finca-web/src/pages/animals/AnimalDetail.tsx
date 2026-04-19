@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, Link, useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
-import { useStore } from "@/lib/store";
+import { useStore, ALL_FARMS_ID } from "@/lib/store";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import { formatCurrency, currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useGetAnimal, useListFarms, useListWeightRecords, useUpdateAnimal, useCreateWeightRecord, useCreateMedicalRecord, useGetFarmStats, getGetAnimalQueryKey, getListWeightRecordsQueryKey, getGetFarmStatsQueryKey } from "@workspace/api-client-react";
@@ -419,7 +419,7 @@ export function AnimalDetail() {
     );
   };
 
-  if (!activeFarmId) return <SelectFarmPrompt />;
+  if (!activeFarmId || activeFarmId === ALL_FARMS_ID) return <SelectFarmPrompt />;
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">{t('animals.loadingDetails')}</div>;
   if (!animal) return <div className="p-8 text-center text-destructive">{t('animals.notFound')}</div>;
 
