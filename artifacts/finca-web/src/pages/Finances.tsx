@@ -126,7 +126,7 @@ export function Finances() {
   });
 
   const { data: allFarmsData, isLoading: allLoading } = useQuery<{ rows: Transaction[]; failedCount: number }>({
-    queryKey: ["all-farms-finances-page", farmIds.join(",")],
+    queryKey: ["all-farms-finances-page", [...farmIds].sort().join(",")],
     enabled: isAllFarms && farmIds.length > 0,
     queryFn: async () => {
       let failedCount = 0;
@@ -595,9 +595,9 @@ export function Finances() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">{t("fin.col.amount")} (COP)</label>
+                  <label className="text-sm font-medium mb-1.5 block">{t("fin.col.amount")} ({currency})</label>
                   <Input
-                    value={currencyInputDisplay(form.amount)}
+                    value={currencyInputDisplay(form.amount, currency)}
                     onChange={e => setForm(f => ({ ...f, amount: currencyInputRaw(e.target.value) }))}
                     placeholder="0"
                     className="rounded-xl font-mono"
