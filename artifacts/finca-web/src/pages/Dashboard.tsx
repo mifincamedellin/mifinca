@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useStore, ALL_FARMS_ID } from "@/lib/store";
-import { formatCurrencyCompact } from "@/lib/currency";
+import { formatCurrencyCompact, formatCurrency } from "@/lib/currency";
 import { useGetFarmStats, useListActivity, useListFarms, useGetMe, getGetMeQueryKey, getListFarmsQueryKey, getGetFarmStatsQueryKey, getListActivityQueryKey, type FarmStats, type MedicalRecord, type InventoryItem } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -449,7 +449,7 @@ export function Dashboard() {
                 <span className="text-sm text-muted-foreground">{t("dashboard.income")}</span>
               </div>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {formatCurrencyCompact(monthIncome, currency)}
+                {formatCurrency(monthIncome, currency)}
               </span>
             </div>
             <div className="flex items-center justify-between py-2.5 border-b border-border/40">
@@ -458,13 +458,13 @@ export function Dashboard() {
                 <span className="text-sm text-muted-foreground">{t("dashboard.expenses")}</span>
               </div>
               <span className="font-semibold text-red-500 tabular-nums">
-                {formatCurrencyCompact(monthExpenses, currency)}
+                {formatCurrency(monthExpenses, currency)}
               </span>
             </div>
             <div className="flex items-center justify-between py-3">
               <span className="text-sm font-semibold text-foreground">{t("dashboard.netBalance")}</span>
               <span className={`text-xl font-serif font-bold tabular-nums ${monthNet >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                {monthNet >= 0 ? "+" : ""}{formatCurrencyCompact(monthNet, currency)}
+                {monthNet >= 0 ? "+" : ""}{formatCurrency(monthNet, currency)}
               </span>
             </div>
             {thisMonth.length === 0 && (
