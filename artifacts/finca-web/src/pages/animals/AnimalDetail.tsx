@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { ArrowLeft, Edit, Activity, Scale, Syringe, Calendar, CalendarClock, GitBranch, Camera, Upload, X, Droplets, Plus, TrendingUp, Trash2, Baby, CheckCircle2, Skull, DollarSign, FileDown, History } from "lucide-react";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import { LifecycleActionCard } from "@/components/lifecycle/LifecycleActionCard";
 import { LifecyclePregnantCard } from "@/components/lifecycle/LifecyclePregnantCard";
 import { LifecycleBar } from "@/components/lifecycle/LifecycleBar";
@@ -418,6 +419,7 @@ export function AnimalDetail() {
     );
   };
 
+  if (!activeFarmId) return <SelectFarmPrompt />;
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">{t('animals.loadingDetails')}</div>;
   if (!animal) return <div className="p-8 text-center text-destructive">{t('animals.notFound')}</div>;
 

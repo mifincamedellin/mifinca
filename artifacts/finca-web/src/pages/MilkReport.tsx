@@ -26,6 +26,7 @@ interface MilkAnimal {
   lastRecordedAt: string | null;
   trend: "up" | "down" | "flat";
 }
+type MilkAnimalWithFarm = MilkAnimal & { _farmName?: string };
 
 interface MilkReportData {
   animals: MilkAnimal[];
@@ -68,30 +69,37 @@ export function MilkReport() {
     },
   });
 
-  const { data: allFarmsData, isLoading: allLoading } = useQuery<MilkReportData>({
+  interface AllFarmsMilkReport {
+    animals: MilkAnimalWithFarm[];
+    summary: { totalLiters: number; totalRecords: number; from: string | null; to: string | null };
+  }
+
+  const { data: allFarmsData, isLoading: allLoading } = useQuery<AllFarmsMilkReport>({
     queryKey: ["all-farms-milk", farmIds.join(","), from, to],
     enabled: isAllFarms && farmIds.length > 0,
     queryFn: async () => {
       const allQs = new URLSearchParams();
       if (from) allQs.set("from", from);
       if (to) allQs.set("to", to);
-      const results = await Promise.all(
+      const rawResults = await Promise.all(
         farmIds.map((id, i) =>
           fetch(`/api/farms/${id}/milk?${allQs.toString()}`).then(r =>
-            r.ok ? r.json().then((d: MilkReportData) => ({
-              ...d,
-              animals: d.animals.map(a => ({ ...a, _farmName: farmsList[i]?.name ?? "" })),
-            })) : null
+            r.ok
+              ? (r.json() as Promise<MilkReportData>).then(d => ({
+                  ...d,
+                  animals: d.animals.map<MilkAnimalWithFarm>(a => ({ ...a, _farmName: farmsList[i]?.name ?? "" })),
+                }))
+              : null
           )
         )
       );
-      const valid = results.filter(Boolean) as (MilkReportData & { animals: (MilkAnimal & { _farmName?: string })[] })[];
+      const valid = rawResults.filter((r): r is AllFarmsMilkReport => r !== null);
       const merged = valid.flatMap(d => d.animals);
       merged.sort((a, b) => b.totalLiters - a.totalLiters);
       const totalLiters = valid.reduce((s, d) => s + (d.summary?.totalLiters ?? 0), 0);
       const totalRecords = valid.reduce((s, d) => s + (d.summary?.totalRecords ?? 0), 0);
       return {
-        animals: merged as MilkAnimal[],
+        animals: merged,
         summary: { totalLiters, totalRecords, from, to },
       };
     },
@@ -100,24 +108,34 @@ export function MilkReport() {
   const data = isAllFarms ? allFarmsData : singleData;
   const isLoading = isAllFarms ? allLoading : singleLoading;
 
-  const allAnimals = useMemo(() => data?.animals ?? [], [data]);
+  const allAnimals = useMemo((): MilkAnimalWithFarm[] => (data?.animals ?? []) as MilkAnimalWithFarm[], [data]);
+
+  const displayAnimals = useMemo((): MilkAnimalWithFarm[] => {
+    if (!isAllFarms || selectedAnimalId === "__all__") return allAnimals;
+    return allAnimals.filter(a => a.id === selectedAnimalId);
+  }, [allAnimals, isAllFarms, selectedAnimalId]);
+
   const summary = data?.summary ?? { totalLiters: 0, totalRecords: 0, from: null, to: null };
 
   const chartData = useMemo(
     () =>
-      allAnimals
+      displayAnimals
         .filter(a => a.totalLiters > 0)
         .slice(0, 15)
         .map(a => ({
           label: a.customTag || a.name || "—",
           liters: a.totalLiters,
         })),
-    [allAnimals]
+    [displayAnimals]
   );
 
   const animalOptions = useMemo(
-    () => allAnimals.map(a => ({ id: a.id, label: a.customTag ? `${a.customTag}${a.name ? ` · ${a.name}` : ""}` : (a.name ?? a.id) })),
-    [allAnimals]
+    () => allAnimals.map(a => {
+      const base = a.customTag ? `${a.customTag}${a.name ? ` · ${a.name}` : ""}` : (a.name ?? a.id);
+      const suffix = isAllFarms && a._farmName ? ` (${a._farmName})` : "";
+      return { id: a.id, label: base + suffix };
+    }),
+    [allAnimals, isAllFarms]
   );
 
   function fmtDate(d: string | null) {
@@ -187,22 +205,20 @@ export function MilkReport() {
               className="rounded-xl h-9 text-sm w-40"
             />
           </div>
-          {!isAllFarms && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground font-medium">{t("milk.animalLabel")}</label>
-              <Select value={selectedAnimalId} onValueChange={setSelectedAnimalId}>
-                <SelectTrigger className="rounded-xl h-9 text-sm w-52">
-                  <SelectValue placeholder={t("milk.filterAnimal")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">{t("milk.filterAnimal")}</SelectItem>
-                  {animalOptions.map(a => (
-                    <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground font-medium">{t("milk.animalLabel")}</label>
+            <Select value={selectedAnimalId} onValueChange={setSelectedAnimalId}>
+              <SelectTrigger className="rounded-xl h-9 text-sm w-52">
+                <SelectValue placeholder={t("milk.filterAnimal")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t("milk.filterAnimal")}</SelectItem>
+                {animalOptions.map(a => (
+                  <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {hasFilter && (
             <Button variant="ghost" size="sm" className="rounded-xl h-9 gap-1 text-muted-foreground" onClick={clearFilter}>
               <X className="h-3.5 w-3.5" />
@@ -284,7 +300,7 @@ export function MilkReport() {
                 </tr>
               </thead>
               <tbody>
-                {allAnimals.map((animal, i) => (
+                {displayAnimals.map((animal, i) => (
                   <tr
                     key={animal.id}
                     className={`border-b border-border/20 hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}
@@ -299,7 +315,7 @@ export function MilkReport() {
                     <td className="px-4 py-3 text-foreground whitespace-nowrap">{animal.name ?? <span className="text-muted-foreground">—</span>}</td>
                     {isAllFarms && (
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                        {(animal as any)._farmName || "—"}
+                        {animal._farmName || "—"}
                       </td>
                     )}
                     <td className="px-4 py-3 text-right whitespace-nowrap">

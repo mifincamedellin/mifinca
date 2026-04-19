@@ -18,6 +18,7 @@ import {
   Star, Check, Plus, Trash2, Mail, Lock, Coins,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -228,7 +229,7 @@ export function Settings() {
     });
   };
 
-  if (!activeFarmId) return null;
+  if (!activeFarmId) return <SelectFarmPrompt />;
   const lang = i18n.language === "en" ? "en" : "es";
 
   return (

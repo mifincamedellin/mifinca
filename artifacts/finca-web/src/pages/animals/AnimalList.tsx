@@ -8,6 +8,7 @@ import { currencyInputDisplay, currencyInputRaw } from "@/lib/currency";
 import { useUpgradeStore } from "@/lib/upgradeStore";
 import { useListAnimals, useCreateAnimal, useGetFarmStats, useListFarms, getListAnimalsQueryKey, getGetFarmStatsQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import type { Animal, CreateAnimalRequest } from "@workspace/api-client-react";
+type AnimalWithFarm = Animal & { _farmName?: string; _farmId?: string };
 import { ExportButton } from "@/components/ExportButton";
 import { exportAnimalToPdf, type MilkRecord } from "@/lib/exportPdf";
 import { Card } from "@/components/ui/card";
@@ -122,11 +123,12 @@ export function AnimalList() {
     setIsExporting(true);
     let succeeded = 0;
     let failed = 0;
+    const animalList = (animals ?? []) as AnimalWithFarm[];
     const animalFarmMap = new Map<string, string>(
-      (animals as any[] ?? []).map((a: any) => [a.id, a._farmId ?? activeFarmId])
+      animalList.map(a => [a.id, a._farmId ?? activeFarmId])
     );
     const animalFarmNameMap = new Map<string, string>(
-      (animals as any[] ?? []).map((a: any) => [a.id, a._farmName ?? farmName])
+      animalList.map(a => [a.id, a._farmName ?? farmName])
     );
     try {
       for (const animalId of Array.from(selectedIds)) {
@@ -203,20 +205,22 @@ export function AnimalList() {
     { query: { queryKey: getListAnimalsQueryKey(activeFarmId || '', { search: search || undefined }), enabled: !!activeFarmId && !isAllFarms } }
   );
 
-  const { data: allFarmsAnimals, isLoading: allLoading } = useQuery<(Animal & { _farmName: string; _farmId: string })[]>({
+  const { data: allFarmsAnimals, isLoading: allLoading } = useQuery<AnimalWithFarm[]>({
     queryKey: ["all-farms-animals", farmIds.join(","), search],
     enabled: isAllFarms && farmIds.length > 0,
     queryFn: async () => {
-      const results = await Promise.all(
+      const rawResults = await Promise.all(
         farmIds.map((id, i) =>
           fetch(`/api/farms/${id}/animals${search ? `?search=${encodeURIComponent(search)}` : ""}`).then(r =>
-            r.ok ? r.json().then((items: Animal[]) =>
-              items.map(a => ({ ...a, _farmName: farmsList[i]?.name ?? "", _farmId: id }))
-            ) : []
+            r.ok
+              ? (r.json() as Promise<Animal[]>).then(items =>
+                  items.map<AnimalWithFarm>(a => ({ ...a, _farmName: farmsList[i]?.name ?? "", _farmId: id }))
+                )
+              : Promise.resolve([] as AnimalWithFarm[])
           )
         )
       );
-      return results.flat();
+      return rawResults.flat();
     },
   });
 
@@ -886,7 +890,7 @@ export function AnimalList() {
                           </td>
                           {isAllFarms && (
                             <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                              {(animal as any)._farmName || "—"}
+                              {(animal as AnimalWithFarm)._farmName || "—"}
                             </td>
                           )}
                           <td className="px-4 py-3">
@@ -986,9 +990,9 @@ export function AnimalList() {
                       <p className="text-muted-foreground text-sm capitalize mt-1 flex items-center gap-2 flex-wrap">
                         <span className="inline-block w-2 h-2 rounded-full bg-secondary shrink-0"></span>
                         {t(`animals.sp.${animal.species}`)} {animal.breed ? `• ${animal.breed}` : ''}
-                        {(animal as any)._farmName && (
+                        {(animal as AnimalWithFarm)._farmName && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/8 text-primary/60 font-sans font-medium ml-auto capitalize normal-case">
-                            {(animal as any)._farmName}
+                            {(animal as AnimalWithFarm)._farmName}
                           </span>
                         )}
                       </p>

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useStore, ALL_FARMS_ID } from "@/lib/store";
 import { formatCurrencyCompact } from "@/lib/currency";
-import { useGetFarmStats, useListActivity, useListFarms, useGetMe, getGetMeQueryKey, getListFarmsQueryKey, getGetFarmStatsQueryKey, getListActivityQueryKey, type FarmStats } from "@workspace/api-client-react";
+import { useGetFarmStats, useListActivity, useListFarms, useGetMe, getGetMeQueryKey, getListFarmsQueryKey, getGetFarmStatsQueryKey, getListActivityQueryKey, type FarmStats, type MedicalRecord, type InventoryItem } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
@@ -174,23 +174,32 @@ export function Dashboard() {
     enabled: !!activeFarmId && !isAllFarms,
   });
 
-  type ActivityItem = { id?: string; actionType?: string; entityType?: string; description?: string; createdAt?: string; profile?: { fullName?: string }; _farmName?: string };
+  interface ActivityItem {
+    id?: string;
+    actionType?: string;
+    entityType?: string;
+    description?: string;
+    createdAt?: string;
+    profile?: { fullName?: string };
+    _farmName?: string;
+  }
 
-  const { data: allFarmsStats, isLoading: allStatsLoading } = useQuery<StatsExt>({
+  const { data: allFarmsStats, isLoading: allStatsLoading } = useQuery<FarmStats>({
     queryKey: ["all-farms-stats", farmIds.join(",")],
     enabled: isAllFarms && farmIds.length > 0,
     queryFn: async () => {
-      const results = await Promise.all(
-        farmIds.map(id => fetch(`/api/farms/${id}/stats`).then(r => r.ok ? r.json() : null))
+      const rawResults = await Promise.all(
+        farmIds.map(id => fetch(`/api/farms/${id}/stats`).then(r => r.ok ? (r.json() as Promise<FarmStats>) : null))
       );
-      const valid = results.filter(Boolean) as StatsExt[];
+      const valid = rawResults.filter((r): r is FarmStats => r !== null);
       const speciesMap: Record<string, number> = {};
       valid.forEach(r => {
-        (r.animalsBySpecies ?? []).forEach((s: { species?: string; count?: number }) => {
-          speciesMap[s.species ?? "other"] = (speciesMap[s.species ?? "other"] ?? 0) + (s.count ?? 0);
+        (r.animalsBySpecies ?? []).forEach(s => {
+          const key = s.species ?? "other";
+          speciesMap[key] = (speciesMap[key] ?? 0) + (s.count ?? 0);
         });
       });
-      return {
+      const aggregated: FarmStats = {
         totalAnimals: valid.reduce((s, r) => s + (r.totalAnimals ?? 0), 0),
         pregnantCount: valid.reduce((s, r) => s + (r.pregnantCount ?? 0), 0),
         upcomingMedicalCount: valid.reduce((s, r) => s + (r.upcomingMedicalCount ?? 0), 0),
@@ -199,10 +208,11 @@ export function Dashboard() {
         contactCount: valid.reduce((s, r) => s + (r.contactCount ?? 0), 0),
         recentActivityCount: valid.reduce((s, r) => s + (r.recentActivityCount ?? 0), 0),
         animalsBySpecies: Object.entries(speciesMap).map(([species, count]) => ({ species, count })),
-        upcomingMedical: valid.flatMap(r => r.upcomingMedical ?? []).slice(0, 5),
-        lowStockItems: valid.flatMap(r => r.lowStockItems ?? []).slice(0, 5),
+        upcomingMedical: valid.flatMap(r => r.upcomingMedical ?? []).slice(0, 5) as MedicalRecord[],
+        lowStockItems: valid.flatMap(r => r.lowStockItems ?? []).slice(0, 5) as InventoryItem[],
         upcomingMedicalAnimalIds: valid.flatMap(r => r.upcomingMedicalAnimalIds ?? []),
-      } as unknown as StatsExt;
+      };
+      return aggregated;
     },
   });
 
@@ -210,16 +220,16 @@ export function Dashboard() {
     queryKey: ["all-farms-activity", farmIds.join(",")],
     enabled: isAllFarms && farmIds.length > 0,
     queryFn: async () => {
-      const results = await Promise.all(
+      const rawResults = await Promise.all(
         farmIds.map((id, i) =>
           fetch(`/api/farms/${id}/activity?limit=10`).then(r =>
-            r.ok ? r.json().then((items: ActivityItem[]) =>
+            r.ok ? (r.json() as Promise<ActivityItem[]>).then(items =>
               items.map(item => ({ ...item, _farmName: farmsList[i]?.name }))
-            ) : []
+            ) : Promise.resolve([] as ActivityItem[])
           )
         )
       );
-      return results.flat().sort((a, b) =>
+      return rawResults.flat().sort((a, b) =>
         new Date(b.createdAt ?? "").getTime() - new Date(a.createdAt ?? "").getTime()
       ).slice(0, 10);
     },
@@ -227,7 +237,7 @@ export function Dashboard() {
 
   const stats = (isAllFarms ? allFarmsStats : rawStats) as StatsExt | undefined;
   const statsLoading = isAllFarms ? allStatsLoading : rawStatsLoading;
-  const displayActivity = (isAllFarms ? allFarmsActivity : activity) as ActivityItem[] | undefined;
+  const displayActivity: ActivityItem[] | undefined = isAllFarms ? allFarmsActivity : activity as ActivityItem[] | undefined;
 
   const now = new Date();
   const thisMonth = (finances || []).filter(t => {
