@@ -464,6 +464,7 @@ export function AnimalDetail() {
               variant="ghost"
               size="icon"
               className="rounded-xl text-primary hover:bg-primary/10 h-9 w-9"
+              aria-label={isEn ? "Export PDF" : "Exportar PDF"}
               onClick={() => exportAnimalToPdf(pdfOptions)}
             >
               <FileDown className="h-4 w-4" />
@@ -473,6 +474,7 @@ export function AnimalDetail() {
                 variant="ghost"
                 size="icon"
                 className="rounded-xl text-primary hover:bg-primary/10 h-9 w-9"
+                aria-label={t('animals.edit')}
                 onClick={() => { setPhotoPreview(null); setEditOpen(true); }}
               >
                 <Edit className="h-4 w-4" />
@@ -483,6 +485,7 @@ export function AnimalDetail() {
                 variant="ghost"
                 size="icon"
                 className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 h-9 w-9"
+                aria-label={t('animals.delete')}
                 onClick={() => setDeleteConfirm(true)}
               >
                 <Trash2 className="h-4 w-4" />
