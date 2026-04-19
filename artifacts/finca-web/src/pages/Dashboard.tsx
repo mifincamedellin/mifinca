@@ -427,13 +427,22 @@ export function Dashboard() {
         {/* Finances this-month card */}
         <Card
           className="lg:order-2 p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 flex flex-col cursor-pointer hover:shadow-md transition-all hover:border-border group"
-          onClick={() => navigate("/finances")}
+          onClick={() => isAllFarms ? undefined : navigate("/finances")}
         >
           <h3 className="text-xl font-serif text-primary mb-5 flex items-center justify-between">
             {t("dashboard.thisMonth")}
             <Wallet className="h-4 w-4 text-muted-foreground/40 group-hover:text-accent transition-colors" />
           </h3>
           <div className="flex-1 space-y-1">
+            {isAllFarms ? (
+              <div className="flex flex-col items-center justify-center h-24 gap-2 text-center">
+                <Wallet className="h-6 w-6 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground/60">
+                  {isEn ? "Select a specific farm to view financial data." : "Selecciona una finca específica para ver las finanzas."}
+                </p>
+              </div>
+            ) : (
+              <>
             <div className="flex items-center justify-between py-2.5 border-b border-border/40">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
@@ -463,11 +472,15 @@ export function Dashboard() {
                 {t("dashboard.noTransactions")}
               </p>
             )}
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 group-hover:text-accent transition-colors">
-            <ArrowRight className="h-3 w-3" />
-            {t("dashboard.viewFinances")}
-          </div>
+          {!isAllFarms && (
+            <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 group-hover:text-accent transition-colors">
+              <ArrowRight className="h-3 w-3" />
+              {t("dashboard.viewFinances")}
+            </div>
+          )}
         </Card>
 
         {/* Species bar chart */}

@@ -291,7 +291,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="font-serif text-lg text-primary hover:bg-black/5 hover-elevate border border-transparent hover:border-black/5 px-4 h-10 rounded-xl">
                       {activeFarmId === ALL_FARMS_ID
-                        ? t('farms.allFarms')
+                        ? t('farms.allFarmsShort')
                         : (farms.find(f => f.id === activeFarmId)?.name || t('common.selectFarm'))}
                     </Button>
                   </DropdownMenuTrigger>
