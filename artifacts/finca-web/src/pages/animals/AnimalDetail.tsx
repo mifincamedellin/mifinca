@@ -1065,14 +1065,16 @@ export function AnimalDetail() {
               <TabsTrigger value="weight" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
                 {t('animals.tab.weight')}
               </TabsTrigger>
-              <TabsTrigger value="medical" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1 relative">
-                {t('animals.tab.medical')}
-                {hasUpcomingMedical && activeTab !== "medical" && (
-                  <span className="absolute top-1 right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-                  </span>
-                )}
+              <TabsTrigger value="medical" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1">
+                <span className="relative inline-flex">
+                  {t('animals.tab.medical')}
+                  {hasUpcomingMedical && activeTab !== "medical" && (
+                    <span className="absolute -top-1 -right-2.5 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                    </span>
+                  )}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="lineage" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1 flex items-center gap-1.5">
                 <GitBranch className="h-3.5 w-3.5" />
