@@ -305,10 +305,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                           className={`rounded-lg cursor-pointer my-0.5 py-2.5 px-3 flex items-center gap-2 ${activeFarmId === ALL_FARMS_ID ? 'bg-primary/5 text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
                         >
                           <Layers className="h-4 w-4 shrink-0" />
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-sm">{t('farms.allFarms')}</span>
-                            <span className="text-xs opacity-60 truncate">{t('farms.allFarmsHint')}</span>
-                          </div>
+                          <span className="text-sm">{t('farms.allFarms')}</span>
                           {activeFarmId === ALL_FARMS_ID && <Check className="h-4 w-4 ml-auto shrink-0" />}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="my-1" />
