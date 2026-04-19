@@ -23,7 +23,7 @@ import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { AnimalLineage } from "./AnimalLineage";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
-import { exportMilkLogToPdf } from "@/lib/exportPdf";
+import { exportMilkLogToPdf, exportAnimalToPdf } from "@/lib/exportPdf";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -425,9 +425,86 @@ export function AnimalDetail() {
     ? deriveLifecycleStage(animal as unknown as LifecycleAnimal)
     : null;
 
+  const pdfOptions = {
+    animal: {
+      customTag: animal.customTag,
+      name: animal.name,
+      species: animal.species,
+      breed: animal.breed,
+      sex: animal.sex,
+      dateOfBirth: animal.dateOfBirth,
+      currentWeight: animal.currentWeight,
+      status: animal.status,
+      medicalRecords: animal.medicalRecords,
+      pregnancyCount: animal.pregnancyCount,
+      purchaseDate: (animal as unknown as { purchaseDate?: string | null }).purchaseDate,
+      purchasePrice: (animal as unknown as { purchasePrice?: number | null }).purchasePrice,
+      deathDate: (animal as unknown as { deathDate?: string | null }).deathDate,
+      deathCause: (animal as unknown as { deathCause?: string | null }).deathCause,
+    },
+    weights: weights ?? [],
+    milkRecords: showMilk ? milkRecords : undefined,
+    lifecycleStage: lifecycleStage ?? undefined,
+    farmName: activeFarmName,
+    isEn,
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
-      <div className="flex items-center gap-4">
+      {/* ── Mobile header: nav bar + name block stacked ── */}
+      <div className="md:hidden space-y-3">
+        <div className="flex items-center justify-between">
+          <Link href="/animals">
+            <Button variant="ghost" size="icon" className="rounded-full hover-elevate bg-card border-none shadow-sm h-10 w-10">
+              <ArrowLeft className="h-5 w-5 text-primary" />
+            </Button>
+          </Link>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl text-primary hover:bg-primary/10 h-9 w-9"
+              onClick={() => exportAnimalToPdf(pdfOptions)}
+            >
+              <FileDown className="h-4 w-4" />
+            </Button>
+            {can("can_edit_animals") && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl text-primary hover:bg-primary/10 h-9 w-9"
+                onClick={() => { setPhotoPreview(null); setEditOpen(true); }}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {can("can_remove_animals") && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/8 h-9 w-9"
+                onClick={() => setDeleteConfirm(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-primary flex items-center gap-3 flex-wrap">
+            {animal.name || `Animal ${animal.customTag}`}
+            <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full font-sans tracking-wide whitespace-nowrap shrink-0">
+              {animal.customTag || t('animals.noTag')}
+            </span>
+          </h1>
+          <p className="text-muted-foreground capitalize mt-1">
+            {animal.species} • {animal.sex || t('animals.unknownSex')}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Desktop header: single row ── */}
+      <div className="hidden md:flex items-center gap-4">
         <Link href="/animals">
           <Button variant="ghost" size="icon" className="rounded-full hover-elevate bg-card border-none shadow-sm h-10 w-10">
             <ArrowLeft className="h-5 w-5 text-primary" />
@@ -447,29 +524,7 @@ export function AnimalDetail() {
         <div className="flex items-center gap-2">
           <ExportPdfButton
             label={isEn ? "Export PDF" : "Exportar PDF"}
-            options={{
-              animal: {
-                customTag: animal.customTag,
-                name: animal.name,
-                species: animal.species,
-                breed: animal.breed,
-                sex: animal.sex,
-                dateOfBirth: animal.dateOfBirth,
-                currentWeight: animal.currentWeight,
-                status: animal.status,
-                medicalRecords: animal.medicalRecords,
-                pregnancyCount: animal.pregnancyCount,
-                purchaseDate: (animal as unknown as { purchaseDate?: string | null }).purchaseDate,
-                purchasePrice: (animal as unknown as { purchasePrice?: number | null }).purchasePrice,
-                deathDate: (animal as unknown as { deathDate?: string | null }).deathDate,
-                deathCause: (animal as unknown as { deathCause?: string | null }).deathCause,
-              },
-              weights: weights ?? [],
-              milkRecords: showMilk ? milkRecords : undefined,
-              lifecycleStage: lifecycleStage ?? undefined,
-              farmName: activeFarmName,
-              isEn,
-            }}
+            options={pdfOptions}
           />
           {can("can_edit_animals") && (
             <Button
