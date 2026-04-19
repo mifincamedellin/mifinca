@@ -154,8 +154,10 @@ export function AnimalDetail() {
       if (!res.ok) throw new Error("fetch milk failed");
       return res.json();
     },
-    enabled: !!(activeFarmId && id && animal?.species === "cattle"),
+    enabled: !!(activeFarmId && id && animal?.species === "cattle" && animal?.sex !== "male"),
   });
+
+  const showMilk = animal?.species === "cattle" && animal?.sex !== "male";
 
   const milkForm = useForm<MilkForm>({
     resolver: zodResolver(milkSchema),
@@ -463,7 +465,7 @@ export function AnimalDetail() {
                 deathCause: (animal as unknown as { deathCause?: string | null }).deathCause,
               },
               weights: weights ?? [],
-              milkRecords: animal.species === "cattle" ? milkRecords : undefined,
+              milkRecords: showMilk ? milkRecords : undefined,
               lifecycleStage: lifecycleStage ?? undefined,
               farmName: activeFarmName,
               isEn,
@@ -929,7 +931,7 @@ export function AnimalDetail() {
       </Dialog>
 
       {/* Milk record dialog */}
-      {animal.species === "cattle" && (
+      {showMilk && (
         <Dialog open={milkOpen} onOpenChange={(v) => { setMilkOpen(v); if (!v) { setEditingMilk(null); milkForm.reset(); } }}>
           <DialogContent className="sm:max-w-sm rounded-2xl">
             <DialogHeader>
@@ -1080,7 +1082,7 @@ export function AnimalDetail() {
                 <GitBranch className="h-3.5 w-3.5" />
                 {t('animals.tab.lineage')}
               </TabsTrigger>
-              {animal.species === "cattle" && (
+              {showMilk && (
                 <TabsTrigger value="milk" className="rounded-lg border border-border/50 md:border-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shrink-0 md:flex-1 flex items-center gap-1.5">
                   <Droplets className="h-3.5 w-3.5" />
                   {t('animals.tab.milk')}
@@ -1413,7 +1415,7 @@ export function AnimalDetail() {
               />
             </TabsContent>
 
-            {animal.species === "cattle" && (
+            {showMilk && (
               <TabsContent value="milk" className="mt-0 space-y-6">
                 {/* Stats row */}
                 {(() => {
