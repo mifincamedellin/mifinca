@@ -14,6 +14,7 @@ const DEMO_USER_ID    = "00000000-0000-0000-0000-000000000001";
 const DEMO_USER_EMAIL = "demo@fincacolombia.com";
 const DEMO_USER_PASS  = "demo1234";
 const DEMO_FARM_ID    = "a33817a9-7829-49ca-be0d-6c77a2a52e16";
+const DEMO_FARM2_ID   = "b55917a9-7829-49ca-be0d-6c77a2a52e17";
 
 function daysAgo(n: number) {
   const d = new Date();
@@ -682,6 +683,241 @@ export async function ensureDemoFarmData() {
   await seedDemoFarmData(DEMO_FARM_ID);
 }
 
+export async function seedDemoFarm2Data(farmId: string) {
+  const animalRows2 = await db.insert(animalsTable).values([
+    // ── CATTLE ──────────────────────────────────────────────────────────────
+    { farmId, customTag: "BOV-001", species: "cattle", breed: "Simmental",          name: "Rosa",         sex: "female", dateOfBirth: "2020-05-14", status: "active", notes: "Buena productora de leche" },
+    { farmId, customTag: "BOV-002", species: "cattle", breed: "Holstein",           name: "Lucía",        sex: "female", dateOfBirth: "2019-11-08", status: "active", notes: "Mejor productora del hato" },
+    { farmId, customTag: "BOV-003", species: "cattle", breed: "Gyr",                name: "Carmenza",     sex: "female", dateOfBirth: "2021-03-20", status: "active" },
+    { farmId, customTag: "BOV-004", species: "cattle", breed: "Normando",           name: "Doña Blanca",  sex: "female", dateOfBirth: "2020-08-02", status: "active" },
+    { farmId, customTag: "BOV-005", species: "cattle", breed: "Brahman",            name: "Toro Rey",     sex: "male",   dateOfBirth: "2019-06-15", status: "active", notes: "Semental principal" },
+    { farmId, customTag: "BOV-006", species: "cattle", breed: "Simmental",          name: "Palomita",     sex: "female", dateOfBirth: "2021-09-10", status: "active" },
+    { farmId, customTag: "BOV-007", species: "cattle", breed: "Gyr",                name: "Esperancita",  sex: "female", dateOfBirth: "2022-02-28", status: "active" },
+    { farmId, customTag: "BOV-008", species: "cattle", breed: "Normando",           name: "Cachorra",     sex: "female", dateOfBirth: "2022-07-17", status: "active" },
+    { farmId, customTag: "BOV-009", species: "cattle", breed: "Brahman",            name: "Novillo",      sex: "male",   dateOfBirth: "2022-04-05", status: "active", notes: "En engorde" },
+    { farmId, customTag: "BOV-010", species: "cattle", breed: "Cebú",               name: "Florcita",     sex: "female", dateOfBirth: "2023-01-12", status: "active" },
+    { farmId, customTag: "BOV-011", species: "cattle", breed: "Simmental",          name: "Ternera",      sex: "female", dateOfBirth: daysAgo(110), status: "active", notes: "Ternera nacida en finca" },
+    { farmId, customTag: "BOV-012", species: "cattle", breed: "Brahman",            name: "Rayo",         sex: "male",   dateOfBirth: daysAgo(75),  status: "active", notes: "Ternero nacido en finca" },
+    // ── PIGS ─────────────────────────────────────────────────────────────────
+    { farmId, customTag: "CER-001", species: "pig",    breed: "Landrace",           name: "Gorda",        sex: "female", dateOfBirth: "2023-04-10", status: "active" },
+    { farmId, customTag: "CER-002", species: "pig",    breed: "Duroc",              name: "Manchado",     sex: "male",   dateOfBirth: "2023-05-22", status: "active", notes: "Reproductor" },
+    { farmId, customTag: "CER-003", species: "pig",    breed: "Yorkshire",          name: "Canela",       sex: "female", dateOfBirth: "2023-09-08", status: "active" },
+    // ── HORSE ────────────────────────────────────────────────────────────────
+    { farmId, customTag: "CAB-001", species: "horse",  breed: "Criollo Colombiano", name: "Sultán",       sex: "male",   dateOfBirth: "2017-10-05", status: "active", notes: "Caballo de trabajo y silla" },
+    // ── GOATS ────────────────────────────────────────────────────────────────
+    { farmId, customTag: "CAP-001", species: "goat",   breed: "Boer",               name: "Clarita",      sex: "female", dateOfBirth: "2022-03-18", status: "active" },
+    { farmId, customTag: "CAP-002", species: "goat",   breed: "Nubian",             name: "Mocho",        sex: "male",   dateOfBirth: "2021-08-25", status: "active", notes: "Macho reproductor" },
+    { farmId, customTag: "CAP-003", species: "goat",   breed: "Boer",               name: "Pintita",      sex: "female", dateOfBirth: "2023-06-14", status: "active" },
+  ]).returning();
+
+  const now2 = new Date();
+  const dAgo2 = (n: number) => { const d = new Date(now2); d.setDate(d.getDate() - n); return d; };
+  const dFwd2 = (n: number) => { const d = new Date(now2); d.setDate(d.getDate() + n); return d; };
+  const tagId2 = (tag: string) => animalRows2.find(a => a.customTag === tag)?.id;
+
+  // BOV-005 (Toro Rey) — sire for all cows
+  for (const t of ["BOV-001","BOV-003","BOV-006","BOV-007","BOV-008","BOV-011"])
+    { const id = tagId2(t); if (id) await db.update(animalsTable).set({ fatherId: tagId2("BOV-005") }).where(eq(animalsTable.id, id)); }
+  // BOV-002 (Lucía) — mother of BOV-011
+  { const id = tagId2("BOV-011"); if (id) await db.update(animalsTable).set({ motherId: tagId2("BOV-002") }).where(eq(animalsTable.id, id)); }
+  // BOV-001 (Rosa) — mother of BOV-012
+  { const id = tagId2("BOV-012"); if (id) await db.update(animalsTable).set({ fatherId: tagId2("BOV-005"), motherId: tagId2("BOV-001") }).where(eq(animalsTable.id, id)); }
+  // Goats: CAP-002 (Mocho) sire
+  for (const t of ["CAP-001","CAP-003"])
+    { const id = tagId2(t); if (id) await db.update(animalsTable).set({ fatherId: tagId2("CAP-002") }).where(eq(animalsTable.id, id)); }
+
+  // PREGNANT — BOV-006 (Palomita), 100 days in, 283-day gestation → 183 days left
+  const pregId2 = tagId2("BOV-006");
+  if (pregId2) await db.update(animalsTable).set({
+    lifecycleStage: "pregnant", lifecycleStageStartedAt: dAgo2(100), lifecycleStageEndsAt: dFwd2(183),
+    isPregnant: true, pregnancyStartedAt: dAgo2(100), expectedDeliveryAt: dFwd2(183),
+    pregnancyConfirmedAt: dAgo2(92), pregnancyCheckDueAt: dAgo2(30), pregnancyCheckCompletedAt: dAgo2(28),
+  }).where(eq(animalsTable.id, pregId2));
+
+  // NURSING — BOV-001 (Rosa), 45 days in (has BOV-012 as calf)
+  const nurseId2 = tagId2("BOV-001");
+  if (nurseId2) await db.update(animalsTable).set({
+    lifecycleStage: "nursing", lifecycleStageStartedAt: dAgo2(75), lifecycleStageEndsAt: dFwd2(45),
+    nursingStartedAt: dAgo2(75), nursingEndsAt: dFwd2(45), weaningDueAt: dFwd2(45), isPregnant: false,
+  }).where(eq(animalsTable.id, nurseId2));
+
+  // ── WEIGHT RECORDS — 4 each ───────────────────────────────────────────────
+  const weightRecords2 = animalRows2.flatMap((animal, i) => {
+    const isMale = animal.sex === "male";
+    let base: number;
+    switch (animal.species) {
+      case "cattle": base = isMale ? 475 : 315; break;
+      case "pig":    base = isMale ? 98  : 84;  break;
+      case "horse":  base = 510;                break;
+      case "goat":   base = isMale ? 60  : 46;  break;
+      default:       base = 200;
+    }
+    const v = (i * 11 + 5) % 15;
+    return [
+      { animalId: animal.id, weightKg: String(base - 12 + v),            recordedAt: monthsAgo(3) },
+      { animalId: animal.id, weightKg: String(base - 12 + v + 7 + (v%4)),recordedAt: monthsAgo(2) },
+      { animalId: animal.id, weightKg: String(base - 12 + v + 15+(v%5)), recordedAt: monthsAgo(1) },
+      { animalId: animal.id, weightKg: String(base - 12 + v + 22+(v%4)), recordedAt: daysAgo(4 + (i % 18)) },
+    ];
+  });
+  await db.insert(weightRecordsTable).values(weightRecords2);
+
+  // ── MEDICAL RECORDS — 2 per animal ───────────────────────────────────────
+  const cattleMeds2 = [
+    { recordType: "vaccination" as const, title: "Vacuna Aftosa",       description: "Dosis semestral ICA — hato completo",             costCop: "45000", vetName: "Dr. Ramiro Ospina", monthsBack: 2 },
+    { recordType: "deworming"   as const, title: "Desparasitación interna", description: "Ivermectina 1% — control nematodos",          costCop: "28000", vetName: "Dr. Ramiro Ospina", monthsBack: 1 },
+    { recordType: "vaccination" as const, title: "Vacuna Brucelosis",   description: "Cepa RB51 — control oficial FEDEGAN",            costCop: "35000", vetName: "Dr. Ramiro Ospina", monthsBack: 3 },
+  ];
+  const pigMeds2 = [
+    { recordType: "vaccination" as const, title: "Vacuna PPC",          description: "Dosis semestral — control PPC",                  costCop: "38000", vetName: "Dr. Ramiro Ospina", monthsBack: 2 },
+    { recordType: "deworming"   as const, title: "Desparasitación porcinos", description: "Fenbendazol preventivo",                    costCop: "22000", vetName: undefined,            monthsBack: 1 },
+  ];
+  const horseMeds2 = [
+    { recordType: "vaccination" as const, title: "Vacuna Tétanos Equino", description: "Toxoide tetánico anual",                        costCop: "48000", vetName: "Dr. Ramiro Ospina", monthsBack: 3 },
+    { recordType: "deworming"   as const, title: "Desparasitación equinos", description: "Ivermectina + Praziquantel",                  costCop: "35000", vetName: "Dr. Ramiro Ospina", monthsBack: 2 },
+  ];
+  const goatMeds2 = [
+    { recordType: "vaccination" as const, title: "Vacuna Polivalente",  description: "Vacuna clostridiosis polivalente caprinos",       costCop: "28000", vetName: "Dr. Ramiro Ospina", monthsBack: 3 },
+    { recordType: "deworming"   as const, title: "Desparasitación caprinos", description: "Levamisol + Albendazol",                     costCop: "18000", vetName: undefined,            monthsBack: 1 },
+  ];
+  const medRecs2 = animalRows2.flatMap((animal, i) => {
+    let mpool: typeof cattleMeds2;
+    switch (animal.species) {
+      case "pig":   mpool = pigMeds2;   break;
+      case "horse": mpool = horseMeds2; break;
+      case "goat":  mpool = goatMeds2;  break;
+      default:      mpool = cattleMeds2; break;
+    }
+    const v1 = mpool[i % mpool.length]!;
+    const v2 = mpool[(i + 1) % mpool.length]!;
+    const daysUntilDue = 14 + (i * 17) % 90;
+    return [
+      { animalId: animal.id, recordType: v1.recordType, title: v1.title, description: v1.description, costCop: v1.costCop,
+        vetName: v1.vetName ?? undefined, recordDate: monthsAgo(v1.monthsBack),
+        ...(v1.recordType !== "checkup" ? { nextDueDate: daysFromNow(daysUntilDue) } : {}) },
+      { animalId: animal.id, recordType: v2.recordType, title: v2.title, description: v2.description, costCop: v2.costCop,
+        vetName: v2.vetName ?? undefined, recordDate: monthsAgo(v2.monthsBack + 1),
+        ...(v2.recordType !== "checkup" ? { nextDueDate: daysFromNow(daysUntilDue + 45) } : {}) },
+    ];
+  });
+  await db.insert(medicalRecordsTable).values(medRecs2);
+
+  // ── INVENTORY ─────────────────────────────────────────────────────────────
+  await db.insert(inventoryItemsTable).values([
+    { farmId, category: "feed",     name: "Concentrado Bovino",      quantity: "8",  unit: "bags",   lowStockThreshold: "3",  costPerUnitCop: "92000",  supplierName: "AgroQuindío S.A.", notes: "Bulto 40kg" },
+    { farmId, category: "feed",     name: "Sal Mineralizada",        quantity: "2",  unit: "bags",   lowStockThreshold: "3",  costPerUnitCop: "60000",  supplierName: "AgroQuindío S.A." },
+    { farmId, category: "medicine", name: "Ivermectina 1%",          quantity: "2",  unit: "liters", lowStockThreshold: "1",  costPerUnitCop: "48000",  supplierName: "VetInsumos Eje Cafetero", expirationDate: monthsAgo(-7) },
+    { farmId, category: "medicine", name: "Vitaminas ADE",           quantity: "1",  unit: "liters", lowStockThreshold: "1",  costPerUnitCop: "42000" },
+    { farmId, category: "supplies", name: "Aretes de identificación",quantity: "20", unit: "units",  lowStockThreshold: "5",  costPerUnitCop: "3500",   supplierName: "AgroQuindío S.A." },
+  ]);
+
+  // ── EMPLOYEES ─────────────────────────────────────────────────────────────
+  await db.insert(employeesTable).values([
+    { farmId, name: "Pedro Antonio Ríos",  phone: "+57 314 567 8901", email: "pedrorios@gmail.com",  startDate: "2020-02-01", monthlySalary: "1500000", bankName: "Bancolombia", bankAccount: "404-445566-11", notes: "Mayordomo — manejo bovinos y potreros",  pension: "180000", salud: "127500", arl: "7800",  primas: "750000",  cesantias: "1500000" },
+    { farmId, name: "Gloria Inés Vargas",  phone: "+57 312 890 4523",                                 startDate: "2021-09-15", monthlySalary: "1160000", bankName: "Nequi",                               notes: "Ordeñadora turno mañana y tarde",        pension: "139200", salud: "98600",  arl: "6032",  primas: "580000",  cesantias: "1160000" },
+  ]);
+
+  // ── FINANCES ──────────────────────────────────────────────────────────────
+  await db.insert(financeTransactionsTable).values([
+    // ── Income — current month ─────────────────────────────────────────────
+    { farmId, type: "income",  category: "venta_leche",    amount: "750000",  description: "Venta leche quincenal — 150 litros",           date: daysAgo(1),       notes: "Lácteos Salento Ltda — $5.000/L" },
+    { farmId, type: "income",  category: "venta_leche",    amount: "720000",  description: "Venta leche quincenal — 144 litros",           date: daysAgo(16),      notes: "Lácteos Salento Ltda" },
+    { farmId, type: "income",  category: "venta_animales", amount: "4200000", description: "Venta novillo Brahman BOV-009 — 490 kg en pie", date: daysAgo(8),       notes: "Frigorífico La Montaña — 8.500 COP/kg" },
+    // ── Income — 1 month ago ───────────────────────────────────────────────
+    { farmId, type: "income",  category: "venta_leche",    amount: "730000",  description: "Venta leche quincenal — 146 litros",           date: monthsAgo(1, 5),  notes: "Lácteos Salento Ltda" },
+    { farmId, type: "income",  category: "venta_leche",    amount: "710000",  description: "Venta leche quincenal — 142 litros",           date: monthsAgo(1, 20), notes: "Lácteos Salento Ltda" },
+    { farmId, type: "income",  category: "venta_cosecha",  amount: "480000",  description: "Venta plátano hartón — 240 kg",                date: monthsAgo(1, 12), notes: "Mercado Armenia" },
+    // ── Income — 2 months ago ──────────────────────────────────────────────
+    { farmId, type: "income",  category: "venta_leche",    amount: "700000",  description: "Venta leche quincenal — 140 litros",           date: monthsAgo(2, 5),  notes: "Lácteos Salento Ltda" },
+    { farmId, type: "income",  category: "venta_leche",    amount: "680000",  description: "Venta leche quincenal — 136 litros",           date: monthsAgo(2, 20), notes: "Lácteos Salento Ltda" },
+    { farmId, type: "income",  category: "venta_animales", amount: "7500000", description: "Venta 2 novillos Simmental engorde",           date: monthsAgo(2, 10), notes: "Frigorífico La Montaña" },
+    // ── Income — 3 months ago ──────────────────────────────────────────────
+    { farmId, type: "income",  category: "venta_leche",    amount: "650000",  description: "Venta leche quincenal — 130 litros",           date: monthsAgo(3, 1),  notes: "Lácteos Salento Ltda" },
+    { farmId, type: "income",  category: "venta_leche",    amount: "660000",  description: "Venta leche quincenal — 132 litros",           date: monthsAgo(3, 18), notes: "Lácteos Salento Ltda" },
+    // ── Expenses — current month ───────────────────────────────────────────
+    { farmId, type: "expense", category: "nomina",         amount: "2660000", description: "Nómina mensual — 2 empleados",                 date: daysAgo(3),       notes: "Pedro Antonio Ríos + Gloria Inés Vargas" },
+    { farmId, type: "expense", category: "alimentacion",   amount: "380000",  description: "Concentrado bovino — 4 bultos",                date: daysAgo(12),      notes: "AgroQuindío S.A." },
+    // ── Expenses — 1 month ago ─────────────────────────────────────────────
+    { farmId, type: "expense", category: "nomina",         amount: "2660000", description: "Nómina mensual — 2 empleados",                 date: monthsAgo(1, 28), notes: null },
+    { farmId, type: "expense", category: "alimentacion",   amount: "380000",  description: "Concentrado bovino — 4 bultos",                date: monthsAgo(1, 8),  notes: "AgroQuindío S.A." },
+    { farmId, type: "expense", category: "medicamentos",   amount: "95000",   description: "Ivermectina y vitaminas ADE",                  date: monthsAgo(1, 15), notes: "VetInsumos Eje Cafetero" },
+    { farmId, type: "expense", category: "servicios",      amount: "180000",  description: "Visita veterinaria — 3 animales",              date: monthsAgo(1, 20), notes: "Dr. Ramiro Ospina" },
+    // ── Expenses — 2 months ago ────────────────────────────────────────────
+    { farmId, type: "expense", category: "nomina",         amount: "2660000", description: "Nómina mensual — 2 empleados",                 date: monthsAgo(2, 28), notes: null },
+    { farmId, type: "expense", category: "alimentacion",   amount: "350000",  description: "Concentrado bovino — 3 bultos + sal",          date: monthsAgo(2, 8),  notes: "AgroQuindío S.A." },
+    { farmId, type: "expense", category: "transporte",     amount: "280000",  description: "Flete 2 novillos al frigorífico",              date: monthsAgo(2, 9),  notes: "Transportes Quindío Express" },
+    // ── Expenses — 3 months ago ────────────────────────────────────────────
+    { farmId, type: "expense", category: "nomina",         amount: "2660000", description: "Nómina mensual — 2 empleados",                 date: monthsAgo(3, 28), notes: null },
+    { farmId, type: "expense", category: "alimentacion",   amount: "340000",  description: "Concentrado bovino — 3 bultos",                date: monthsAgo(3, 10), notes: "AgroQuindío S.A." },
+    { farmId, type: "expense", category: "insumos",        amount: "75000",   description: "Aretes de identificación y jeringas",          date: monthsAgo(3, 15), notes: null },
+  ]);
+
+  // ── CONTACTS ──────────────────────────────────────────────────────────────
+  await db.insert(contactsTable).values([
+    { farmId, name: "Dr. Ramiro Ospina",            phone: "+57 314 678 9012", email: "rospina@vetquindio.co",   category: "vet",       notes: "Veterinario bovinos y equinos. Cobertura Salento y municipios vecinos." },
+    { farmId, name: "AgroQuindío S.A.",             phone: "+57 6 741 2233",                                     category: "supplier",  notes: "Concentrados, sal mineralizada e insumos. Entrega en finca los martes." },
+    { farmId, name: "VetInsumos Eje Cafetero",      phone: "+57 316 123 4567",                                   category: "supplier",  notes: "Medicamentos veterinarios y vacunas. Crédito 30 días." },
+    { farmId, name: "Lácteos Salento Ltda",         phone: "+57 6 759 3344",   email: "acopio@lacteossalento.co",category: "buyer",     notes: "Recogida leche martes y sábados. Precio $5.000/litro." },
+    { farmId, name: "Frigorífico La Montaña",       phone: "+57 315 800 2200",                                   category: "buyer",     notes: "Compra novillos en pie. Precio referencia $8.500 COP/kg. Requiere guía ICA." },
+  ]);
+
+  // ── ACTIVITY LOG ─────────────────────────────────────────────────────────
+  await db.insert(activityLogTable).values([
+    { farmId, actionType: "create", entityType: "animal",        description: "Animal Rosa (BOV-001) registrada en el sistema" },
+    { farmId, actionType: "create", entityType: "medical_record",description: "Vacuna Aftosa aplicada — hato completo" },
+    { farmId, actionType: "create", entityType: "finance",       description: "Ingreso registrado: Venta leche $750.000" },
+    { farmId, actionType: "create", entityType: "contact",       description: "Contacto agregado: Dr. Ramiro Ospina (Veterinario)" },
+    { farmId, actionType: "update", entityType: "inventory",     description: "Sal mineralizada: alerta stock bajo" },
+  ]);
+
+  // ── MILK RECORDS (30 days) — 4 dairy cows ─────────────────────────────────
+  type MilkSession2 = "morning" | "afternoon" | "full_day";
+  const dairyCows2: Array<{ tag: string; am: number; pm: number }> = [
+    { tag: "BOV-002", am: 16, pm: 9  }, // Lucía     — Holstein (best)
+    { tag: "BOV-003", am: 12, pm: 7  }, // Carmenza  — Gyr
+    { tag: "BOV-004", am: 11, pm: 6  }, // Doña Blanca — Normando
+    { tag: "BOV-007", am: 10, pm: 5  }, // Esperancita — Gyr (younger)
+  ];
+  const milkRows2: { animalId: string; recordedAt: string; amountLiters: string; session: MilkSession2 }[] = [];
+  for (const cow of dairyCows2) {
+    const id = tagId2(cow.tag); if (!id) continue;
+    for (let i = 0; i < 30; i++) {
+      const jitter = (seed: number) => ((seed * 5 + i * 3) % 5) * 0.2 - 0.4;
+      milkRows2.push({ animalId: id, recordedAt: daysAgo(i), amountLiters: Math.max(2, cow.am + jitter(cow.am)).toFixed(1), session: "morning" });
+      milkRows2.push({ animalId: id, recordedAt: daysAgo(i), amountLiters: Math.max(1.5, cow.pm + jitter(cow.pm)).toFixed(1), session: "afternoon" });
+    }
+  }
+  if (milkRows2.length) await db.insert(milkRecordsTable).values(milkRows2);
+
+  // ── FARM EVENTS ───────────────────────────────────────────────────────────
+  await db.insert(farmEventsTable).values([
+    { farmId, title: "Entrega leche — Lácteos Salento",   titleEn: "Milk delivery — Lácteos Salento",  category: "other",       startDate: daysFromNow(1),  description: "Recogida semanal — aprox. 75 litros.",               descriptionEn: "Weekly pickup — approx. 75 liters.",                        assignedTo: "Gloria Inés Vargas" },
+    { farmId, title: "Visita veterinaria rutinaria",       titleEn: "Routine vet visit",                category: "health",      startDate: daysFromNow(4),  description: "Revisión Palomita (preñada) y control hato. Dr. Ospina.", descriptionEn: "Check on Palomita (pregnant) and herd inspection. Dr. Ospina.", assignedTo: "Dr. Ramiro Ospina" },
+    { farmId, title: "Desparasitación hato completo",      titleEn: "Full herd deworming",              category: "health",      startDate: daysFromNow(6),  description: "Ivermectina — ciclo trimestral.",                     descriptionEn: "Ivermectin — quarterly cycle.",                             assignedTo: "Pedro Antonio Ríos" },
+    { farmId, title: "Pago nómina mensual",                titleEn: "Monthly payroll",                  category: "meeting",     startDate: daysFromNow(8),  description: "Transferencia salarios 2 empleados.",                descriptionEn: "Salary transfers for 2 employees.",                         assignedTo: "Pedro Antonio Ríos" },
+    { farmId, title: "Entrega leche — Lácteos Salento",   titleEn: "Milk delivery — Lácteos Salento",  category: "other",       startDate: daysFromNow(15), description: "Recogida semanal — aprox. 75 litros.",               descriptionEn: "Weekly pickup — approx. 75 liters." },
+    { farmId, title: "Pedido concentrado bovino",          titleEn: "Cattle feed order",                category: "feeding",     startDate: daysFromNow(11), description: "Solicitar 5 bultos AgroQuindío antes de agotarse.",  descriptionEn: "Order 5 bags from AgroQuindío before running out.",          assignedTo: "Pedro Antonio Ríos" },
+    { farmId, title: "Cosecha plátano parcela sur",        titleEn: "Banana harvest — south plot",      category: "harvest",     startDate: daysFromNow(18), endDate: daysFromNow(19), description: "Recolección manual plátano hartón — 2 jornadas.",     descriptionEn: "Hand harvest of hartón bananas — 2 workdays." },
+    { farmId, title: "Revisión prenatal Palomita",         titleEn: "Palomita prenatal checkup",        category: "health",      startDate: daysFromNow(22), description: "Control preñez mes 4 — Dr. Ospina.",                 descriptionEn: "Pregnancy check month 4 — Dr. Ospina.",                     assignedTo: "Dr. Ramiro Ospina" },
+    // ── Recent past ──────────────────────────────────────────────────────
+    { farmId, title: "Venta novillo Frigorífico La Montaña", titleEn: "Steer sale — Frigorífico La Montaña", category: "meeting", startDate: daysAgo(8), description: "BOV-009 — 490 kg en pie, $8.500/kg.",               descriptionEn: "BOV-009 — 490 kg liveweight, $8,500/kg." },
+    { farmId, title: "Aplicación sal mineralizada",        titleEn: "Mineral salt application",         category: "feeding",     startDate: daysAgo(5),  description: "Distribución semanal saladeros potrero 1 y 2.",      descriptionEn: "Weekly mineral salt lick distribution, paddocks 1 & 2.",     assignedTo: "Pedro Antonio Ríos" },
+    // ── May 2026 ─────────────────────────────────────────────────────────
+    { farmId, title: "Vacuna Aftosa semestral",            titleEn: "Biannual FMD vaccination",         category: "health",      startDate: "2026-05-12", description: "Dosis semestral hato bovino — ICA.",                 descriptionEn: "Biannual FMD dose for bovine herd — ICA requirement.",       assignedTo: "Dr. Ramiro Ospina" },
+    { farmId, title: "Entrega leche — Lácteos Salento",   titleEn: "Milk delivery — Lácteos Salento",  category: "other",       startDate: "2026-05-17", description: "Recogida semanal.",                                  descriptionEn: "Weekly pickup." },
+    { farmId, title: "Pago nómina mensual",                titleEn: "Monthly payroll",                  category: "meeting",     startDate: "2026-05-30", description: "Transferencia salarios 2 empleados.",                descriptionEn: "Salary transfers for 2 employees." },
+  ]);
+}
+
+export async function ensureDemoFarm2Data() {
+  const existing = await db.select({ id: animalsTable.id })
+    .from(animalsTable)
+    .where(eq(animalsTable.farmId, DEMO_FARM2_ID))
+    .limit(1);
+  if (existing.length > 0) return;
+  await seedDemoFarm2Data(DEMO_FARM2_ID);
+}
+
 export async function ensureDemoAuthUser() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS auth_users (
@@ -705,8 +941,8 @@ export async function ensureDemoAuthUser() {
 
   await pool.query(`
     INSERT INTO farms (id, owner_id, name, location)
-    VALUES ($1, $2, 'Finca La Esperanza', 'Colombia')
-    ON CONFLICT (id) DO NOTHING
+    VALUES ($1, $2, 'Finca La Esperanza', 'Fusagasugá, Cundinamarca')
+    ON CONFLICT (id) DO UPDATE SET location = EXCLUDED.location
   `, [DEMO_FARM_ID, DEMO_USER_ID]);
 
   await pool.query(`
@@ -715,7 +951,20 @@ export async function ensureDemoAuthUser() {
     ON CONFLICT (farm_id, user_id) DO NOTHING
   `, [DEMO_FARM_ID, DEMO_USER_ID]);
 
+  await pool.query(`
+    INSERT INTO farms (id, owner_id, name, location)
+    VALUES ($1, $2, 'Finca El Porvenir', 'Salento, Quindío')
+    ON CONFLICT (id) DO NOTHING
+  `, [DEMO_FARM2_ID, DEMO_USER_ID]);
+
+  await pool.query(`
+    INSERT INTO farm_members (farm_id, user_id, role, permissions)
+    VALUES ($1, $2, 'owner', '{"can_view_animals":true,"can_add_animals":true,"can_edit_animals":true,"can_remove_animals":true,"can_view_inventory":true,"can_add_inventory":true,"can_edit_inventory":true,"can_remove_inventory":true,"can_view_finances":true,"can_add_finances":true,"can_edit_finances":true,"can_remove_finances":true,"can_view_contacts":true,"can_add_contacts":true,"can_edit_contacts":true,"can_remove_contacts":true,"can_view_employees":true,"can_add_employees":true,"can_edit_employees":true,"can_remove_employees":true,"can_view_calendar":true,"can_add_calendar":true,"can_edit_calendar":true,"can_remove_calendar":true}')
+    ON CONFLICT (farm_id, user_id) DO NOTHING
+  `, [DEMO_FARM2_ID, DEMO_USER_ID]);
+
   await ensureDemoFarmData();
+  await ensureDemoFarm2Data();
 }
 
 const router = Router();
