@@ -174,20 +174,25 @@ export function Dashboard() {
     enabled: !!activeFarmId && !isAllFarms,
   });
 
-  const { data: allFarmsFinances } = useQuery<FinanceRow[]>({
+  const { data: allFarmsFinancesData, isLoading: allFinancesLoading } = useQuery<{ rows: FinanceRow[]; failedCount: number }>({
     queryKey: ["all-farms-finances", farmIds.join(",")],
     enabled: isAllFarms && farmIds.length > 0,
     queryFn: async () => {
+      let failedCount = 0;
       const rawResults = await Promise.all(
         farmIds.map(id =>
-          fetch(`/api/farms/${id}/finances`).then(r =>
-            r.ok ? (r.json() as Promise<FinanceRow[]>) : Promise.resolve([] as FinanceRow[])
-          )
+          fetch(`/api/farms/${id}/finances`).then(r => {
+            if (r.ok) return r.json() as Promise<FinanceRow[]>;
+            failedCount++;
+            return [] as FinanceRow[];
+          }).catch(() => { failedCount++; return [] as FinanceRow[]; })
         )
       );
-      return rawResults.flat();
+      return { rows: rawResults.flat(), failedCount };
     },
   });
+  const allFarmsFinances = allFarmsFinancesData?.rows;
+  const allFarmsFinancesFailed = (allFarmsFinancesData?.failedCount ?? 0) > 0;
 
   interface ActivityItem {
     id?: string;
@@ -450,34 +455,49 @@ export function Dashboard() {
             <Wallet className={`h-4 w-4 text-muted-foreground/40 ${isAllFarms ? "" : "group-hover:text-accent transition-colors"}`} />
           </h3>
           <div className="flex-1 space-y-1">
-            <div className="flex items-center justify-between py-2.5 border-b border-border/40">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-sm text-muted-foreground">{t("dashboard.income")}</span>
+            {isAllFarms && allFinancesLoading ? (
+              <div className="space-y-2 pt-1">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-8 rounded-lg animate-pulse bg-black/5" />
+                ))}
               </div>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {formatCurrency(monthIncome, currency)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-2.5 border-b border-border/40">
-              <div className="flex items-center gap-2">
-                <TrendingDown className="h-3.5 w-3.5 text-red-500" />
-                <span className="text-sm text-muted-foreground">{t("dashboard.expenses")}</span>
-              </div>
-              <span className="font-semibold text-red-500 tabular-nums">
-                {formatCurrency(monthExpenses, currency)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm font-semibold text-foreground">{t("dashboard.netBalance")}</span>
-              <span className={`text-xl font-serif font-bold tabular-nums ${monthNet >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                {monthNet >= 0 ? "+" : ""}{formatCurrency(monthNet, currency)}
-              </span>
-            </div>
-            {thisMonth.length === 0 && (
-              <p className="text-xs text-muted-foreground/60 text-center pt-1">
-                {t("dashboard.noTransactions")}
-              </p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between py-2.5 border-b border-border/40">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                    <span className="text-sm text-muted-foreground">{t("dashboard.income")}</span>
+                  </div>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    {formatCurrency(monthIncome, currency)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2.5 border-b border-border/40">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                    <span className="text-sm text-muted-foreground">{t("dashboard.expenses")}</span>
+                  </div>
+                  <span className="font-semibold text-red-500 tabular-nums">
+                    {formatCurrency(monthExpenses, currency)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm font-semibold text-foreground">{t("dashboard.netBalance")}</span>
+                  <span className={`text-xl font-serif font-bold tabular-nums ${monthNet >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    {monthNet >= 0 ? "+" : ""}{formatCurrency(monthNet, currency)}
+                  </span>
+                </div>
+                {thisMonth.length === 0 && !allFinancesLoading && (
+                  <p className="text-xs text-muted-foreground/60 text-center pt-1">
+                    {t("dashboard.noTransactions")}
+                  </p>
+                )}
+                {isAllFarms && allFarmsFinancesFailed && (
+                  <p className="text-xs text-amber-600/70 text-center pt-1">
+                    {isEn ? "Some farm data could not be loaded." : "No se pudo cargar la información de algunas fincas."}
+                  </p>
+                )}
+              </>
             )}
           </div>
           <div className="mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 flex items-center gap-1">
