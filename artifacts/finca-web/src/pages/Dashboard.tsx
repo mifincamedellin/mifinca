@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   Activity, AlertTriangle, Syringe, PawPrint, HelpCircle,
-  Users, Phone, TrendingUp, TrendingDown, ArrowRight, Wallet, Baby, Droplets,
+  Users, Phone, TrendingUp, TrendingDown, ArrowRight, Wallet, Baby, Droplets, Layers,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -174,6 +174,21 @@ export function Dashboard() {
     enabled: !!activeFarmId && !isAllFarms,
   });
 
+  const { data: allFarmsFinances } = useQuery<FinanceRow[]>({
+    queryKey: ["all-farms-finances", farmIds.join(",")],
+    enabled: isAllFarms && farmIds.length > 0,
+    queryFn: async () => {
+      const rawResults = await Promise.all(
+        farmIds.map(id =>
+          fetch(`/api/farms/${id}/finances`).then(r =>
+            r.ok ? (r.json() as Promise<FinanceRow[]>) : Promise.resolve([] as FinanceRow[])
+          )
+        )
+      );
+      return rawResults.flat();
+    },
+  });
+
   interface ActivityItem {
     id?: string;
     actionType?: string;
@@ -256,7 +271,8 @@ export function Dashboard() {
   const displayActivity: ActivityItem[] | undefined = isAllFarms ? allFarmsActivity : activity as ActivityItem[] | undefined;
 
   const now = new Date();
-  const thisMonth = (finances || []).filter(t => {
+  const effectiveFinances = isAllFarms ? (allFarmsFinances ?? []) : (finances ?? []);
+  const thisMonth = effectiveFinances.filter(t => {
     const d = new Date(t.date + "T12:00:00");
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   });
@@ -426,23 +442,14 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Finances this-month card */}
         <Card
-          className="lg:order-2 p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 flex flex-col cursor-pointer hover:shadow-md transition-all hover:border-border group"
+          className={`lg:order-2 p-6 border-border/50 shadow-sm rounded-2xl bg-card/40 flex flex-col transition-all ${isAllFarms ? "" : "cursor-pointer hover:shadow-md hover:border-border group"}`}
           onClick={() => isAllFarms ? undefined : navigate("/finances")}
         >
           <h3 className="text-xl font-serif text-primary mb-5 flex items-center justify-between">
             {t("dashboard.thisMonth")}
-            <Wallet className="h-4 w-4 text-muted-foreground/40 group-hover:text-accent transition-colors" />
+            <Wallet className={`h-4 w-4 text-muted-foreground/40 ${isAllFarms ? "" : "group-hover:text-accent transition-colors"}`} />
           </h3>
           <div className="flex-1 space-y-1">
-            {isAllFarms ? (
-              <div className="flex flex-col items-center justify-center h-24 gap-2 text-center">
-                <Wallet className="h-6 w-6 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground/60">
-                  {isEn ? "Select a specific farm to view financial data." : "Selecciona una finca específica para ver las finanzas."}
-                </p>
-              </div>
-            ) : (
-              <>
             <div className="flex items-center justify-between py-2.5 border-b border-border/40">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
@@ -472,15 +479,20 @@ export function Dashboard() {
                 {t("dashboard.noTransactions")}
               </p>
             )}
+          </div>
+          <div className="mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 flex items-center gap-1">
+            {isAllFarms ? (
+              <>
+                <Layers className="h-3 w-3 shrink-0" />
+                <span>{isEn ? `Combined across ${farmIds.length} farms` : `Suma de ${farmIds.length} fincas`}</span>
               </>
+            ) : (
+              <div className="flex items-center gap-1 group-hover:text-accent transition-colors w-full">
+                <ArrowRight className="h-3 w-3" />
+                {t("dashboard.viewFinances")}
+              </div>
             )}
           </div>
-          {!isAllFarms && (
-            <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border/30 text-xs text-muted-foreground/50 group-hover:text-accent transition-colors">
-              <ArrowRight className="h-3 w-3" />
-              {t("dashboard.viewFinances")}
-            </div>
-          )}
         </Card>
 
         {/* Species bar chart */}
