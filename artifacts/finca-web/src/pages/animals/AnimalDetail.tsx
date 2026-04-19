@@ -121,16 +121,18 @@ export function AnimalDetail() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isAllFarmsCtx = activeFarmId === ALL_FARMS_ID;
+
   const { data: animal, isLoading, refetch } = useGetAnimal(activeFarmId || '', id || '', {
-    query: { queryKey: getGetAnimalQueryKey(activeFarmId || '', id || ''), enabled: !!(activeFarmId && id) }
+    query: { queryKey: getGetAnimalQueryKey(activeFarmId || '', id || ''), enabled: !!(activeFarmId && id) && !isAllFarmsCtx }
   });
 
   const { data: weights } = useListWeightRecords(activeFarmId || '', id || '', {
-    query: { queryKey: getListWeightRecordsQueryKey(activeFarmId || '', id || ''), enabled: !!(activeFarmId && id) }
+    query: { queryKey: getListWeightRecordsQueryKey(activeFarmId || '', id || ''), enabled: !!(activeFarmId && id) && !isAllFarmsCtx }
   });
 
   const { data: farmStats } = useGetFarmStats(activeFarmId || '', {
-    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ''), enabled: !!activeFarmId }
+    query: { queryKey: getGetFarmStatsQueryKey(activeFarmId || ''), enabled: !!activeFarmId && !isAllFarmsCtx }
   });
   const hasUpcomingMedical = !!(id && farmStats?.upcomingMedicalAnimalIds?.includes(id));
 
@@ -155,7 +157,7 @@ export function AnimalDetail() {
       if (!res.ok) throw new Error("fetch milk failed");
       return res.json();
     },
-    enabled: !!(activeFarmId && id && animal?.species === "cattle" && animal?.sex !== "male"),
+    enabled: !!(activeFarmId && id && animal?.species === "cattle" && animal?.sex !== "male") && !isAllFarmsCtx,
   });
 
   const showMilk = animal?.species === "cattle" && animal?.sex !== "male";

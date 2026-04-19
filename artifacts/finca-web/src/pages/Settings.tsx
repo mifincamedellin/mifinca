@@ -137,7 +137,7 @@ export function Settings() {
   };
 
   const { data: farm } = useGetFarm(activeFarmId || '', {
-    query: { queryKey: getGetFarmQueryKey(activeFarmId || ''), enabled: !!activeFarmId }
+    query: { queryKey: getGetFarmQueryKey(activeFarmId || ''), enabled: !!activeFarmId && activeFarmId !== ALL_FARMS_ID }
   });
 
   const { data: profile, refetch: refetchProfile } = useQuery({
@@ -156,7 +156,7 @@ export function Settings() {
       if (!res.ok) throw new Error("failed");
       return res.json() as Promise<{ totalAnimals: number; employeeCount: number; contactCount: number }>;
     },
-    enabled: !!activeFarmId,
+    enabled: !!activeFarmId && activeFarmId !== ALL_FARMS_ID,
   });
 
   const { data: farms } = useQuery({
