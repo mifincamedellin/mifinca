@@ -233,16 +233,16 @@ export function MilkReport() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-max min-w-full text-sm">
               <thead>
                 <tr className="border-b border-border/40 bg-muted/30">
-                  <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colTag")}</th>
-                  <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colName")}</th>
-                  <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colTotal")}</th>
-                  <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colDailyAvg")}</th>
-                  <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colRecords")}</th>
-                  <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colLast")}</th>
-                  <th className="text-center px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide">{t("milk.colTrend")}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colTag")}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colName")}</th>
+                  <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colTotal")}</th>
+                  <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colDailyAvg")}</th>
+                  <th className="text-right px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colRecords")}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colLast")}</th>
+                  <th className="text-center px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wide whitespace-nowrap">{t("milk.colTrend")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,22 +251,22 @@ export function MilkReport() {
                     key={animal.id}
                     className={`border-b border-border/20 hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <Link href={`/animals/${animal.id}`}>
                         <span className="font-mono text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-lg cursor-pointer hover:bg-primary/20 transition-colors">
                           {animal.customTag ?? "—"}
                         </span>
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-foreground">{animal.name ?? <span className="text-muted-foreground">—</span>}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{animal.name ?? <span className="text-muted-foreground">—</span>}</td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
                       <span className={`font-semibold ${animal.totalLiters > 0 ? "text-sky-600" : "text-muted-foreground"}`}>
                         {animal.totalLiters.toFixed(1)} L
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">{animal.dailyAvg.toFixed(1)} L</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">{animal.recordCount}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{fmtDate(animal.lastRecordedAt)}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">{animal.dailyAvg.toFixed(1)} L</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">{animal.recordCount}</td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{fmtDate(animal.lastRecordedAt)}</td>
                     <td className="px-4 py-3 text-center">
                       {animal.recordCount === 0 ? (
                         <span className="text-muted-foreground/40">—</span>
