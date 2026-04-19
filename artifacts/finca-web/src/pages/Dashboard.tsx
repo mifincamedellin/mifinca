@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   Activity, AlertTriangle, Syringe, PawPrint, HelpCircle,
-  Users, Phone, TrendingUp, TrendingDown, ArrowRight, Wallet, Baby, Droplets, Layers,
+  Users, Phone, TrendingUp, TrendingDown, ArrowRight, Wallet, Baby, Layers,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -255,22 +255,6 @@ export function Dashboard() {
     },
   });
 
-  const { data: allFarmsMilkTotal } = useQuery<number>({
-    queryKey: ["all-farms-milk-total", farmIds.join(",")],
-    enabled: isAllFarms && farmIds.length > 0,
-    queryFn: async () => {
-      const from30 = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
-      const rawResults = await Promise.all(
-        farmIds.map(id =>
-          fetch(`/api/farms/${id}/milk?from=${from30}`).then(r =>
-            r.ok ? (r.json() as Promise<{ summary?: { totalLiters?: number } }>).then(d => d.summary?.totalLiters ?? 0) : 0
-          )
-        )
-      );
-      return rawResults.reduce((s, v) => s + v, 0);
-    },
-  });
-
   const stats = (isAllFarms ? allFarmsStats : rawStats) as StatsExt | undefined;
   const statsLoading = isAllFarms ? allStatsLoading : rawStatsLoading;
   const displayActivity: ActivityItem[] | undefined = isAllFarms ? allFarmsActivity : activity as ActivityItem[] | undefined;
@@ -361,28 +345,7 @@ export function Dashboard() {
     },
   ];
 
-  const allFarmsExtraCards = isAllFarms ? [
-    {
-      title:   isEn ? "Milk (30d)" : "Leche (30d)",
-      value:   `${(allFarmsMilkTotal ?? 0).toFixed(1)} L`,
-      icon:    Droplets,
-      color:   "text-sky-600",
-      bg:      "bg-sky-100",
-      href:    "/milk",
-      tooltip: isEn ? "Combined milk production across all farms in the last 30 days." : "Producción total de leche en todas las fincas en los últimos 30 días.",
-    },
-    {
-      title:   isEn ? "Recent Activity" : "Actividad",
-      value:   stats?.recentActivityCount || 0,
-      icon:    Activity,
-      color:   "text-violet-600",
-      bg:      "bg-violet-100",
-      href:    undefined as string | undefined,
-      tooltip: isEn ? "Combined recent events across all your farms." : "Eventos recientes en todas tus fincas.",
-    },
-  ] : [];
-
-  const statCards = [...baseStatCards, ...allFarmsExtraCards];
+  const statCards = baseStatCards;
 
   return (
     <div className="space-y-6 pb-10">
@@ -398,11 +361,11 @@ export function Dashboard() {
 
       {/* ── Stat cards ──────────────────────────────────────── */}
       {statsLoading ? (
-        <div className={`grid grid-cols-2 gap-4 ${isAllFarms ? "md:grid-cols-4" : "md:grid-cols-3 lg:grid-cols-6"}`}>
-          {[...Array(isAllFarms ? 8 : 6)].map((_, i) => <Card key={i} className="h-24 animate-pulse bg-black/5 border-none" />)}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          {[...Array(6)].map((_, i) => <Card key={i} className="h-24 animate-pulse bg-black/5 border-none" />)}
         </div>
       ) : (
-        <div className={`grid grid-cols-2 gap-4 ${isAllFarms ? "md:grid-cols-4" : "md:grid-cols-3 lg:grid-cols-6"}`}>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           {statCards.map((stat, index) => (
             <motion.div
               key={stat.title}
