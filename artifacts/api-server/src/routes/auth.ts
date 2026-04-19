@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { getAuth, clerkClient } from "@clerk/express";
 import { requireAuth } from "../middleware/auth.js";
-import { seedDemoFarmData } from "./seed.js";
+import { seedDemoFarmData, seedDemoFarm2Data } from "./seed.js";
 
 const router = Router();
 
@@ -71,22 +71,38 @@ router.post("/auth/demo", async (req, res) => {
       preferredLanguage: "es",
     });
 
-    // Create a fresh farm
+    // Create two fresh farms for a richer demo experience
     const [newFarm] = await db
       .insert(farmsTable)
-      .values({ ownerId: profileId, name: "La Esperanza" })
+      .values({ ownerId: profileId, name: "La Esperanza", location: "Fusagasugá, Cundinamarca" })
       .returning();
 
-    // Add the demo profile as farm owner
-    await db.insert(farmMembersTable).values({
-      farmId:      newFarm!.id,
-      userId:      profileId,
-      role:        "owner",
-      permissions: DEFAULT_OWNER_PERMISSIONS,
-    });
+    const [newFarm2] = await db
+      .insert(farmsTable)
+      .values({ ownerId: profileId, name: "Finca El Porvenir", location: "Salento, Quindío" })
+      .returning();
 
-    // Seed the farm with the full demo dataset
-    await seedDemoFarmData(newFarm!.id);
+    // Add the demo profile as farm owner of both farms
+    await db.insert(farmMembersTable).values([
+      {
+        farmId:      newFarm!.id,
+        userId:      profileId,
+        role:        "owner",
+        permissions: DEFAULT_OWNER_PERMISSIONS,
+      },
+      {
+        farmId:      newFarm2!.id,
+        userId:      profileId,
+        role:        "owner",
+        permissions: DEFAULT_OWNER_PERMISSIONS,
+      },
+    ]);
+
+    // Seed both farms with demo datasets in parallel
+    await Promise.all([
+      seedDemoFarmData(newFarm!.id),
+      seedDemoFarm2Data(newFarm2!.id),
+    ]);
 
     // Issue a short-lived JWT (2 hours for demo)
     const token = jwt.sign({ userId: profileId }, JWT_SECRET, { expiresIn: "2h" });
