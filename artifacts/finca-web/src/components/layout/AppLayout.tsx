@@ -68,6 +68,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [editName, setEditName] = useState("");
   const [showAddFarm, setShowAddFarm] = useState(false);
   const [newFarmName, setNewFarmName] = useState("");
+  const [newFarmLocation, setNewFarmLocation] = useState("");
 
   const renameFarm = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
@@ -86,11 +87,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   });
 
   const addFarm = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async ({ name, location }: { name: string; location: string }) => {
       const res = await fetch("/api/farms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, location: location.trim() || undefined }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -103,6 +104,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       setActiveFarmId(farm.id);
       setShowAddFarm(false);
       setNewFarmName("");
+      setNewFarmLocation("");
     },
     onError: (err: any) => {
       if (err?.data?.error === "plan_limit") {
@@ -338,7 +340,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     })}
                     <DropdownMenuSeparator className="my-1" />
                     <DropdownMenuItem
-                      onClick={() => { setNewFarmName(""); setShowAddFarm(true); }}
+                      onClick={() => { setNewFarmName(""); setNewFarmLocation(""); setShowAddFarm(true); }}
                       className="rounded-lg cursor-pointer my-0.5 py-2.5 text-muted-foreground hover:text-foreground gap-2"
                     >
                       <Plus className="h-4 w-4 shrink-0" />
@@ -400,26 +402,33 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </Dialog>
 
       {/* Add farm dialog */}
-      <Dialog open={showAddFarm} onOpenChange={open => { if (!open) setShowAddFarm(false); }}>
+      <Dialog open={showAddFarm} onOpenChange={open => { if (!open) { setShowAddFarm(false); setNewFarmName(""); setNewFarmLocation(""); } }}>
         <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-serif">{t('farms.addTitle')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-1">
+          <div className="space-y-3 pt-1">
             <Input
               value={newFarmName}
               onChange={e => setNewFarmName(e.target.value)}
               placeholder={t('farms.namePlaceholder')}
               className="rounded-xl"
-              onKeyDown={e => { if (e.key === "Enter" && newFarmName.trim()) addFarm.mutate(newFarmName.trim()); }}
+              onKeyDown={e => { if (e.key === "Enter" && newFarmName.trim()) addFarm.mutate({ name: newFarmName.trim(), location: newFarmLocation }); }}
               autoFocus
             />
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowAddFarm(false)}>{t('common.cancel')}</Button>
+            <Input
+              value={newFarmLocation}
+              onChange={e => setNewFarmLocation(e.target.value)}
+              placeholder={t('farms.locationPlaceholder')}
+              className="rounded-xl"
+              onKeyDown={e => { if (e.key === "Enter" && newFarmName.trim()) addFarm.mutate({ name: newFarmName.trim(), location: newFarmLocation }); }}
+            />
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => { setShowAddFarm(false); setNewFarmName(""); setNewFarmLocation(""); }}>{t('common.cancel')}</Button>
               <Button
                 className="flex-1 rounded-xl gap-2"
                 disabled={!newFarmName.trim() || addFarm.isPending}
-                onClick={() => newFarmName.trim() && addFarm.mutate(newFarmName.trim())}
+                onClick={() => newFarmName.trim() && addFarm.mutate({ name: newFarmName.trim(), location: newFarmLocation })}
               >
                 <Plus className="h-4 w-4" /> {t('farms.addFarm')}
               </Button>
