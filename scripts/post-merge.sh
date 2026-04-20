@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-pnpm install --frozen-lockfile
+pnpm install --no-frozen-lockfile --ignore-scripts
 pnpm --filter db push-force
 
 # Seed demo user (idempotent — ON CONFLICT DO NOTHING)
