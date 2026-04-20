@@ -22,6 +22,7 @@ import {
   upsertSingleEntity,
   removeEntity,
   getEntities,
+  getEntityById,
   storeIdMapping,
   rewriteQueueIds,
   enqueueWrite,
@@ -341,13 +342,16 @@ async function flushSyncQueue(authToken: string): Promise<void> {
   const entries = getPendingQueue();
   let errors = 0;
 
-  for (const entry of entries) {
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
     try {
       const parsed = parseEntityUrl(entry.urlPath);
 
       // ── Conflict check for PUT / PATCH / DELETE ──────────────────────────────
-      // Compare our base_updated_at (the entity's updated_at when we queued the write)
-      // against the current server updated_at. Server newer → skip write.
+      // Compare base_updated_at (captured at write-queue time from local cache)
+      // against the live server record. Server newer → skip write.
+      // base_updated_at will be present only when the entity was cached before
+      // the write was enqueued; missing it means we have no baseline → apply write.
       if (
         (entry.method === "PUT" || entry.method === "PATCH" || entry.method === "DELETE") &&
         entry.baseUpdatedAt &&
@@ -358,7 +362,6 @@ async function flushSyncQueue(authToken: string): Promise<void> {
           const getRes = await netRequest("GET", `${API_BASE}${entry.urlPath}`, authToken);
           if (getRes.status === 200) serverRecord = tryParseJson(getRes.body);
         } catch {
-          // GET failed — network error; skip this entry for now
           markQueueError(entry.id, "conflict_check_failed");
           errors++;
           continue;
@@ -405,17 +408,25 @@ async function flushSyncQueue(authToken: string): Promise<void> {
             } else {
               const serverEntity = tryParseJson(result.body);
               if (serverEntity && "id" in serverEntity) {
-                // For POST: reconcile synthetic ID → real server ID
+                // For POST: reconcile synthetic ID → real server ID.
+                // Use the explicitly stored clientTempId (set at queue time) so
+                // reconciliation works even when the temp ID isn't in the URL/body.
                 if (entry.method === "POST") {
                   const realId = serverEntity.id as string;
-                  // Find the synthetic ID: may be in the entry's URL or body
-                  const offlineIdMatch = entry.urlPath.match(/offline_\w+/);
-                  const offlineIdInBody = entry.body?.match(/offline_\w+/)?.[0];
-                  const offlineId = offlineIdMatch?.[0] ?? offlineIdInBody;
+                  const offlineId = entry.clientTempId ?? undefined;
                   if (offlineId && offlineId !== realId) {
-                    // Store mapping and rewrite any pending queue entries
+                    // Persist mapping to DB
                     storeIdMapping(offlineId, realId);
+                    // Rewrite later DB rows
                     rewriteQueueIds(offlineId, realId);
+                    // Also rewrite remaining in-memory entries so they succeed
+                    // in THIS flush pass without waiting for a re-read from DB.
+                    for (let j = i + 1; j < entries.length; j++) {
+                      entries[j].urlPath = entries[j].urlPath.split(offlineId).join(realId);
+                      if (entries[j].body) {
+                        entries[j].body = entries[j].body!.split(offlineId).join(realId);
+                      }
+                    }
                     // Remove the synthetic entity from cache
                     removeEntity(parsed.entityType, offlineId);
                   }
@@ -867,7 +878,8 @@ function setupIpc(): void {
   );
 
   // Queue an offline write; returns the new queue entry ID.
-  // baseUpdatedAt is the entity's updated_at at write time, used for conflict resolution.
+  // baseUpdatedAt: entity's updated_at when write was queued (server-wins conflict check).
+  // clientTempId:  synthetic offline_* id assigned to POST creates for ID reconciliation.
   ipcMain.handle(
     "offline:queue-write",
     (
@@ -876,8 +888,17 @@ function setupIpc(): void {
       urlPath: string,
       body: string | null,
       baseUpdatedAt?: string | null,
+      clientTempId?: string | null,
     ) => {
-      try { return enqueueWrite(method, urlPath, body, baseUpdatedAt); } catch { return -1; }
+      try { return enqueueWrite(method, urlPath, body, baseUpdatedAt, clientTempId); } catch { return -1; }
+    },
+  );
+
+  // Fetch a single entity from entity_cache by (entityType, id)
+  ipcMain.handle(
+    "offline:get-entity",
+    (_event: IpcMainInvokeEvent, entityType: string, id: string) => {
+      try { return getEntityById(entityType, id); } catch { return null; }
     },
   );
 

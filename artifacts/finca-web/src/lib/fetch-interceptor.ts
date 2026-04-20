@@ -407,20 +407,37 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
     }
 
     // ── baseUpdatedAt: read entity's current updated_at from local cache ────
-    // We deliberately do NOT rely on the request body containing a timestamp,
-    // because mutation payloads rarely include updatedAt. Instead we look up
-    // the entity's canonical detail URL in the response_cache.
+    // Mutation payloads rarely include updatedAt, so we look up the entity's
+    // current version from SQLite caches:
+    //   1. response_cache: the entity's detail URL (fast path, set by online write-through)
+    //   2. entity_cache: populated by seeding (fallback for list-seeded entities)
+    // If neither has the record, baseUpdatedAt is null and the conflict check is skipped;
+    // the write is applied (safe because the server will reject any true conflicts via 409).
     let baseUpdatedAt: string | null = null;
-    if (method === "PUT" || method === "PATCH" || method === "DELETE") {
-      const parsed = parseEntityUrl(path);
-      if (parsed?.entityId) {
-        // Construct the entity's canonical detail URL (listUrl + entityId)
-        const detailUrl = `${parsed.listUrl}/${parsed.entityId}`;
+    const parsedForBase = parseEntityUrl(path);
+    if (
+      (method === "PUT" || method === "PATCH" || method === "DELETE") &&
+      parsedForBase?.entityId
+    ) {
+      const { entityType, entityId, listUrl } = parsedForBase;
+      const detailUrl = `${listUrl}/${entityId}`;
+
+      // Try response_cache first
+      try {
+        const cached = await desktop.getCachedResponse!(detailUrl);
+        if (cached && typeof cached === "object" && !Array.isArray(cached)) {
+          const rec = cached as Record<string, unknown>;
+          const ts = rec.updatedAt ?? rec.updated_at;
+          if (typeof ts === "string") baseUpdatedAt = ts;
+        }
+      } catch { /* non-fatal */ }
+
+      // Fallback: check entity_cache (populated by seeding)
+      if (!baseUpdatedAt && desktop.getEntityById) {
         try {
-          const cached = await desktop.getCachedResponse!(detailUrl);
-          if (cached && typeof cached === "object" && !Array.isArray(cached)) {
-            const rec = cached as Record<string, unknown>;
-            const ts = rec.updatedAt ?? rec.updated_at;
+          const entity = await desktop.getEntityById(entityType, entityId);
+          if (entity) {
+            const ts = entity.updatedAt ?? entity.updated_at;
             if (typeof ts === "string") baseUpdatedAt = ts;
           }
         } catch { /* non-fatal */ }
@@ -428,7 +445,10 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
     }
 
     const syntheticId = `offline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const queueId = await desktop.queueOfflineWrite!(method, path, bodyStr, baseUpdatedAt).catch(() => -1);
+    // For POST writes, pass syntheticId as clientTempId so the main process can
+    // reliably map synthetic → real server ID after the write is replayed.
+    const clientTempId = method === "POST" ? syntheticId : null;
+    const queueId = await desktop.queueOfflineWrite!(method, path, bodyStr, baseUpdatedAt, clientTempId).catch(() => -1);
 
     await applyOptimisticMutation(method, path, bodyStr, syntheticId, desktop);
 

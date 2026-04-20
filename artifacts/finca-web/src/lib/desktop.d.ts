@@ -82,7 +82,16 @@ export interface MiFincaDesktopAPI {
     body: string | null,
     /** The entity's updated_at at write time — used for server-wins conflict resolution */
     baseUpdatedAt?: string | null,
+    /**
+     * For POST writes: the synthetic offline_* id returned to the UI.
+     * Stored in the DB so flushSyncQueue can reliably reconcile the real server
+     * id with subsequent queue entries even when the temp id isn't in the URL/body.
+     */
+    clientTempId?: string | null,
   ): Promise<number>;
+
+  /** Fetch a single entity from entity_cache by (entityType, id). Returns null if not found. */
+  getEntityById(entityType: string, id: string): Promise<Record<string, unknown> | null>;
 
   /** Returns the number of pending offline writes */
   getQueueCount(): Promise<number>;

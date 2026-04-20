@@ -56,12 +56,15 @@ export function openDatabase(dbPath: string): void {
     );
   `);
 
-  // Idempotent migration: add base_updated_at column if it was created without it
+  // Idempotent migrations: add columns introduced after the initial schema
   const cols = (
     db.prepare("PRAGMA table_info(sync_queue)").all() as { name: string }[]
   ).map((c) => c.name);
   if (!cols.includes("base_updated_at")) {
     db.exec("ALTER TABLE sync_queue ADD COLUMN base_updated_at TEXT");
+  }
+  if (!cols.includes("client_temp_id")) {
+    db.exec("ALTER TABLE sync_queue ADD COLUMN client_temp_id TEXT");
   }
 }
 
@@ -159,6 +162,23 @@ export function getServerIdForOfflineId(offlineId: string): string | null {
   return row?.server_id ?? null;
 }
 
+// ── Entity lookup by ID ───────────────────────────────────────────────────────
+
+/**
+ * Fetch a single entity from entity_cache by (entityType, id).
+ * Returns null if not found. Used as a fallback when response_cache misses
+ * for baseUpdatedAt resolution during conflict checks.
+ */
+export function getEntityById(
+  entityType: string,
+  id: string,
+): Record<string, unknown> | null {
+  const row = db
+    .prepare("SELECT data FROM entity_cache WHERE entity_type = ? AND id = ?")
+    .get(entityType, id) as { data: string } | undefined;
+  return row ? (JSON.parse(row.data) as Record<string, unknown>) : null;
+}
+
 // ── Sync queue ────────────────────────────────────────────────────────────────
 
 export interface QueueEntry {
@@ -167,6 +187,12 @@ export interface QueueEntry {
   urlPath: string;
   body: string | null;
   baseUpdatedAt: string | null;
+  /**
+   * For POST writes: the synthetic offline_* ID assigned by the client.
+   * Used after a successful flush to reconcile the real server ID with
+   * any subsequent queue entries that reference the temp ID.
+   */
+  clientTempId: string | null;
   queuedAt: string;
   retries: number;
   lastError: string | null;
@@ -177,17 +203,22 @@ export function enqueueWrite(
   urlPath: string,
   body: string | null,
   baseUpdatedAt?: string | null,
+  clientTempId?: string | null,
 ): number {
   const result = db
-    .prepare("INSERT INTO sync_queue (method, url_path, body, base_updated_at) VALUES (?, ?, ?, ?)")
-    .run(method, urlPath, body, baseUpdatedAt ?? null);
+    .prepare(
+      "INSERT INTO sync_queue (method, url_path, body, base_updated_at, client_temp_id) VALUES (?, ?, ?, ?, ?)",
+    )
+    .run(method, urlPath, body, baseUpdatedAt ?? null, clientTempId ?? null);
   return result.lastInsertRowid as number;
 }
 
 export function getPendingQueue(): QueueEntry[] {
   return db
     .prepare(
-      `SELECT id, method, url_path as urlPath, body, base_updated_at as baseUpdatedAt,
+      `SELECT id, method, url_path as urlPath, body,
+              base_updated_at as baseUpdatedAt,
+              client_temp_id as clientTempId,
               queued_at as queuedAt, retries, last_error as lastError
        FROM sync_queue ORDER BY id ASC`,
     )
