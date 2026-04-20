@@ -97,7 +97,40 @@ async function validateKeyOnline(key: string): Promise<ValidateResult> {
   }
 }
 
-async function activateKeyOnline(
+/**
+ * POST /api/licenses/activate-desktop  (no auth required)
+ * Records the first-activation timestamp and returns the expiry date.
+ * This is always the primary activation path for desktop.
+ */
+async function activateKeyDesktop(
+  key: string
+): Promise<{ ok?: boolean; error?: string; expiresAt?: string }> {
+  return new Promise((resolve) => {
+    const req = net.request({
+      method: "POST",
+      url: `${API_BASE}/api/licenses/activate-desktop`,
+    });
+    req.setHeader("Content-Type", "application/json");
+    let body = "";
+    req.on("response", (res: any) => {
+      res.on("data", (c: any) => (body += c));
+      res.on("end", () => {
+        try { resolve(JSON.parse(body)); }
+        catch { resolve({ error: "parse_error" }); }
+      });
+    });
+    req.on("error", () => resolve({ error: "network" }));
+    req.write(JSON.stringify({ key }));
+    req.end();
+  });
+}
+
+/**
+ * POST /api/licenses/activate  (auth-required)
+ * Binds the key to the authenticated user account. Called after activate-desktop
+ * when the user has a JWT (i.e. they're logged in inside the web view).
+ */
+async function bindKeyToAccount(
   key: string,
   authToken: string
 ): Promise<{ ok?: boolean; error?: string; expiresAt?: string }> {
@@ -109,8 +142,8 @@ async function activateKeyOnline(
     req.setHeader("Content-Type", "application/json");
     req.setHeader("Authorization", `Bearer ${authToken}`);
     let body = "";
-    req.on("response", (res) => {
-      res.on("data", (c) => (body += c));
+    req.on("response", (res: any) => {
+      res.on("data", (c: any) => (body += c));
       res.on("end", () => {
         try { resolve(JSON.parse(body)); }
         catch { resolve({ error: "parse_error" }); }
@@ -291,34 +324,28 @@ function setupAutoUpdater(): void {
 // ── IPC handlers ──────────────────────────────────────────────────────────────
 
 function setupIpc(): void {
-  // Called by activation page: activate key via POST /api/licenses/activate,
-  // falling back to GET /api/licenses/validate if the user has no auth token.
-  ipcMain.handle("license:activate", async (_event, key: string, authToken: string) => {
+  // Called by activation page: always activates via POST /api/licenses/activate-desktop
+  // (no auth required) and optionally binds to user account if auth token is present.
+  ipcMain.handle("license:activate", async (_event: any, key: string, authToken: string) => {
     const normalizedKey = key.toUpperCase().trim();
 
-    if (authToken) {
-      // Primary path: bind key to user account via POST /activate
-      const result = await activateKeyOnline(normalizedKey, authToken);
-      if (result.ok && result.expiresAt) {
-        writeLicense({ key: normalizedKey, expiresAt: result.expiresAt, validatedAt: new Date().toISOString() });
-        return { ok: true, expiresAt: result.expiresAt };
-      }
-      if (result.error && result.error !== "already_claimed") {
-        // Any error other than already_claimed is fatal
-        return { ok: false, error: result.error };
-      }
-      // already_claimed: key exists and was previously activated — validate it directly
+    // Primary path: POST /activate-desktop — always required for first launch.
+    // This records activation in the server without needing user auth.
+    const activation = await activateKeyDesktop(normalizedKey);
+    if (!activation.ok || !activation.expiresAt) {
+      return { ok: false, error: activation.error ?? "invalid" };
     }
 
-    // Fallback path: no auth token yet (user hasn't logged in to the web app) —
-    // validate key validity without binding to an account; binding happens on next
-    // authenticated launch via the POST /activate call above.
-    const validation = await validateKeyOnline(normalizedKey);
-    if (!validation.valid) {
-      return { ok: false, error: validation.reason ?? "invalid" };
+    // Store the license from the activation response
+    writeLicense({ key: normalizedKey, expiresAt: activation.expiresAt, validatedAt: new Date().toISOString() });
+
+    // Secondary (best-effort): bind key to user account if a JWT is available.
+    // This runs fire-and-forget — failure here does not block activation.
+    if (authToken) {
+      bindKeyToAccount(normalizedKey, authToken).catch(() => {});
     }
-    writeLicense({ key: normalizedKey, expiresAt: validation.expiresAt!, validatedAt: new Date().toISOString() });
-    return { ok: true, expiresAt: validation.expiresAt };
+
+    return { ok: true, expiresAt: activation.expiresAt };
   });
 
   // Called by main window / renewal page: install update and restart
@@ -326,18 +353,16 @@ function setupIpc(): void {
     autoUpdater.quitAndInstall(false, true);
   });
 
-  // Called by renewal page: user entered a new key
-  ipcMain.handle("license:renew", async (_event, key: string) => {
-    const validation = await validateKeyOnline(key.toUpperCase().trim());
-    if (!validation.valid) {
-      return { ok: false, error: validation.reason ?? "invalid" };
+  // Called by renewal page: user entered a new key. Uses activate-desktop (same
+  // as initial activation) so the server records the new activation event.
+  ipcMain.handle("license:renew", async (_event: any, key: string) => {
+    const normalizedKey = key.toUpperCase().trim();
+    const activation = await activateKeyDesktop(normalizedKey);
+    if (!activation.ok || !activation.expiresAt) {
+      return { ok: false, error: activation.error ?? "invalid" };
     }
-    writeLicense({
-      key: key.toUpperCase().trim(),
-      expiresAt: validation.expiresAt!,
-      validatedAt: new Date().toISOString(),
-    });
-    return { ok: true, expiresAt: validation.expiresAt };
+    writeLicense({ key: normalizedKey, expiresAt: activation.expiresAt, validatedAt: new Date().toISOString() });
+    return { ok: true, expiresAt: activation.expiresAt };
   });
 
   // Clear stored license (used for testing / sign-out)

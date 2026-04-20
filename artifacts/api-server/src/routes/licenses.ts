@@ -39,6 +39,50 @@ router.get("/licenses/validate", async (req, res) => {
   }
 });
 
+// Desktop-only — no auth required. Records first-activation timestamp and returns
+// expiry date. Does NOT bind the key to a user account (use /licenses/activate for
+// that once the user logs in from within the desktop app).
+// Contract: { ok: true, expiresAt: string } | { error: string }
+router.post("/licenses/activate-desktop", async (req, res) => {
+  try {
+    const { key: keyStr } = req.body as { key?: string };
+    if (!keyStr) return res.status(400).json({ error: "missing_key" });
+
+    const normalised = keyStr.toUpperCase().trim();
+
+    // Mark activatedAt only if this is the first activation; leave userId untouched.
+    const result = await pool.query<{
+      expires_at: Date;
+    }>(
+      `UPDATE license_keys
+          SET activated_at = COALESCE(activated_at, NOW()),
+              updated_at   = NOW()
+        WHERE key         = $1
+          AND revoked_at  IS NULL
+          AND expires_at  > NOW()
+        RETURNING expires_at`,
+      [normalised],
+    );
+
+    if (result.rowCount === 0) {
+      const [row] = await db
+        .select()
+        .from(licenseKeysTable)
+        .where(eq(licenseKeysTable.key, normalised))
+        .limit(1);
+      if (!row) return res.status(404).json({ error: "not_found" });
+      if (row.revokedAt) return res.status(403).json({ error: "revoked" });
+      if (new Date(row.expiresAt) < new Date()) return res.status(403).json({ error: "expired" });
+      return res.status(400).json({ error: "invalid" });
+    }
+
+    return res.json({ ok: true, expiresAt: result.rows[0]!.expires_at.toISOString() });
+  } catch (err) {
+    req.log.error({ err }, "License activate-desktop error");
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
 // Auth-required — associates key with calling user atomically
 router.post("/licenses/activate", requireAuth, async (req, res) => {
   try {
