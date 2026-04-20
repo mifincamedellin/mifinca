@@ -447,6 +447,9 @@ importers:
         specifier: ^6.3.9
         version: 6.8.3
     devDependencies:
+      '@google-cloud/storage':
+        specifier: ^7.16.0
+        version: 7.19.0(encoding@0.1.13)
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5

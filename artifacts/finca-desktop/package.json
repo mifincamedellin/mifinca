@@ -19,6 +19,7 @@
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
+    "@google-cloud/storage": "^7.16.0",
     "@types/node": "catalog:",
     "cross-env": "^7.0.3",
     "electron": "^33.4.0",

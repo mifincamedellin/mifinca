@@ -39,9 +39,18 @@ router.get("/licenses/validate", async (req, res) => {
   }
 });
 
-// Desktop-only — no auth required. Records first-activation timestamp and returns
-// expiry date. Does NOT bind the key to a user account (use /licenses/activate for
-// that once the user logs in from within the desktop app).
+// Desktop activation contract (canonical path for Electron app first-launch):
+// No auth required — the license key IS the credential at activation time.
+// Sets activatedAt, returns expiresAt.
+//
+// Enforcement: only unclaimed keys (user_id IS NULL) can be activated here.
+// Once a key is bound to a user account via POST /licenses/activate, re-activation
+// from the desktop must go through that auth-required endpoint.
+//
+// POST /licenses/activate (auth-required) is the secondary, optional step that
+// binds an already-desktop-activated key to a user account — called after the
+// user logs in inside the embedded web view.
+//
 // Contract: { ok: true, expiresAt: string } | { error: string }
 router.post("/licenses/activate-desktop", async (req, res) => {
   try {

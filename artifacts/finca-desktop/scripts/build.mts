@@ -135,14 +135,16 @@ function printReleaseFiles(): void {
 }
 
 async function uploadArtifacts(bucketId: string): Promise<void> {
-  // Dynamically import @google-cloud/storage (available when running from within Replit)
   let Storage: typeof import("@google-cloud/storage").Storage;
   try {
     ({ Storage } = await import("@google-cloud/storage"));
-  } catch {
-    console.warn("  ⚠  @google-cloud/storage not available — skipping upload");
-    console.log('  ℹ  Install with: pnpm add @google-cloud/storage in the api-server package');
-    return;
+  } catch (e) {
+    // @google-cloud/storage is a devDependency of @workspace/finca-desktop.
+    // If it is not installed, the upload step cannot proceed — this is a hard error
+    // when BUCKET_ID is set (meaning the caller expects the upload to succeed).
+    console.error("  ✗  @google-cloud/storage is not installed.");
+    console.error("  ✗  Run `pnpm install` at workspace root then retry.");
+    process.exit(1);
   }
 
   const gcs = new Storage();
