@@ -657,13 +657,14 @@ router.post("/admin/licenses/generate", requireAdmin, async (req: Request, res: 
     }
 
     const now = new Date();
-    const keys = Array.from({ length: qty }, () => ({
+    // Pre-assign only the first key when multiple are generated (matches UI behaviour)
+    const keys = Array.from({ length: qty }, (_, i) => ({
       key: generateLicenseKey(),
       expiresAt: expiry,
       notes: notes ?? null,
       createdBy: "admin",
-      userId: resolvedUserId,
-      activatedAt: resolvedUserId ? now : null,
+      userId: i === 0 ? resolvedUserId : null,
+      activatedAt: i === 0 && resolvedUserId ? now : null,
     }));
 
     const created = await db.insert(licenseKeysTable).values(keys).returning();

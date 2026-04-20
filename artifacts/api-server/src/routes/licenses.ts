@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { db } from "@workspace/db";
-import { licenseKeysTable, profilesTable } from "@workspace/db";
+import { db, pool } from "@workspace/db";
+import { licenseKeysTable } from "@workspace/db";
 import { eq, and, isNull, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth.js";
 
@@ -14,10 +14,12 @@ function licenseStatus(key: typeof licenseKeysTable.$inferSelect): "active" | "e
   return "active";
 }
 
+// Public — desktop app calls this on every launch (no auth, key IS the credential)
+// Contract: { valid: boolean, expiresAt: string | null, reason?: string }
 router.get("/licenses/validate", async (req, res) => {
   try {
     const keyStr = req.query["key"] as string | undefined;
-    if (!keyStr) return res.status(400).json({ valid: false, reason: "missing_key" });
+    if (!keyStr) return res.json({ valid: false, expiresAt: null, reason: "missing_key" });
 
     const [row] = await db
       .select()
@@ -25,47 +27,70 @@ router.get("/licenses/validate", async (req, res) => {
       .where(eq(licenseKeysTable.key, keyStr.toUpperCase()))
       .limit(1);
 
-    if (!row) return res.json({ valid: false, reason: "not_found" });
-    if (row.revokedAt) return res.json({ valid: false, reason: "revoked", expiresAt: row.expiresAt });
-    if (new Date(row.expiresAt) < new Date()) return res.json({ valid: false, reason: "expired", expiresAt: row.expiresAt });
+    if (!row) return res.json({ valid: false, expiresAt: null, reason: "not_found" });
+    const expiresAt = row.expiresAt.toISOString();
+    if (row.revokedAt) return res.json({ valid: false, expiresAt, reason: "revoked" });
+    if (new Date(row.expiresAt) < new Date()) return res.json({ valid: false, expiresAt, reason: "expired" });
 
-    return res.json({ valid: true, expiresAt: row.expiresAt, keyId: row.id });
+    return res.json({ valid: true, expiresAt });
   } catch (err) {
     req.log.error({ err }, "License validate error");
-    return res.status(500).json({ valid: false, reason: "internal" });
+    return res.status(500).json({ valid: false, expiresAt: null, reason: "internal" });
   }
 });
 
+// Auth-required — associates key with calling user atomically
 router.post("/licenses/activate", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthedReq).userId;
     const { key: keyStr } = req.body as { key?: string };
     if (!keyStr) return res.status(400).json({ error: "missing_key" });
 
-    const [row] = await db
-      .select()
-      .from(licenseKeysTable)
-      .where(eq(licenseKeysTable.key, keyStr.toUpperCase().trim()))
-      .limit(1);
+    const normalised = keyStr.toUpperCase().trim();
 
-    if (!row) return res.status(404).json({ error: "not_found" });
-    if (row.revokedAt) return res.status(403).json({ error: "revoked" });
-    if (new Date(row.expiresAt) < new Date()) return res.status(403).json({ error: "expired" });
-    if (row.userId && row.userId !== userId) return res.status(409).json({ error: "already_claimed" });
+    // Atomic conditional update: only proceed if the key is unclaimed OR already belongs to this user.
+    // Using raw SQL to do a single round-trip with no TOCTOU race.
+    const result = await pool.query<{
+      id: string;
+      user_id: string | null;
+      expires_at: Date;
+      revoked_at: Date | null;
+      activated_at: Date | null;
+    }>(
+      `UPDATE license_keys
+         SET user_id      = $1,
+             activated_at = COALESCE(activated_at, NOW()),
+             updated_at   = NOW()
+       WHERE key = $2
+         AND revoked_at IS NULL
+         AND expires_at > NOW()
+         AND (user_id IS NULL OR user_id = $1)
+       RETURNING id, user_id, expires_at, revoked_at, activated_at`,
+      [userId, normalised],
+    );
 
-    const [updated] = await db
-      .update(licenseKeysTable)
-      .set({ userId, activatedAt: row.activatedAt ?? new Date(), updatedAt: new Date() })
-      .where(eq(licenseKeysTable.id, row.id))
-      .returning();
+    if (result.rowCount === 0) {
+      // Determine the reason by fetching the row (read-only, race-safe enough here)
+      const [row] = await db
+        .select()
+        .from(licenseKeysTable)
+        .where(eq(licenseKeysTable.key, normalised))
+        .limit(1);
+      if (!row) return res.status(404).json({ error: "not_found" });
+      if (row.revokedAt) return res.status(403).json({ error: "revoked" });
+      if (new Date(row.expiresAt) < new Date()) return res.status(403).json({ error: "expired" });
+      return res.status(409).json({ error: "already_claimed" });
+    }
 
-    return res.json({ ok: true, expiresAt: updated!.expiresAt, key: updated!.key });
+    const updated = result.rows[0]!;
+    return res.json({ ok: true, expiresAt: updated.expires_at.toISOString() });
   } catch (err) {
     req.log.error({ err }, "License activate error");
     return res.status(500).json({ error: "internal" });
   }
 });
 
+// Auth-required — returns the caller's most recently-expiring active license
 router.get("/licenses/me", requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthedReq).userId;
