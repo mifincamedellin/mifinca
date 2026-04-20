@@ -241,51 +241,33 @@ function parseEntityUrl(urlPath: string): ParsedEntityUrl | null {
   return null;
 }
 
-/**
- * After a successful write or conflict resolution, update local caches
- * so subsequent offline reads reflect server truth.
- *
- * Top-level entities (in ENTITY_CACHE_TYPES):
- *   → upsert into entity_cache + refresh the list URL in response_cache
- * Sub-resources (medical_records, weight_records, etc.):
- *   → only update the individual entity URL in response_cache;
- *     the list will be refreshed on the next online GET
- */
 function applyServerEntityToCache(
   parsed: ParsedEntityUrl,
   serverEntity: Record<string, unknown>,
 ): void {
   try {
     if (ENTITY_CACHE_TYPES.has(parsed.entityType)) {
-      // Full entity-cache upsert + refresh the farm-scoped list URL
       upsertSingleEntity(parsed.entityType, serverEntity);
-      const allEntities = parsed.farmId
+      const all = parsed.farmId
         ? getEntities(parsed.entityType, parsed.farmId)
         : getEntities(parsed.entityType);
-      cacheResponse(parsed.listUrl, allEntities);
+      cacheResponse(parsed.listUrl, all);
     } else {
-      // URL-scoped sub-resource (medical, milk, weights, attachments, etc.):
-      // splice the new entity into the URL-keyed list cache so offline reads
-      // of the list endpoint reflect the change.
       const id = serverEntity.id as string | undefined;
       if (id) {
-        // Update individual detail URL
         cacheResponse(`${parsed.listUrl}/${id}`, serverEntity);
-        // Splice into the list URL cache
         const raw = getCachedResponse(parsed.listUrl);
-        const list: Record<string, unknown>[] = Array.isArray(raw) ? raw : [];
-        const exists = list.some((e) => e.id === id);
+        const lst: Record<string, unknown>[] = Array.isArray(raw) ? raw : [];
+        const exists = lst.some((e) => e.id === id);
         cacheResponse(
           parsed.listUrl,
           exists
-            ? list.map((e) => (e.id === id ? { ...e, ...serverEntity } : e))
-            : [...list, serverEntity],
+            ? lst.map((e) => (e.id === id ? { ...e, ...serverEntity } : e))
+            : [...lst, serverEntity],
         );
       }
     }
-  } catch {
-    // Non-fatal — best-effort
-  }
+  } catch { /* best-effort */ }
 }
 
 // ── HTTP helpers (used during flush) ─────────────────────────────────────────
@@ -406,80 +388,59 @@ async function flushSyncQueue(authToken: string): Promise<void> {
       if (result.status >= 200 && result.status < 300) {
         removeFromQueue(entry.id);
 
-        // Update entity cache with the authoritative server response
         try {
           if (parsed) {
             if (entry.method === "DELETE") {
               if (ENTITY_CACHE_TYPES.has(parsed.entityType)) {
-                // Top-level entity: remove from entity_cache and rebuild list
                 if (parsed.entityId) removeEntity(parsed.entityType, parsed.entityId);
                 const remaining = parsed.farmId
                   ? getEntities(parsed.entityType, parsed.farmId)
                   : getEntities(parsed.entityType);
                 cacheResponse(parsed.listUrl, remaining);
               } else if (parsed.entityId) {
-                // URL-scoped sub-resource: splice out from list cache + clear detail URL
                 const raw = getCachedResponse(parsed.listUrl);
-                const list: Record<string, unknown>[] = Array.isArray(raw) ? raw : [];
-                cacheResponse(
-                  parsed.listUrl,
-                  list.filter((e) => e.id !== parsed.entityId),
-                );
+                const lst: Record<string, unknown>[] = Array.isArray(raw) ? raw : [];
+                cacheResponse(parsed.listUrl, lst.filter((e) => e.id !== parsed.entityId));
                 cacheResponse(`${parsed.listUrl}/${parsed.entityId}`, null);
               }
             } else {
               const serverEntity = tryParseJson(result.body);
               if (serverEntity && "id" in serverEntity) {
-                // For POST: reconcile synthetic ID → real server ID.
-                // Use the explicitly stored clientTempId (set at queue time) so
-                // reconciliation works even when the temp ID isn't in the URL/body.
                 if (entry.method === "POST") {
                   const realId = serverEntity.id as string;
                   const offlineId = entry.clientTempId ?? undefined;
                   if (offlineId && offlineId !== realId) {
-                    // Persist mapping to DB
                     storeIdMapping(offlineId, realId);
-                    // Rewrite later DB rows
                     rewriteQueueIds(offlineId, realId);
-                    // Also rewrite remaining in-memory entries so they succeed
-                    // in THIS flush pass without waiting for a re-read from DB.
                     for (let j = i + 1; j < entries.length; j++) {
                       entries[j].urlPath = entries[j].urlPath.split(offlineId).join(realId);
                       if (entries[j].body) {
                         entries[j].body = entries[j].body!.split(offlineId).join(realId);
                       }
                     }
-                    // Remove the synthetic entity from cache
                     removeEntity(parsed.entityType, offlineId);
                   }
                 }
                 applyServerEntityToCache(parsed, serverEntity);
-                // Also cache the individual entity URL
-                if (entry.method !== "POST") {
-                  cacheResponse(entry.urlPath, serverEntity);
-                }
+                if (entry.method !== "POST") cacheResponse(entry.urlPath, serverEntity);
               }
             }
           }
-        } catch {
-          // Non-fatal — best-effort cache update
-        }
+        } catch { /* best-effort */ }
       } else if (result.status === 409) {
-        // 409 means the server rejected due to a conflict — server wins
         removeFromQueue(entry.id);
         if (parsed) {
           const serverEntity = tryParseJson(result.body);
           if (serverEntity && "id" in serverEntity) {
             applyServerEntityToCache(parsed, serverEntity);
           } else if (parsed.entityId) {
-            // Re-fetch the authoritative record and update cache
             try {
               const getRes = await netRequest("GET", `${API_BASE}${entry.urlPath}`, authToken);
               if (getRes.status === 200) {
                 const refetched = tryParseJson(getRes.body);
                 if (refetched) applyServerEntityToCache(parsed, refetched);
               }
-            } catch { /* non-fatal */ }
+            } catch { /* best-effort */ }
           }
         }
       } else {

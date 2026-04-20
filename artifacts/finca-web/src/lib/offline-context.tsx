@@ -166,9 +166,7 @@ export function useOfflineSeeding() {
           if ((entities as Record<string, unknown>[]).length > 0) {
             await desktop!.cacheEntities!(entityType, entities as Record<string, unknown>[]);
           }
-        } catch {
-          // Non-fatal — best-effort offline seeding
-        }
+        } catch { /* best-effort */ }
       }
 
       // Seed the farms list itself

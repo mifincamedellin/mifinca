@@ -1,19 +1,4 @@
-/**
- * Global fetch interceptor for the miFinca web app.
- *
- * Responsibilities:
- * 1. Inject the Authorization header on all /api/* requests.
- * 2. Desktop offline reads  → serve from URL-keyed cache (503 on cache miss).
- * 3. Desktop offline writes → queue for later replay AND optimistically update the
- *    local entity + list caches so the UI reflects the change immediately.
- * 4. Desktop online reads   → pass through, then cache the successful response.
- * 5. Desktop online writes  → pass through, then update entity + list caches with
- *    the authoritative server response (write-through for future offline reads).
- *
- * Route classification (parseEntityUrl) uses an ordered pattern list, most-specific
- * first, so nested endpoints like /animals/:id/medical are never mis-classified as
- * their parent (/animals/:id).
- */
+/** Global fetch interceptor: auth injection, offline cache serving, offline write queuing, write-through caching. */
 
 const originalFetch = window.fetch.bind(window);
 
@@ -213,18 +198,6 @@ function parseEntityUrl(path: string): ParsedUrl | null {
 
 type Desktop = NonNullable<typeof window.miFincaDesktop>;
 
-/**
- * Apply an optimistic mutation to local caches so subsequent offline GETs
- * reflect the change immediately (before the write is replayed online).
- *
- * Two-tier strategy:
- * - Top-level entities (ENTITY_CACHE_TYPES): upsert into entity_cache AND
- *   update the URL-keyed list cache.
- * - URL-scoped sub-resources (animal_milk_records, medical_records, etc.):
- *   update the URL-keyed list cache ONLY (no entity_cache involvement).
- *   This ensures offline reads of sub-resource lists (e.g. /animals/:id/milk)
- *   immediately reflect creates/updates/deletes.
- */
 async function applyOptimisticMutation(
   method: string,
   path: string,
@@ -238,7 +211,6 @@ async function applyOptimisticMutation(
   const { entityType, farmId, entityId, listUrl } = parsed;
   const isTopLevel = ENTITY_CACHE_TYPES.has(entityType);
 
-  // Always update the URL-keyed list cache, regardless of entity tier
   async function refreshListCache(
     updater: (list: Record<string, unknown>[]) => Record<string, unknown>[],
   ) {
@@ -248,10 +220,7 @@ async function applyOptimisticMutation(
   }
 
   if (method === "DELETE" && entityId) {
-    if (isTopLevel) {
-      await desktop.removeEntity!(entityType, entityId).catch(() => {});
-    }
-    // Both tiers: splice from the URL-keyed list cache
+    if (isTopLevel) await desktop.removeEntity!(entityType, entityId).catch(() => {});
     await refreshListCache((list) => list.filter((e) => e.id !== entityId));
     return;
   }
@@ -271,10 +240,7 @@ async function applyOptimisticMutation(
         updatedAt: now,
         ...(farmId ? { farmId } : {}),
       };
-      if (isTopLevel) {
-        await desktop.upsertEntity!(entityType, entity).catch(() => {});
-      }
-      // Both tiers: append to the URL-keyed list cache
+      if (isTopLevel) await desktop.upsertEntity!(entityType, entity).catch(() => {});
       await refreshListCache((list) => [...list, entity]);
     } else {
       const id = entityId ?? (bodyObj.id as string);
@@ -286,10 +252,7 @@ async function applyOptimisticMutation(
         updatedAt: now,
         ...(farmId ? { farmId } : {}),
       };
-      if (isTopLevel) {
-        await desktop.upsertEntity!(entityType, entity).catch(() => {});
-      }
-      // Both tiers: splice into the URL-keyed list cache
+      if (isTopLevel) await desktop.upsertEntity!(entityType, entity).catch(() => {});
       await refreshListCache((list) =>
         list.map((e) => (e.id === id ? { ...e, ...entity } : e)),
       );
@@ -297,10 +260,6 @@ async function applyOptimisticMutation(
   }
 }
 
-/**
- * Apply a successful online write response to local caches (write-through).
- * Keeps SQLite current so offline reads are accurate after mutations.
- */
 async function applyOnlineWriteToCache(
   method: string,
   path: string,
@@ -314,16 +273,17 @@ async function applyOnlineWriteToCache(
   const isTopLevel = ENTITY_CACHE_TYPES.has(entityType);
 
   if (method === "DELETE") {
+    const id = entityId ?? (serverEntity.id as string | undefined);
     if (isTopLevel) {
-      const id = entityId ?? (serverEntity.id as string | undefined);
       if (id) await desktop.removeEntity!(entityType, id).catch(() => {});
-      // Rebuild list from entity_cache
-      const current = await desktop.getCachedResponse!(listUrl).catch(() => null);
-      const list: Record<string, unknown>[] = Array.isArray(current) ? current : [];
-      await desktop.cacheResponse!(listUrl, list.filter((e) => e.id !== id)).catch(() => {});
-    } else if (entityId) {
-      // Sub-resource: invalidate the individual URL
-      await desktop.cacheResponse!(`${listUrl}/${entityId}`, null).catch(() => {});
+      const cur = await desktop.getCachedResponse!(listUrl).catch(() => null);
+      const lst: Record<string, unknown>[] = Array.isArray(cur) ? cur : [];
+      await desktop.cacheResponse!(listUrl, lst.filter((e) => e.id !== id)).catch(() => {});
+    } else if (id) {
+      const cur = await desktop.getCachedResponse!(listUrl).catch(() => null);
+      const lst: Record<string, unknown>[] = Array.isArray(cur) ? cur : [];
+      await desktop.cacheResponse!(listUrl, lst.filter((e) => e.id !== id)).catch(() => {});
+      await desktop.cacheResponse!(`${listUrl}/${id}`, null).catch(() => {});
     }
     return;
   }
@@ -331,38 +291,28 @@ async function applyOnlineWriteToCache(
   if (!("id" in serverEntity)) return;
   const id = serverEntity.id;
 
-  const current = await desktop.getCachedResponse!(listUrl).catch(() => null);
-  const list: Record<string, unknown>[] = Array.isArray(current) ? current : [];
+  const cur = await desktop.getCachedResponse!(listUrl).catch(() => null);
+  const lst: Record<string, unknown>[] = Array.isArray(cur) ? cur : [];
 
   if (isTopLevel) {
     await desktop.upsertEntity!(entityType, serverEntity).catch(() => {});
     if (method === "POST") {
-      await desktop.cacheResponse!(listUrl, [...list, serverEntity]).catch(() => {});
+      await desktop.cacheResponse!(listUrl, [...lst, serverEntity]).catch(() => {});
     } else {
-      await desktop
-        .cacheResponse!(listUrl, list.map((e) => (e.id === id ? { ...e, ...serverEntity } : e)))
-        .catch(() => {});
+      await desktop.cacheResponse!(listUrl, lst.map((e) => (e.id === id ? { ...e, ...serverEntity } : e))).catch(() => {});
     }
-    // Cache the individual entity URL for PUT/PATCH
     if (method !== "POST" && entityId) {
       await desktop.cacheResponse!(path.split("?")[0], serverEntity).catch(() => {});
     }
   } else {
-    // URL-scoped sub-resource: update both the list cache and the detail URL
-    // so offline reads (e.g. /animals/:id/milk) immediately reflect the change.
     if (method === "POST") {
-      await desktop.cacheResponse!(listUrl, [...list, serverEntity]).catch(() => {});
+      await desktop.cacheResponse!(listUrl, [...lst, serverEntity]).catch(() => {});
       await desktop.cacheResponse!(`${listUrl}/${String(id)}`, serverEntity).catch(() => {});
     } else {
-      await desktop
-        .cacheResponse!(listUrl, list.map((e) => (e.id === id ? { ...e, ...serverEntity } : e)))
-        .catch(() => {});
+      await desktop.cacheResponse!(listUrl, lst.map((e) => (e.id === id ? { ...e, ...serverEntity } : e))).catch(() => {});
       await desktop.cacheResponse!(path.split("?")[0], serverEntity).catch(() => {});
     }
   }
-
-  // Suppress unused-variable warning
-  void farmId;
 }
 
 // ── Patched fetch ─────────────────────────────────────────────────────────────
@@ -408,13 +358,24 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
           headers: { "Content-Type": "application/json" },
         });
       }
+      // Fallback: check entity_cache for detail endpoints (seeded entities that
+      // don't yet have an individual detail URL in response_cache)
+      const parsedGet = parseEntityUrl(path);
+      if (parsedGet?.entityId && desktop.getEntityById) {
+        const entity = await desktop.getEntityById(parsedGet.entityType, parsedGet.entityId).catch(() => null);
+        if (entity) {
+          return new Response(JSON.stringify(entity), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      }
       return new Response(
         JSON.stringify({ error: "offline", message: "Sin conexión — no hay datos en caché" }),
         { status: 503, headers: { "Content-Type": "application/json" } },
       );
     }
 
-    // Write — queue and apply optimistic update
     let bodyStr: string | null = null;
     if (init?.body) {
       bodyStr =
@@ -427,13 +388,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
       bodyStr = await input.clone().text().catch(() => null);
     }
 
-    // ── baseUpdatedAt: read entity's current updated_at from local cache ────
-    // Mutation payloads rarely include updatedAt, so we look up the entity's
-    // current version from SQLite caches:
-    //   1. response_cache: the entity's detail URL (fast path, set by online write-through)
-    //   2. entity_cache: populated by seeding (fallback for list-seeded entities)
-    // If neither has the record, baseUpdatedAt is null and the conflict check is skipped;
-    // the write is applied (safe because the server will reject any true conflicts via 409).
+    // Read baseUpdatedAt from response_cache (detail URL) then entity_cache fallback
     let baseUpdatedAt: string | null = null;
     const parsedForBase = parseEntityUrl(path);
     if (
@@ -442,41 +397,63 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
     ) {
       const { entityType, entityId, listUrl } = parsedForBase;
       const detailUrl = `${listUrl}/${entityId}`;
-
-      // Try response_cache first
       try {
-        const cached = await desktop.getCachedResponse!(detailUrl);
-        if (cached && typeof cached === "object" && !Array.isArray(cached)) {
-          const rec = cached as Record<string, unknown>;
+        const c = await desktop.getCachedResponse!(detailUrl);
+        if (c && typeof c === "object" && !Array.isArray(c)) {
+          const rec = c as Record<string, unknown>;
           const ts = rec.updatedAt ?? rec.updated_at;
           if (typeof ts === "string") baseUpdatedAt = ts;
         }
-      } catch { /* non-fatal */ }
-
-      // Fallback: check entity_cache (populated by seeding)
+      } catch { /* ignore */ }
       if (!baseUpdatedAt && desktop.getEntityById) {
         try {
-          const entity = await desktop.getEntityById(entityType, entityId);
-          if (entity) {
-            const ts = entity.updatedAt ?? entity.updated_at;
+          const ent = await desktop.getEntityById(entityType, entityId);
+          if (ent) {
+            const ts = ent.updatedAt ?? ent.updated_at;
             if (typeof ts === "string") baseUpdatedAt = ts;
           }
-        } catch { /* non-fatal */ }
+        } catch { /* ignore */ }
       }
     }
 
     const syntheticId = `offline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    // For POST writes, pass syntheticId as clientTempId so the main process can
-    // reliably map synthetic → real server ID after the write is replayed.
     const clientTempId = method === "POST" ? syntheticId : null;
-    const queueId = await desktop.queueOfflineWrite!(method, path, bodyStr, baseUpdatedAt, clientTempId).catch(() => -1);
+    await desktop.queueOfflineWrite!(method, path, bodyStr, baseUpdatedAt, clientTempId).catch(() => {});
 
     await applyOptimisticMutation(method, path, bodyStr, syntheticId, desktop);
 
-    return new Response(
-      JSON.stringify({ id: syntheticId, _offline: true, _queueId: queueId }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    // Return a response that matches the server's expected shape
+    let offlineBody: unknown;
+    if (method === "DELETE") {
+      offlineBody = { ok: true };
+    } else {
+      let bodyObj: Record<string, unknown> = {};
+      try { bodyObj = JSON.parse(bodyStr ?? "{}") as Record<string, unknown>; } catch { /* ignore */ }
+      const now = new Date().toISOString();
+      const parsedWrite = parseEntityUrl(path);
+      if (method === "POST") {
+        offlineBody = {
+          ...bodyObj,
+          id: syntheticId,
+          ...(parsedWrite?.farmId ? { farmId: parsedWrite.farmId } : {}),
+          createdAt: now,
+          updatedAt: now,
+          _offline: true,
+        };
+      } else {
+        offlineBody = {
+          ...bodyObj,
+          id: parsedWrite?.entityId ?? (bodyObj.id as string | undefined) ?? syntheticId,
+          updatedAt: now,
+          _offline: true,
+        };
+      }
+    }
+
+    return new Response(JSON.stringify(offlineBody), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   // ── Online path (browser and desktop) ────────────────────────────────────
