@@ -12,6 +12,9 @@ import {
   X,
   Globe,
   MessageSquare,
+  Monitor,
+  Download,
+  Apple,
 } from "lucide-react";
 
 const APP_URL: string = (import.meta as any).env?.VITE_APP_URL ?? "/app";
@@ -114,6 +117,23 @@ const translations = {
         },
       ],
     },
+    download: {
+      badge: "Aplicación de escritorio",
+      heading: "Lleve miFinca\na su computador.",
+      sub: "Trabaje sin conexión a internet y sincronice cuando vuelva la señal. La app se actualiza sola en segundo plano. Requiere licencia anual.",
+      macBtn: "Descargar para Mac",
+      winBtn: "Descargar para Windows",
+      macReq: "macOS 12 o superior",
+      winReq: "Windows 10 o superior",
+      note: "Se requiere clave de licencia anual — incluida con el plan Pro o disponible por separado.",
+      keyLink: "Ver planes",
+      comingSoon: "Próximamente",
+      bullets: [
+        "Funciona sin conexión a internet",
+        "Sincronización automática al reconectarse",
+        "Actualizaciones silenciosas en segundo plano",
+      ],
+    },
     lifestyle: {
       heading: "Menos tiempo administrando.",
       headingLine2: "Más tiempo en lo importante.",
@@ -122,7 +142,7 @@ const translations = {
     footer: {
       tagline: "Software de gestión diseñado específicamente para la realidad del campo colombiano. Simple, claro y potente.",
       product: "Producto",
-      productLinks: ["Características", "Asesor IA", "Precios", "Actualizaciones"],
+      productLinks: ["Características", "Asesor IA", "Precios", "Descarga", "Actualizaciones"],
       company: "Compañía",
       companyLinks: ["Sobre nosotros", "Blog", "Contacto"],
       legal: "Legal",
@@ -227,6 +247,23 @@ const translations = {
         },
       ],
     },
+    download: {
+      badge: "Desktop app",
+      heading: "Bring miFinca\nto your computer.",
+      sub: "Work without an internet connection and sync when you're back online. The app updates silently in the background. Requires an annual license.",
+      macBtn: "Download for Mac",
+      winBtn: "Download for Windows",
+      macReq: "macOS 12 or later",
+      winReq: "Windows 10 or later",
+      note: "An annual license key is required — included with the Pro plan or available separately.",
+      keyLink: "View plans",
+      comingSoon: "Coming soon",
+      bullets: [
+        "Works offline without internet",
+        "Automatic sync when reconnected",
+        "Silent background updates",
+      ],
+    },
     lifestyle: {
       heading: "Less time managing.",
       headingLine2: "More time where it matters.",
@@ -235,7 +272,7 @@ const translations = {
     footer: {
       tagline: "Farm management software designed specifically for the reality of the Colombian countryside. Simple, clear, and powerful.",
       product: "Product",
-      productLinks: ["Features", "AI Advisor", "Pricing", "Updates"],
+      productLinks: ["Features", "AI Advisor", "Pricing", "Download", "Updates"],
       company: "Company",
       companyLinks: ["About us", "Blog", "Contact"],
       legal: "Legal",
@@ -318,6 +355,13 @@ export default function Home() {
             >
               {t.nav.pricing}
             </button>
+            <button
+              onClick={() => scrollTo("descarga")}
+              className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-primary transition-colors cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {lang === "es" ? "Descarga" : "Download"}
+            </button>
             <div className="w-px h-5 bg-border mx-2"></div>
             <button
               onClick={toggleLang}
@@ -360,6 +404,13 @@ export default function Home() {
             className="text-xl font-serif text-left border-b border-border pb-4"
           >
             {t.nav.pricing}
+          </button>
+          <button
+            onClick={() => scrollTo("descarga")}
+            className="flex items-center gap-2 text-xl font-serif text-left border-b border-border pb-4"
+          >
+            <Download className="h-5 w-5" />
+            {lang === "es" ? "Descarga" : "Download"}
           </button>
           <button
             onClick={() => { toggleLang(); setMobileMenuOpen(false); }}
@@ -661,6 +712,146 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Download Section */}
+        {(() => {
+          const macUrl: string = (import.meta as any).env?.VITE_DESKTOP_DOWNLOAD_MAC ?? "";
+          const winUrl: string = (import.meta as any).env?.VITE_DESKTOP_DOWNLOAD_WIN ?? "";
+          const dl = t.download;
+          return (
+            <section id="descarga" className="py-24 bg-muted/30 border-t border-border overflow-hidden">
+              <div className="container mx-auto px-6">
+                <div className="grid lg:grid-cols-2 gap-16 items-center max-w-5xl mx-auto">
+
+                  {/* Left — copy */}
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary font-medium text-sm mb-6 border border-primary/20">
+                      <Monitor className="h-4 w-4" />
+                      {dl.badge}
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-serif font-medium mb-6 whitespace-pre-line leading-tight">
+                      {dl.heading}
+                    </h2>
+                    <p className="text-lg text-muted-foreground mb-8 leading-relaxed">{dl.sub}</p>
+
+                    <ul className="space-y-3 mb-10">
+                      {dl.bullets.map((b, i) => (
+                        <li key={i} className="flex items-center gap-3">
+                          <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                          <span className="text-foreground/80">{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Download buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                      {macUrl ? (
+                        <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 h-13 px-7 rounded-full hover-elevate gap-2">
+                          <a href={macUrl} download>
+                            <Apple className="h-5 w-5" />
+                            <span>
+                              <span className="block text-xs font-normal opacity-80">{dl.macReq}</span>
+                              <span className="font-semibold">{dl.macBtn}</span>
+                            </span>
+                          </a>
+                        </Button>
+                      ) : (
+                        <Button disabled className="bg-primary/50 text-primary-foreground h-13 px-7 rounded-full gap-2 cursor-not-allowed">
+                          <Apple className="h-5 w-5" />
+                          <span>
+                            <span className="block text-xs font-normal opacity-70">{dl.comingSoon}</span>
+                            <span className="font-semibold">{dl.macBtn}</span>
+                          </span>
+                        </Button>
+                      )}
+
+                      {winUrl ? (
+                        <Button asChild variant="outline" className="h-13 px-7 rounded-full hover-elevate gap-2 border-2">
+                          <a href={winUrl} download>
+                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M3 5.6L10.9 4.5V11.8H3V5.6ZM11.9 4.4L21 3V11.8H11.9V4.4ZM3 12.8H10.9V20.2L3 19.1V12.8ZM11.9 12.8H21V21L11.9 19.6V12.8Z"/>
+                            </svg>
+                            <span>
+                              <span className="block text-xs font-normal opacity-80">{dl.winReq}</span>
+                              <span className="font-semibold">{dl.winBtn}</span>
+                            </span>
+                          </a>
+                        </Button>
+                      ) : (
+                        <Button disabled variant="outline" className="h-13 px-7 rounded-full gap-2 border-2 opacity-60 cursor-not-allowed">
+                          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 5.6L10.9 4.5V11.8H3V5.6ZM11.9 4.4L21 3V11.8H11.9V4.4ZM3 12.8H10.9V20.2L3 19.1V12.8ZM11.9 12.8H21V21L11.9 19.6V12.8Z"/>
+                          </svg>
+                          <span>
+                            <span className="block text-xs font-normal opacity-70">{dl.comingSoon}</span>
+                            <span className="font-semibold">{dl.winBtn}</span>
+                          </span>
+                        </Button>
+                      )}
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
+                      {dl.note}{" "}
+                      <button
+                        onClick={() => scrollTo("planes")}
+                        className="text-primary underline underline-offset-2 cursor-pointer hover:text-primary/80"
+                      >
+                        {dl.keyLink}
+                      </button>
+                    </p>
+                  </div>
+
+                  {/* Right — illustration card */}
+                  <div className="hidden lg:flex justify-center">
+                    <div className="relative w-full max-w-md">
+                      {/* Fake "window chrome" */}
+                      <div className="bg-card rounded-2xl border border-border shadow-2xl overflow-hidden">
+                        <div className="h-10 bg-muted/70 flex items-center px-4 gap-2 border-b border-border">
+                          <span className="w-3 h-3 rounded-full bg-red-400 inline-block"></span>
+                          <span className="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span>
+                          <span className="w-3 h-3 rounded-full bg-green-400 inline-block"></span>
+                          <span className="flex-1 mx-4">
+                            <span className="block bg-background/60 rounded-full h-5 w-3/5 mx-auto"></span>
+                          </span>
+                        </div>
+                        <div className="p-6 space-y-4">
+                          {/* Sidebar + content mockup */}
+                          <div className="flex gap-4">
+                            <div className="w-28 shrink-0 space-y-3">
+                              {["miFinca","Fincas","Cultivos","Inventario","Gastos","Reportes"].map((l, i) => (
+                                <div key={i} className={`h-7 rounded-lg ${i === 0 ? "bg-primary/20" : "bg-muted"} flex items-center px-2`}>
+                                  <span className="text-[10px] font-medium text-foreground/60 truncate">{l}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex-1 space-y-3">
+                              <div className="h-6 w-3/4 bg-muted rounded-lg"></div>
+                              <div className="grid grid-cols-2 gap-3">
+                                {[0,1,2,3].map(i => (
+                                  <div key={i} className="bg-muted/60 rounded-xl p-3">
+                                    <div className="h-2 w-2/3 bg-muted-foreground/20 rounded mb-2"></div>
+                                    <div className="h-4 w-1/2 bg-primary/20 rounded font-bold"></div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="bg-muted/60 rounded-xl h-20"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Offline badge */}
+                      <div className="absolute -bottom-4 -right-4 bg-card border border-border rounded-2xl shadow-lg px-4 py-2 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-secondary inline-block animate-pulse"></span>
+                        <span className="text-xs font-medium text-foreground">{lang === "es" ? "Sin conexión — datos guardados" : "Offline — data saved"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Lifestyle Section */}
         <section className="py-20 bg-muted/50 border-t border-border">

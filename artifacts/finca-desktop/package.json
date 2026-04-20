@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/finca-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "miFinca Desktop App — farm management for the Colombian countryside",
+  "author": {
+    "name": "miFinca",
+    "email": "soporte@mifinca.com"
+  },
+  "main": "dist/main.js",
+  "scripts": {
+    "compile": "tsc -p tsconfig.json",
+    "dev": "cross-env MIFINCA_DEV=1 electron dist/main.js",
+    "build": "tsx scripts/build.mts",
+    "electron:build": "electron-builder --config electron-builder.yml",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "cross-env": "^7.0.3",
+    "electron": "^33.4.0",
+    "electron-builder": "^25.1.8",
+    "tsx": "catalog:",
+    "typescript": "^5.7.3"
+  }
+}

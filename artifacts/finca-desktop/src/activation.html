@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
+  <title>miFinca — Activar licencia</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #2d6a4f;
+      --primary-hover: #235c42;
+      --bg: #fdfaf7;
+      --card: #ffffff;
+      --border: #e5e1db;
+      --text: #1a1208;
+      --muted: #6b5e4e;
+      --error: #b91c1c;
+      --success: #15803d;
+      --radius: 14px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a120b;
+        --card: #231810;
+        --border: #3d2e20;
+        --text: #f5ede4;
+        --muted: #a09080;
+      }
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+      -webkit-app-region: no-drag;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-icon svg { width: 22px; height: 22px; fill: white; }
+
+    .logo-text {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--primary);
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    p.sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: "SF Mono", "Menlo", "Consolas", monospace;
+      letter-spacing: 0.08em;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      text-transform: uppercase;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--muted);
+      opacity: 0.6;
+      text-transform: none;
+      letter-spacing: normal;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .error-msg {
+      font-size: 12px;
+      color: var(--error);
+      margin-top: 10px;
+      min-height: 16px;
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button:hover:not(:disabled) { background: var(--primary-hover); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    button.loading .spinner { display: block; }
+    button.loading .btn-text { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .divider {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin: 20px 0 12px;
+      position: relative;
+    }
+    .divider::before {
+      content: "";
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      height: 1px;
+      background: var(--border);
+    }
+    .divider span {
+      background: var(--card);
+      padding: 0 10px;
+      position: relative;
+    }
+
+    .secondary-link {
+      display: block;
+      text-align: center;
+      font-size: 12px;
+      color: var(--primary);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .secondary-link:hover { text-decoration: underline; }
+
+    .lang-toggle {
+      position: absolute;
+      top: 16px; right: 16px;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      width: auto;
+      margin: 0;
+    }
+    .lang-toggle:hover { background: var(--bg); }
+  </style>
+</head>
+<body>
+  <button class="lang-toggle" id="langBtn" onclick="toggleLang()">EN</button>
+
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 9a9 9 0 0 1 18 0c0 5.25-4.5 9.75-9 12C7.5 18.75 3 14.25 3 9Z"/>
+        </svg>
+      </div>
+      <span class="logo-text">miFinca</span>
+    </div>
+
+    <h1 id="title">Activar tu licencia</h1>
+    <p class="sub" id="sub">Ingresa la clave de licencia que recibiste al comprar miFinca Desktop. La clave tiene el formato <strong>XXXXXX-XXXXXX-XXXXXX-XXXXXX</strong>.</p>
+
+    <label id="label">Clave de licencia</label>
+    <input
+      type="text"
+      id="keyInput"
+      placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX"
+      autocomplete="off"
+      spellcheck="false"
+      maxlength="31"
+    />
+    <p class="hint" id="hint">La clave fue enviada al correo después de la compra.</p>
+
+    <p class="error-msg" id="errorMsg"></p>
+
+    <button id="activateBtn" onclick="handleActivate()">
+      <span class="spinner"></span>
+      <span class="btn-text" id="btnText">Activar</span>
+    </button>
+
+    <div class="divider"><span id="dividerText">¿No tienes una clave?</span></div>
+    <a class="secondary-link" id="purchaseLink" onclick="handlePurchase()">Comprar miFinca Desktop →</a>
+  </div>
+
+  <script>
+    const strings = {
+      es: {
+        title: "Activar tu licencia",
+        sub: 'Ingresa la clave de licencia que recibiste al comprar miFinca Desktop. La clave tiene el formato <strong>XXXXXX-XXXXXX-XXXXXX-XXXXXX</strong>.',
+        label: "Clave de licencia",
+        hint: "La clave fue enviada al correo después de la compra.",
+        btn: "Activar",
+        divider: "¿No tienes una clave?",
+        purchase: "Comprar miFinca Desktop →",
+        errors: {
+          empty: "Ingresa tu clave de licencia.",
+          short: "La clave debe tener el formato XXXXXX-XXXXXX-XXXXXX-XXXXXX.",
+          not_found: "Clave no encontrada. Verifica que la escribiste correctamente.",
+          expired: "Esta clave ha vencido. Renueva tu licencia para continuar.",
+          revoked: "Esta clave ha sido revocada. Contáctanos para soporte.",
+          already_claimed: "Esta clave ya está asociada a otra cuenta.",
+          offline: "Sin conexión. Verifica tu internet e intenta de nuevo.",
+          invalid: "Clave inválida. Verifica que la escribiste correctamente.",
+          network: "Error de red. Intenta de nuevo.",
+        },
+      },
+      en: {
+        title: "Activate your license",
+        sub: 'Enter the license key you received when purchasing miFinca Desktop. The key has the format <strong>XXXXXX-XXXXXX-XXXXXX-XXXXXX</strong>.',
+        label: "License key",
+        hint: "The key was emailed to you after purchase.",
+        btn: "Activate",
+        divider: "Don't have a key?",
+        purchase: "Purchase miFinca Desktop →",
+        errors: {
+          empty: "Enter your license key.",
+          short: "Key must follow the format XXXXXX-XXXXXX-XXXXXX-XXXXXX.",
+          not_found: "Key not found. Check that you typed it correctly.",
+          expired: "This key has expired. Renew your license to continue.",
+          revoked: "This key has been revoked. Contact us for support.",
+          already_claimed: "This key is already associated with another account.",
+          offline: "No connection. Check your internet and try again.",
+          invalid: "Invalid key. Check that you typed it correctly.",
+          network: "Network error. Please try again.",
+        },
+      },
+    };
+
+    let lang = navigator.language.startsWith("en") ? "en" : "es";
+
+    function applyLang() {
+      const s = strings[lang];
+      document.getElementById("title").textContent = s.title;
+      document.getElementById("sub").innerHTML = s.sub;
+      document.getElementById("label").textContent = s.label;
+      document.getElementById("hint").textContent = s.hint;
+      document.getElementById("btnText").textContent = s.btn;
+      document.getElementById("dividerText").textContent = s.divider;
+      document.getElementById("purchaseLink").textContent = s.purchase;
+      document.getElementById("langBtn").textContent = lang === "es" ? "EN" : "ES";
+    }
+
+    function toggleLang() {
+      lang = lang === "es" ? "en" : "es";
+      applyLang();
+    }
+
+    applyLang();
+
+    // Format key as user types: XXXXXX-XXXXXX-XXXXXX-XXXXXX
+    const input = document.getElementById("keyInput");
+    input.addEventListener("input", (e) => {
+      let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      let formatted = "";
+      for (let i = 0; i < val.length && i < 24; i++) {
+        if (i > 0 && i % 6 === 0) formatted += "-";
+        formatted += val[i];
+      }
+      e.target.value = formatted;
+    });
+
+    function showError(msg) {
+      const el = document.getElementById("errorMsg");
+      el.textContent = msg;
+      el.classList.add("visible");
+    }
+
+    function clearError() {
+      const el = document.getElementById("errorMsg");
+      el.classList.remove("visible");
+    }
+
+    function setLoading(loading) {
+      const btn = document.getElementById("activateBtn");
+      if (loading) btn.classList.add("loading");
+      else btn.classList.remove("loading");
+      btn.disabled = loading;
+    }
+
+    async function handleActivate() {
+      clearError();
+      const key = document.getElementById("keyInput").value.trim();
+      const s = strings[lang];
+
+      if (!key) { showError(s.errors.empty); return; }
+      if (key.replace(/-/g, "").length < 24) { showError(s.errors.short); return; }
+
+      setLoading(true);
+      try {
+        const result = await window.miFincaDesktop.activateLicense(key);
+        if (result.ok) {
+          window.miFincaDesktop.activationComplete();
+        } else {
+          const reason = result.error ?? "invalid";
+          showError(s.errors[reason] ?? s.errors.invalid);
+        }
+      } catch (err) {
+        showError(s.errors.network);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function handlePurchase() {
+      window.miFincaDesktop.openPurchase();
+    }
+
+    // Allow Enter key to submit
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleActivate();
+    });
+  </script>
+</body>
+</html>
