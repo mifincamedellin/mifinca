@@ -638,21 +638,32 @@ router.get("/admin/licenses", requireAdmin, async (req: Request, res: Response) 
 
 router.post("/admin/licenses/generate", requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { quantity = 1, expiresAt, notes } = req.body as {
+    const { quantity = 1, expiresAt, notes, userId } = req.body as {
       quantity?: number;
       expiresAt: string;
       notes?: string;
+      userId?: string;
     };
     if (!expiresAt) return res.status(400).json({ error: "expiresAt required" });
     const qty = Math.min(Math.max(1, Number(quantity)), 50);
     const expiry = new Date(expiresAt);
     if (isNaN(expiry.getTime())) return res.status(400).json({ error: "invalid date" });
 
+    let resolvedUserId: string | null = null;
+    if (userId) {
+      const [user] = await db.select({ id: profilesTable.id }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+      if (!user) return res.status(404).json({ error: "user_not_found" });
+      resolvedUserId = user.id;
+    }
+
+    const now = new Date();
     const keys = Array.from({ length: qty }, () => ({
       key: generateLicenseKey(),
       expiresAt: expiry,
       notes: notes ?? null,
       createdBy: "admin",
+      userId: resolvedUserId,
+      activatedAt: resolvedUserId ? now : null,
     }));
 
     const created = await db.insert(licenseKeysTable).values(keys).returning();

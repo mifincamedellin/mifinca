@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "@workspace/db";
 import { licenseKeysTable, profilesTable } from "@workspace/db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, desc } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
@@ -74,6 +74,7 @@ router.get("/licenses/me", requireAuth, async (req, res) => {
       .select()
       .from(licenseKeysTable)
       .where(and(eq(licenseKeysTable.userId, userId), isNull(licenseKeysTable.revokedAt)))
+      .orderBy(desc(licenseKeysTable.expiresAt))
       .limit(5);
 
     const active = rows.find(r => new Date(r.expiresAt) > new Date());

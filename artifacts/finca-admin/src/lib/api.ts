@@ -100,7 +100,7 @@ export const api = {
     if (params?.status) qs.set("status", params.status);
     return req<LicensesResponse>("GET", `/licenses?${qs}`);
   },
-  generateLicenses: (data: { quantity: number; expiresAt: string; notes?: string }) =>
+  generateLicenses: (data: { quantity: number; expiresAt: string; notes?: string; userId?: string }) =>
     req<{ keys: LicenseKey[] }>("POST", "/licenses/generate", data),
   revokeLicense: (id: string) => req<{ ok: boolean }>("POST", `/licenses/${id}/revoke`),
   unrevokeLicense: (id: string) => req<{ ok: boolean }>("POST", `/licenses/${id}/unrevoke`),

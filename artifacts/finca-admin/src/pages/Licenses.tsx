@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type LicenseKey } from "@/lib/api";
 import { format, parseISO, addYears } from "date-fns";
 import {
-  Key, Plus, Copy, Check, ShieldOff, ShieldCheck, Trash2, Loader2, ChevronLeft, ChevronRight
+  Key, Plus, Copy, Check, ShieldOff, ShieldCheck, Trash2, Loader2, ChevronLeft, ChevronRight, UserCheck, X
 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -30,17 +30,89 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
+function UserSearchField({ onSelect }: { onSelect: (user: { id: string; fullName: string | null; email: string | null } | null) => void }) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<{ id: string; fullName: string | null; email: string | null } | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const { data } = useQuery({
+    queryKey: ["user-search", search],
+    queryFn: () => api.users({ search }),
+    enabled: search.length >= 2,
+  });
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  if (selected) {
+    return (
+      <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2">
+          <UserCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-foreground">{selected.fullName ?? selected.email}</p>
+            {selected.fullName && selected.email && <p className="text-xs text-muted-foreground">{selected.email}</p>}
+          </div>
+        </div>
+        <button onClick={() => { setSelected(null); setSearch(""); onSelect(null); }} className="text-muted-foreground hover:text-foreground ml-2">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={search}
+        onChange={e => { setSearch(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        placeholder="Search by name or email…"
+        className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+      {open && search.length >= 2 && (data?.users?.length ?? 0) > 0 && (
+        <div className="absolute z-10 w-full bg-white border border-border rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+          {data!.users.map(u => (
+            <button
+              key={u.id}
+              onClick={() => { setSelected(u); setOpen(false); onSelect(u); }}
+              className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
+            >
+              <p className="text-xs font-medium text-foreground">{u.fullName ?? u.email}</p>
+              {u.fullName && u.email && <p className="text-xs text-muted-foreground">{u.email}</p>}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && search.length >= 2 && data && data.users.length === 0 && (
+        <div className="absolute z-10 w-full bg-white border border-border rounded-lg shadow-lg mt-1 px-3 py-2 text-xs text-muted-foreground">
+          No users found
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GenerateModal({ onClose, onDone }: { onClose: () => void; onDone: (keys: LicenseKey[]) => void }) {
   const defaultExpiry = format(addYears(new Date(), 1), "yyyy-MM-dd");
   const [quantity, setQuantity] = useState("1");
   const [expiresAt, setExpiresAt] = useState(defaultExpiry);
   const [notes, setNotes] = useState("");
+  const [assignedUser, setAssignedUser] = useState<{ id: string } | null>(null);
 
   const generate = useMutation({
     mutationFn: () => api.generateLicenses({
       quantity: Math.min(50, Math.max(1, Number(quantity) || 1)),
       expiresAt: new Date(expiresAt + "T23:59:59").toISOString(),
       notes: notes.trim() || undefined,
+      userId: assignedUser?.id,
     }),
     onSuccess: (data) => onDone(data.keys),
   });
@@ -71,6 +143,15 @@ function GenerateModal({ onClose, onDone }: { onClose: () => void; onDone: (keys
               onChange={e => setExpiresAt(e.target.value)}
               className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+              Pre-assign to user <span className="normal-case font-normal text-muted-foreground/70">(optional)</span>
+            </label>
+            <UserSearchField onSelect={u => setAssignedUser(u ? { id: u.id } : null)} />
+            {assignedUser && Number(quantity) > 1 && (
+              <p className="text-xs text-amber-600 mt-1">Only the first generated key will be pre-assigned when generating multiple keys.</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
@@ -239,7 +320,9 @@ export default function Licenses() {
                 <tr key={lic.id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">
-                      <code className="font-mono text-xs text-foreground tracking-wider">{lic.key}</code>
+                      <code className="font-mono text-xs text-foreground tracking-wider" title={lic.key}>
+                        {lic.key.slice(0, 13)}&hellip;
+                      </code>
                       <CopyButton value={lic.key} />
                     </div>
                   </td>
