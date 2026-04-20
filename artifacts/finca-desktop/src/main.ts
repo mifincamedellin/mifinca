@@ -102,20 +102,22 @@ type RouteDescriptor = {
  */
 const ROUTE_PATTERNS: RouteDescriptor[] = [
   // ── Animal sub-resources (must precede general /animals/:id) ──────────────
+  // Each pattern matches both the list endpoint and the detail endpoint (/:recordId)
+  // so that entityId is resolved for individual-record operations.
   {
     re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/medical(?:\/([^/]+))?$/,
     entityType: "medical_records",
     toResult: (m) => ({ farmId: m[1], entityId: m[3] ?? null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/medical` }),
   },
   {
-    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/milk$/,
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/milk(?:\/([^/]+))?$/,
     entityType: "animal_milk_records",
-    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/milk` }),
+    toResult: (m) => ({ farmId: m[1], entityId: m[3] ?? null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/milk` }),
   },
   {
-    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/weights$/,
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/weights(?:\/([^/]+))?$/,
     entityType: "weight_records",
-    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/weights` }),
+    toResult: (m) => ({ farmId: m[1], entityId: m[3] ?? null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/weights` }),
   },
   {
     re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/lifecycle-history$/,
@@ -261,12 +263,26 @@ function applyServerEntityToCache(
         ? getEntities(parsed.entityType, parsed.farmId)
         : getEntities(parsed.entityType);
       cacheResponse(parsed.listUrl, allEntities);
-    } else if (parsed.entityId && "id" in serverEntity) {
-      // Sub-resource: update only the individual entity URL
-      const detailUrl = `${parsed.listUrl}/${serverEntity.id as string}`;
-      cacheResponse(detailUrl, serverEntity);
+    } else {
+      // URL-scoped sub-resource (medical, milk, weights, attachments, etc.):
+      // splice the new entity into the URL-keyed list cache so offline reads
+      // of the list endpoint reflect the change.
+      const id = serverEntity.id as string | undefined;
+      if (id) {
+        // Update individual detail URL
+        cacheResponse(`${parsed.listUrl}/${id}`, serverEntity);
+        // Splice into the list URL cache
+        const raw = getCachedResponse(parsed.listUrl);
+        const list: Record<string, unknown>[] = Array.isArray(raw) ? raw : [];
+        const exists = list.some((e) => e.id === id);
+        cacheResponse(
+          parsed.listUrl,
+          exists
+            ? list.map((e) => (e.id === id ? { ...e, ...serverEntity } : e))
+            : [...list, serverEntity],
+        );
+      }
     }
-    // else: no entity ID (e.g. list-level POST to a sub-resource) — skip
   } catch {
     // Non-fatal — best-effort
   }
@@ -395,14 +411,20 @@ async function flushSyncQueue(authToken: string): Promise<void> {
           if (parsed) {
             if (entry.method === "DELETE") {
               if (ENTITY_CACHE_TYPES.has(parsed.entityType)) {
-                // Top-level entity: remove from entity_cache and refresh list
+                // Top-level entity: remove from entity_cache and rebuild list
                 if (parsed.entityId) removeEntity(parsed.entityType, parsed.entityId);
                 const remaining = parsed.farmId
                   ? getEntities(parsed.entityType, parsed.farmId)
                   : getEntities(parsed.entityType);
                 cacheResponse(parsed.listUrl, remaining);
               } else if (parsed.entityId) {
-                // Sub-resource: invalidate the URL-keyed response_cache entry
+                // URL-scoped sub-resource: splice out from list cache + clear detail URL
+                const raw = getCachedResponse(parsed.listUrl);
+                const list: Record<string, unknown>[] = Array.isArray(raw) ? raw : [];
+                cacheResponse(
+                  parsed.listUrl,
+                  list.filter((e) => e.id !== parsed.entityId),
+                );
                 cacheResponse(`${parsed.listUrl}/${parsed.entityId}`, null);
               }
             } else {

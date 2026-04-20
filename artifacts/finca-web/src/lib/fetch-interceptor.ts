@@ -80,20 +80,22 @@ type RouteDescriptor = {
  */
 const ROUTE_PATTERNS: RouteDescriptor[] = [
   // ── Animal sub-resources (must precede /animals/:id) ─────────────────────
+  // Each pattern matches both the list endpoint AND the detail endpoint (/:recordId)
+  // so entityId is resolved for individual-record PUT/DELETE conflict checks.
   {
     re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/medical(?:\/([^/]+))?$/,
     entityType: "medical_records",
     toResult: (m) => ({ farmId: m[1], entityId: m[3] ?? null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/medical` }),
   },
   {
-    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/milk$/,
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/milk(?:\/([^/]+))?$/,
     entityType: "animal_milk_records",
-    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/milk` }),
+    toResult: (m) => ({ farmId: m[1], entityId: m[3] ?? null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/milk` }),
   },
   {
-    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/weights$/,
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/weights(?:\/([^/]+))?$/,
     entityType: "weight_records",
-    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/weights` }),
+    toResult: (m) => ({ farmId: m[1], entityId: m[3] ?? null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/weights` }),
   },
   {
     re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/lifecycle-history$/,
@@ -214,6 +216,14 @@ type Desktop = NonNullable<typeof window.miFincaDesktop>;
 /**
  * Apply an optimistic mutation to local caches so subsequent offline GETs
  * reflect the change immediately (before the write is replayed online).
+ *
+ * Two-tier strategy:
+ * - Top-level entities (ENTITY_CACHE_TYPES): upsert into entity_cache AND
+ *   update the URL-keyed list cache.
+ * - URL-scoped sub-resources (animal_milk_records, medical_records, etc.):
+ *   update the URL-keyed list cache ONLY (no entity_cache involvement).
+ *   This ensures offline reads of sub-resource lists (e.g. /animals/:id/milk)
+ *   immediately reflect creates/updates/deletes.
  */
 async function applyOptimisticMutation(
   method: string,
@@ -228,6 +238,7 @@ async function applyOptimisticMutation(
   const { entityType, farmId, entityId, listUrl } = parsed;
   const isTopLevel = ENTITY_CACHE_TYPES.has(entityType);
 
+  // Always update the URL-keyed list cache, regardless of entity tier
   async function refreshListCache(
     updater: (list: Record<string, unknown>[]) => Record<string, unknown>[],
   ) {
@@ -239,8 +250,9 @@ async function applyOptimisticMutation(
   if (method === "DELETE" && entityId) {
     if (isTopLevel) {
       await desktop.removeEntity!(entityType, entityId).catch(() => {});
-      await refreshListCache((list) => list.filter((e) => e.id !== entityId));
     }
+    // Both tiers: splice from the URL-keyed list cache
+    await refreshListCache((list) => list.filter((e) => e.id !== entityId));
     return;
   }
 
@@ -261,8 +273,9 @@ async function applyOptimisticMutation(
       };
       if (isTopLevel) {
         await desktop.upsertEntity!(entityType, entity).catch(() => {});
-        await refreshListCache((list) => [...list, entity]);
       }
+      // Both tiers: append to the URL-keyed list cache
+      await refreshListCache((list) => [...list, entity]);
     } else {
       const id = entityId ?? (bodyObj.id as string);
       if (!id) return;
@@ -275,10 +288,11 @@ async function applyOptimisticMutation(
       };
       if (isTopLevel) {
         await desktop.upsertEntity!(entityType, entity).catch(() => {});
-        await refreshListCache((list) =>
-          list.map((e) => (e.id === id ? { ...e, ...entity } : e)),
-        );
       }
+      // Both tiers: splice into the URL-keyed list cache
+      await refreshListCache((list) =>
+        list.map((e) => (e.id === id ? { ...e, ...entity } : e)),
+      );
     }
   }
 }
@@ -317,10 +331,11 @@ async function applyOnlineWriteToCache(
   if (!("id" in serverEntity)) return;
   const id = serverEntity.id;
 
+  const current = await desktop.getCachedResponse!(listUrl).catch(() => null);
+  const list: Record<string, unknown>[] = Array.isArray(current) ? current : [];
+
   if (isTopLevel) {
     await desktop.upsertEntity!(entityType, serverEntity).catch(() => {});
-    const current = await desktop.getCachedResponse!(listUrl).catch(() => null);
-    const list: Record<string, unknown>[] = Array.isArray(current) ? current : [];
     if (method === "POST") {
       await desktop.cacheResponse!(listUrl, [...list, serverEntity]).catch(() => {});
     } else {
@@ -333,11 +348,17 @@ async function applyOnlineWriteToCache(
       await desktop.cacheResponse!(path.split("?")[0], serverEntity).catch(() => {});
     }
   } else {
-    // Sub-resource: cache only the individual entity URL
-    const detailUrl = method === "POST"
-      ? `${listUrl}/${String(id)}`
-      : path.split("?")[0];
-    await desktop.cacheResponse!(detailUrl, serverEntity).catch(() => {});
+    // URL-scoped sub-resource: update both the list cache and the detail URL
+    // so offline reads (e.g. /animals/:id/milk) immediately reflect the change.
+    if (method === "POST") {
+      await desktop.cacheResponse!(listUrl, [...list, serverEntity]).catch(() => {});
+      await desktop.cacheResponse!(`${listUrl}/${String(id)}`, serverEntity).catch(() => {});
+    } else {
+      await desktop
+        .cacheResponse!(listUrl, list.map((e) => (e.id === id ? { ...e, ...serverEntity } : e)))
+        .catch(() => {});
+      await desktop.cacheResponse!(path.split("?")[0], serverEntity).catch(() => {});
+    }
   }
 
   // Suppress unused-variable warning
