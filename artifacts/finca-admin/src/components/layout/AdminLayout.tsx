@@ -7,6 +7,7 @@ import {
   Building2,
   Activity,
   LogOut,
+  Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ const NAV = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/users", label: "Users", icon: Users },
   { href: "/farms", label: "Farms", icon: Building2 },
+  { href: "/licenses", label: "Licenses", icon: Key },
   { href: "/activity", label: "Activity", icon: Activity },
 ];
 

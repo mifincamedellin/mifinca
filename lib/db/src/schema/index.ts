@@ -19,3 +19,4 @@ export * from "./milkRecords";
 export * from "./farmEvents";
 export * from "./farmInvitations";
 export * from "./animalLifecycleEvents";
+export * from "./licenseKeys";

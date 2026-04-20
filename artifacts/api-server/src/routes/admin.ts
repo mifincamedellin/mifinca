@@ -6,8 +6,10 @@ import {
   farmMembersTable,
   animalsTable,
   financeTransactionsTable,
+  licenseKeysTable,
 } from "@workspace/db";
-import { eq, desc, ilike, or, sql, count, sum, and, asc } from "drizzle-orm";
+import { eq, desc, ilike, or, sql, count, sum, and, asc, isNull } from "drizzle-orm";
+import crypto from "crypto";
 
 const router = Router();
 
@@ -574,6 +576,130 @@ router.get("/admin/activity", requireAdmin, async (req: Request, res: Response) 
       page,
       pages: Math.ceil(Number(totalResult.rows[0]?.count ?? 0) / limit),
     });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+// ── License Key Admin Routes ──────────────────────────────────────────────────
+
+function generateLicenseKey(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const group = () => Array.from({ length: 6 }, () => chars[crypto.randomInt(chars.length)]).join("");
+  return `${group()}-${group()}-${group()}-${group()}`;
+}
+
+function licenseStatus(row: typeof licenseKeysTable.$inferSelect): "active" | "expired" | "revoked" {
+  if (row.revokedAt) return "revoked";
+  if (new Date(row.expiresAt) < new Date()) return "expired";
+  return "active";
+}
+
+router.get("/admin/licenses", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const page = Number(req.query["page"] ?? 1);
+    const statusFilter = req.query["status"] as string | undefined;
+    const limit = 30;
+    const offset = (page - 1) * limit;
+
+    const allRows = await db
+      .select({
+        id: licenseKeysTable.id,
+        key: licenseKeysTable.key,
+        userId: licenseKeysTable.userId,
+        expiresAt: licenseKeysTable.expiresAt,
+        revokedAt: licenseKeysTable.revokedAt,
+        activatedAt: licenseKeysTable.activatedAt,
+        notes: licenseKeysTable.notes,
+        createdBy: licenseKeysTable.createdBy,
+        createdAt: licenseKeysTable.createdAt,
+        ownerName: profilesTable.fullName,
+        ownerEmail: profilesTable.email,
+      })
+      .from(licenseKeysTable)
+      .leftJoin(profilesTable, eq(licenseKeysTable.userId, profilesTable.id))
+      .orderBy(desc(licenseKeysTable.createdAt));
+
+    const withStatus = allRows.map(r => ({ ...r, status: licenseStatus(r as typeof licenseKeysTable.$inferSelect) }));
+    const filtered = statusFilter && statusFilter !== "all"
+      ? withStatus.filter(r => r.status === statusFilter)
+      : withStatus;
+
+    const total = filtered.length;
+    const paginated = filtered.slice(offset, offset + limit);
+
+    return res.json({ licenses: paginated, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.post("/admin/licenses/generate", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { quantity = 1, expiresAt, notes } = req.body as {
+      quantity?: number;
+      expiresAt: string;
+      notes?: string;
+    };
+    if (!expiresAt) return res.status(400).json({ error: "expiresAt required" });
+    const qty = Math.min(Math.max(1, Number(quantity)), 50);
+    const expiry = new Date(expiresAt);
+    if (isNaN(expiry.getTime())) return res.status(400).json({ error: "invalid date" });
+
+    const keys = Array.from({ length: qty }, () => ({
+      key: generateLicenseKey(),
+      expiresAt: expiry,
+      notes: notes ?? null,
+      createdBy: "admin",
+    }));
+
+    const created = await db.insert(licenseKeysTable).values(keys).returning();
+    return res.status(201).json({ keys: created });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.post("/admin/licenses/:id/revoke", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const [updated] = await db
+      .update(licenseKeysTable)
+      .set({ revokedAt: new Date(), updatedAt: new Date() })
+      .where(eq(licenseKeysTable.id, id))
+      .returning();
+    if (!updated) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.post("/admin/licenses/:id/unrevoke", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const [updated] = await db
+      .update(licenseKeysTable)
+      .set({ revokedAt: null, updatedAt: new Date() })
+      .where(eq(licenseKeysTable.id, id))
+      .returning();
+    if (!updated) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "internal" });
+  }
+});
+
+router.delete("/admin/licenses/:id", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    await db.delete(licenseKeysTable).where(eq(licenseKeysTable.id, id));
+    return res.json({ ok: true });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "internal" });

@@ -93,6 +93,18 @@ export const api = {
     if (params?.farm) qs.set("farm", params.farm);
     return req<ActivityResponse>("GET", `/activity?${qs}`);
   },
+
+  licenses: (params?: { page?: number; status?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.status) qs.set("status", params.status);
+    return req<LicensesResponse>("GET", `/licenses?${qs}`);
+  },
+  generateLicenses: (data: { quantity: number; expiresAt: string; notes?: string }) =>
+    req<{ keys: LicenseKey[] }>("POST", "/licenses/generate", data),
+  revokeLicense: (id: string) => req<{ ok: boolean }>("POST", `/licenses/${id}/revoke`),
+  unrevokeLicense: (id: string) => req<{ ok: boolean }>("POST", `/licenses/${id}/unrevoke`),
+  deleteLicense: (id: string) => req<{ ok: boolean }>("DELETE", `/licenses/${id}`),
 };
 
 export type Profile = {
@@ -198,6 +210,28 @@ export type UserDetail = Profile & {
 
 export type ActivityResponse = {
   activity: ActivityEntry[];
+  total: number;
+  page: number;
+  pages: number;
+};
+
+export type LicenseKey = {
+  id: string;
+  key: string;
+  userId: string | null;
+  expiresAt: string;
+  revokedAt: string | null;
+  activatedAt: string | null;
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  status: "active" | "expired" | "revoked";
+};
+
+export type LicensesResponse = {
+  licenses: LicenseKey[];
   total: number;
   page: number;
   pages: number;

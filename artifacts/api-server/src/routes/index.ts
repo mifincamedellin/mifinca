@@ -16,6 +16,7 @@ import seedRouter from "./seed.js";
 import eventsRouter from "./events.js";
 import invitationsRouter from "./invitations.js";
 import adminRouter from "./admin.js";
+import licensesRouter from "./licenses.js";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(seedRouter);
 router.use(eventsRouter);
 router.use(invitationsRouter);
 router.use(adminRouter);
+router.use(licensesRouter);
 
 export default router;

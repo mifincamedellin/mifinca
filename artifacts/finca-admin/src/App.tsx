@@ -10,6 +10,7 @@ import UserDetail from "@/pages/UserDetail";
 import Farms from "@/pages/Farms";
 import FarmDetail from "@/pages/FarmDetail";
 import ActivityLog from "@/pages/ActivityLog";
+import Licenses from "@/pages/Licenses";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -79,6 +80,15 @@ function Router() {
           <RequireAuth>
             <AdminLayout>
               <ActivityLog />
+            </AdminLayout>
+          </RequireAuth>
+        )}
+      </Route>
+      <Route path="/licenses">
+        {() => (
+          <RequireAuth>
+            <AdminLayout>
+              <Licenses />
             </AdminLayout>
           </RequireAuth>
         )}
