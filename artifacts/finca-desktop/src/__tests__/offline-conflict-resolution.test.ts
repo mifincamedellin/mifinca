@@ -156,6 +156,12 @@ async function flushQueueWithConflictCheck(
           });
           if (getRes.status === 200) {
             serverRecord = (await getRes.json()) as Record<string, unknown>;
+          } else {
+            // Non-200 from preflight GET → cannot safely establish a conflict
+            // baseline; treat as a check failure and retry the entry later.
+            markQueueError(entry.id, "conflict_check_failed");
+            errors++;
+            continue;
           }
         } catch {
           markQueueError(entry.id, "conflict_check_failed");
@@ -420,6 +426,38 @@ describe("Server-wins conflict check (PATCH / PUT / DELETE)", () => {
     // Exactly one request: the POST (no preceding GET)
     expect(mockServer.requests).toHaveLength(1);
     expect(mockServer.requests[0].method).toBe("POST");
+  });
+
+  it("marks entry with 'conflict_check_failed' and increments retries when the preflight GET fails", async () => {
+    // The conflict-check GET returns a server error (5xx) — the entry must be
+    // preserved in the queue, retries incremented, and lastError set accordingly.
+    enqueueWrite(
+      "PATCH",
+      "/api/farms/f1/animals/animal-fail",
+      JSON.stringify({ name: "Fail-test" }),
+      "2024-01-01T10:00:00.000Z",
+    );
+
+    // Preflight GET returns 500 (not 200) — serverRecord will be undefined,
+    // triggering the conflict_check_failed error path.
+    mockServer.queueResponse(500, { error: "Internal Server Error" });
+
+    const { flushed, errors, skipped } = await flushQueueWithConflictCheck("tok", mockServer.baseUrl);
+
+    expect(flushed).toBe(0);
+    expect(skipped).toBe(0);
+    expect(errors).toBe(1);
+
+    // Entry must remain in the queue (not discarded)
+    expect(getQueueCount()).toBe(1);
+
+    const [entry] = getPendingQueue();
+    expect(entry.retries).toBe(1);
+    expect(entry.lastError).toBe("conflict_check_failed");
+
+    // Only the GET was sent; the PATCH was never attempted
+    expect(mockServer.requests).toHaveLength(1);
+    expect(mockServer.requests[0].method).toBe("GET");
   });
 });
 
