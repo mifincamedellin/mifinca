@@ -80,3 +80,29 @@ export function requirePerm(perm: keyof FarmPermissions) {
     return next();
   };
 }
+
+// Extracts userId from the request if valid credentials are present; returns null
+// if no credentials or invalid token. Does NOT send a 401 response — used to make
+// endpoints optionally-authenticated (e.g. POST /licenses/activate).
+export async function extractOptionalUserId(req: Request): Promise<string | null> {
+  // Try Clerk session (cookie-based)
+  const auth = getAuth(req);
+  if (auth?.userId) {
+    const profile = await db.select().from(profilesTable)
+      .where(eq(profilesTable.clerkId, auth.userId))
+      .limit(1);
+    if (profile[0]) return profile[0].id;
+  }
+  // Try Bearer JWT (demo user / desktop app)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.slice(7);
+      const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+      return payload.userId;
+    } catch {
+      // Malformed token — treat as unauthenticated
+    }
+  }
+  return null;
+}

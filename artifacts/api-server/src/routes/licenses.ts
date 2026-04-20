@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { db, pool } from "@workspace/db";
 import { licenseKeysTable } from "@workspace/db";
 import { eq, and, isNull, desc } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, extractOptionalUserId } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -39,110 +39,83 @@ router.get("/licenses/validate", async (req, res) => {
   }
 });
 
-// Desktop activation contract (canonical path for Electron app first-launch):
-// No auth required — the license key IS the credential at activation time.
-// Sets activatedAt, returns expiresAt.
+// Unified license activation — works with or without authentication.
 //
-// Enforcement: only unclaimed keys (user_id IS NULL) can be activated here.
-// Once a key is bound to a user account via POST /licenses/activate, re-activation
-// from the desktop must go through that auth-required endpoint.
+// Unauthenticated (no Bearer / no Clerk session):
+//   Activates an unclaimed key (user_id IS NULL) without binding it to a user.
+//   If the key is already bound to a user account, returns { error: "login_required" }
+//   so the desktop app can prompt the user to log in and retry with a JWT.
 //
-// POST /licenses/activate (auth-required) is the secondary, optional step that
-// binds an already-desktop-activated key to a user account — called after the
-// user logs in inside the embedded web view.
+// Authenticated (Bearer JWT or Clerk session):
+//   Binds the key to the calling user atomically. Works for unclaimed keys OR
+//   keys already owned by the same user (idempotent re-activation).
+//   Returns { error: "already_claimed" } if a DIFFERENT user owns the key.
 //
 // Contract: { ok: true, expiresAt: string } | { error: string }
-router.post("/licenses/activate-desktop", async (req, res) => {
+router.post("/licenses/activate", async (req, res) => {
   try {
     const { key: keyStr } = req.body as { key?: string };
     if (!keyStr) return res.status(400).json({ error: "missing_key" });
-
     const normalised = keyStr.toUpperCase().trim();
 
-    // Only allow activation if the key is not yet claimed by a user account.
-    // Once a key is bound to a user (via POST /licenses/activate), desktop
-    // re-activation must go through the authenticated endpoint — this enforces
-    // single-user ownership and prevents key sharing across accounts.
-    const result = await pool.query<{
-      expires_at: Date;
-    }>(
-      `UPDATE license_keys
-          SET activated_at = COALESCE(activated_at, NOW()),
-              updated_at   = NOW()
-        WHERE key         = $1
-          AND revoked_at  IS NULL
-          AND expires_at  > NOW()
-          AND user_id     IS NULL
-        RETURNING expires_at`,
-      [normalised],
-    );
+    const userId = await extractOptionalUserId(req);
 
-    if (result.rowCount === 0) {
-      const [row] = await db
-        .select()
-        .from(licenseKeysTable)
-        .where(eq(licenseKeysTable.key, normalised))
-        .limit(1);
-      if (!row) return res.status(404).json({ error: "not_found" });
-      if (row.revokedAt) return res.status(403).json({ error: "revoked" });
-      if (new Date(row.expiresAt) < new Date()) return res.status(403).json({ error: "expired" });
-      // Key belongs to a user account — must re-activate via POST /licenses/activate
-      if (row.userId) return res.status(409).json({ error: "already_claimed" });
-      return res.status(400).json({ error: "invalid" });
+    if (userId) {
+      // ── Authenticated path: bind key to this user ────────────────────────
+      const result = await pool.query<{
+        expires_at: Date;
+      }>(
+        `UPDATE license_keys
+           SET user_id      = $1,
+               activated_at = COALESCE(activated_at, NOW()),
+               updated_at   = NOW()
+         WHERE key         = $2
+           AND revoked_at  IS NULL
+           AND expires_at  > NOW()
+           AND (user_id IS NULL OR user_id = $1)
+         RETURNING expires_at`,
+        [userId, normalised],
+      );
+
+      if (result.rowCount === 0) {
+        const [row] = await db.select().from(licenseKeysTable)
+          .where(eq(licenseKeysTable.key, normalised)).limit(1);
+        if (!row) return res.status(404).json({ error: "not_found" });
+        if (row.revokedAt) return res.status(403).json({ error: "revoked" });
+        if (new Date(row.expiresAt) < new Date()) return res.status(403).json({ error: "expired" });
+        return res.status(409).json({ error: "already_claimed" });
+      }
+
+      return res.json({ ok: true, expiresAt: result.rows[0]!.expires_at.toISOString() });
+    } else {
+      // ── Unauthenticated path: activate unclaimed key, no user binding ────
+      const result = await pool.query<{
+        expires_at: Date;
+      }>(
+        `UPDATE license_keys
+           SET activated_at = COALESCE(activated_at, NOW()),
+               updated_at   = NOW()
+         WHERE key         = $1
+           AND revoked_at  IS NULL
+           AND expires_at  > NOW()
+           AND user_id     IS NULL
+         RETURNING expires_at`,
+        [normalised],
+      );
+
+      if (result.rowCount === 0) {
+        const [row] = await db.select().from(licenseKeysTable)
+          .where(eq(licenseKeysTable.key, normalised)).limit(1);
+        if (!row) return res.status(404).json({ error: "not_found" });
+        if (row.revokedAt) return res.status(403).json({ error: "revoked" });
+        if (new Date(row.expiresAt) < new Date()) return res.status(403).json({ error: "expired" });
+        // Key is bound to a user — desktop must log in first then retry
+        if (row.userId) return res.status(409).json({ error: "login_required" });
+        return res.status(400).json({ error: "invalid" });
+      }
+
+      return res.json({ ok: true, expiresAt: result.rows[0]!.expires_at.toISOString() });
     }
-
-    return res.json({ ok: true, expiresAt: result.rows[0]!.expires_at.toISOString() });
-  } catch (err) {
-    req.log.error({ err }, "License activate-desktop error");
-    return res.status(500).json({ error: "internal" });
-  }
-});
-
-// Auth-required — associates key with calling user atomically
-router.post("/licenses/activate", requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthedReq).userId;
-    const { key: keyStr } = req.body as { key?: string };
-    if (!keyStr) return res.status(400).json({ error: "missing_key" });
-
-    const normalised = keyStr.toUpperCase().trim();
-
-    // Atomic conditional update: only proceed if the key is unclaimed OR already belongs to this user.
-    // Using raw SQL to do a single round-trip with no TOCTOU race.
-    const result = await pool.query<{
-      id: string;
-      user_id: string | null;
-      expires_at: Date;
-      revoked_at: Date | null;
-      activated_at: Date | null;
-    }>(
-      `UPDATE license_keys
-         SET user_id      = $1,
-             activated_at = COALESCE(activated_at, NOW()),
-             updated_at   = NOW()
-       WHERE key = $2
-         AND revoked_at IS NULL
-         AND expires_at > NOW()
-         AND (user_id IS NULL OR user_id = $1)
-       RETURNING id, user_id, expires_at, revoked_at, activated_at`,
-      [userId, normalised],
-    );
-
-    if (result.rowCount === 0) {
-      // Determine the reason by fetching the row (read-only, race-safe enough here)
-      const [row] = await db
-        .select()
-        .from(licenseKeysTable)
-        .where(eq(licenseKeysTable.key, normalised))
-        .limit(1);
-      if (!row) return res.status(404).json({ error: "not_found" });
-      if (row.revokedAt) return res.status(403).json({ error: "revoked" });
-      if (new Date(row.expiresAt) < new Date()) return res.status(403).json({ error: "expired" });
-      return res.status(409).json({ error: "already_claimed" });
-    }
-
-    const updated = result.rows[0]!;
-    return res.json({ ok: true, expiresAt: updated.expires_at.toISOString() });
   } catch (err) {
     req.log.error({ err }, "License activate error");
     return res.status(500).json({ error: "internal" });
