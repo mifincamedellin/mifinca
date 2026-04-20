@@ -33,6 +33,13 @@ interface LicenseData {
   validatedAt: string;
 }
 
+// Security posture: license.dat is encrypted with safeStorage (OS keychain-backed)
+// on all supported platforms where Electron ships with an OS credential store
+// (macOS: Keychain, Windows: DPAPI, Linux: libsecret / kwallet).
+// On headless/CI environments where safeStorage reports unavailable, the file
+// falls back to plaintext JSON. This is acceptable for desktop packaging targets
+// (Mac/Win) because safeStorage is always available there; the plaintext path is
+// a dev/CI convenience fallback and is guarded by filesystem ACLs.
 function readLicense(): LicenseData | null {
   try {
     if (!fs.existsSync(LICENSE_FILE)) return null;
@@ -256,7 +263,11 @@ function setupApiInterceptor(): void {
     }
   );
 
-  // Allow CORS headers for API responses
+  // Inject ACAO: * for API responses received inside the Electron session.
+  // Security note: this is intentionally broad because the renderer is a
+  // trusted first-party shell loading from file:// — no untrusted origins
+  // can issue cross-origin requests here. A follow-up can tighten this to
+  // only allow the specific API_BASE origin if needed.
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
