@@ -2,14 +2,18 @@ import type Database from "better-sqlite3";
 
 let db: Database.Database;
 
-export function openDatabase(dbPath: string): void {
-  // Dynamic require so TypeScript types resolve but the native module is loaded at runtime
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const BetterSQLite = require("better-sqlite3") as typeof import("better-sqlite3");
-  db = new BetterSQLite(dbPath);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
+/**
+ * Inject a pre-created database instance and initialise the schema.
+ * Intended for unit tests only — call this instead of openDatabase() to avoid
+ * loading the native better-sqlite3 binary in test environments.
+ */
+export function setDatabaseForTesting(instance: Database.Database): void {
+  db = instance;
+  initSchema();
+}
 
+/** Create tables and run idempotent migrations.  Called by both openDatabase and setDatabaseForTesting. */
+function initSchema(): void {
   db.exec(`
     -- URL-keyed response cache: stores the last successful GET response for each API path.
     CREATE TABLE IF NOT EXISTS response_cache (
@@ -66,6 +70,16 @@ export function openDatabase(dbPath: string): void {
   if (!cols.includes("client_temp_id")) {
     db.exec("ALTER TABLE sync_queue ADD COLUMN client_temp_id TEXT");
   }
+}
+
+export function openDatabase(dbPath: string): void {
+  // Dynamic require so TypeScript types resolve but the native module is loaded at runtime
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const BetterSQLite = require("better-sqlite3") as typeof import("better-sqlite3");
+  db = new BetterSQLite(dbPath);
+  db.pragma("journal_mode = WAL");
+  db.pragma("foreign_keys = ON");
+  initSchema();
 }
 
 // ── Response cache (URL-keyed) ────────────────────────────────────────────────
