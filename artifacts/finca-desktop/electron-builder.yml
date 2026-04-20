@@ -8,6 +8,7 @@ directories:
 
 files:
   - dist/**/*
+  - src/*.html
   - web-dist/**/*
   - package.json
 
@@ -27,10 +28,10 @@ mac:
       arch:
         - x64
         - arm64
-  icon: resources/icons/icon.icns
+  # icon: resources/icons/icon.icns  — place a 512x512 .icns here before shipping
   category: public.app-category.business
   hardenedRuntime: true
-  entitlementsInherit: resources/entitlements.mac.plist
+  # entitlementsInherit: resources/entitlements.mac.plist  — required for notarization
   darkModeSupport: true
 
 dmg:
@@ -44,7 +45,7 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: resources/icons/icon.ico
+  # icon: resources/icons/icon.ico  — place a 256x256 .ico here before shipping
   publisherName: miFinca
   signingHashAlgorithms:
     - sha256
@@ -54,5 +55,5 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  installerIcon: resources/icons/icon.ico
-  uninstallerIcon: resources/icons/icon.ico
+  # installerIcon: resources/icons/icon.ico
+  # uninstallerIcon: resources/icons/icon.ico

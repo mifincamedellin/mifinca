@@ -27,6 +27,8 @@ import {
   ShieldCheck,
   Droplets,
   Layers,
+  RefreshCw,
+  X,
 } from "lucide-react";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
 import type { FarmPermissions } from "@/lib/useFarmPermissions";
@@ -67,6 +69,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [editingFarm, setEditingFarm] = useState<{ id: string; name: string } | null>(null);
   const [editName, setEditName] = useState("");
   const [showAddFarm, setShowAddFarm] = useState(false);
+
+  const [updateReady, setUpdateReady] = useState<{ version: string } | null>(null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+
+  useEffect(() => {
+    const desktop = (window as any).miFincaDesktop;
+    if (!desktop) return;
+    desktop.onUpdateDownloaded?.((info: { version: string }) => {
+      setUpdateReady(info);
+    });
+  }, []);
   const [newFarmName, setNewFarmName] = useState("");
   const [newFarmLocation, setNewFarmLocation] = useState("");
 
@@ -285,6 +298,33 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </Sidebar>
 
         <div className="flex flex-col flex-1 min-w-0">
+          {updateReady && !updateDismissed && (
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary text-primary-foreground text-sm z-40">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 shrink-0" />
+                <span>
+                  {t('common.updateReady', { version: updateReady.version, defaultValue: `Nueva versión ${updateReady.version} lista — se instalará al reiniciar.` })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => (window as any).miFincaDesktop?.installUpdate()}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 font-medium text-xs transition-colors"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  {t('common.restartAndUpdate', { defaultValue: 'Reiniciar y actualizar' })}
+                </button>
+                <button
+                  onClick={() => setUpdateDismissed(true)}
+                  className="p-1 rounded-full hover:bg-white/20 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-30">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />

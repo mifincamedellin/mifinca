@@ -615,104 +615,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="planes" className="py-24">
-          <div className="container mx-auto px-6">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6">{t.pricing.heading}</h2>
-              <p className="text-lg text-muted-foreground mb-8">{t.pricing.sub}</p>
-
-              <div className="flex items-center justify-center gap-4">
-                <span className={`text-sm font-medium ${!annualBilling ? "text-foreground" : "text-muted-foreground"}`}>
-                  {t.pricing.monthly}
-                </span>
-                <Switch
-                  checked={annualBilling}
-                  onCheckedChange={setAnnualBilling}
-                  className="data-[state=checked]:bg-primary"
-                />
-                <span className={`text-sm font-medium ${annualBilling ? "text-foreground" : "text-muted-foreground"}`}>
-                  {t.pricing.annual}{" "}
-                  <span className="ml-1 text-xs text-secondary font-bold px-2 py-0.5 rounded-full bg-secondary/10">
-                    {t.pricing.save}
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {/* Tier 1 */}
-              <div className="bg-card rounded-3xl p-8 border border-border shadow-sm flex flex-col">
-                <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[0].name}</h3>
-                <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[0].desc}</p>
-                <div className="mb-6">
-                  <span className="text-3xl font-bold font-serif">$0</span>
-                  <span className="text-muted-foreground ml-1 text-sm">COP</span>
-                </div>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {t.pricing.tiers[0].features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                      <span className="text-foreground/80">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild variant="outline" className="w-full rounded-full h-12">
-                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[0].cta}</a>
-                </Button>
-              </div>
-
-              {/* Tier 2 */}
-              <div className="bg-primary text-primary-foreground rounded-3xl p-8 shadow-xl relative transform md:-translate-y-4 flex flex-col border-4 border-primary/20">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-accent text-accent-foreground text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide">
-                  {t.pricing.popular}
-                </div>
-                <h3 className="text-2xl font-serif font-medium mb-2 text-white">{t.pricing.tiers[1].name}</h3>
-                <p className="text-primary-foreground/80 text-sm mb-6">{t.pricing.tiers[1].desc}</p>
-                <div className="mb-6">
-                  <span className="text-3xl font-bold font-serif">
-                    ${annualBilling ? "4.000.000" : "400.000"}
-                  </span>
-                  <span className="text-primary-foreground/60 ml-1">
-                    COP{annualBilling ? t.pricing.perYear : t.pricing.perMonth}
-                  </span>
-                </div>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {t.pricing.tiers[1].features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 text-secondary shrink-0" />
-                      <span className="text-primary-foreground/90">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full rounded-full h-12">
-                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[1].cta}</a>
-                </Button>
-              </div>
-
-              {/* Tier 3 */}
-              <div className="bg-card rounded-3xl p-8 border border-border shadow-sm flex flex-col">
-                <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[2].name}</h3>
-                <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[2].desc}</p>
-                <div className="mb-6">
-                  <span className="text-3xl font-bold font-serif">{t.pricing.custom}</span>
-                </div>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {t.pricing.tiers[2].features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                      <span className="text-foreground/80">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild variant="outline" className="w-full rounded-full h-12">
-                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[2].cta}</a>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Download Section */}
         {(() => {
           const macUrl: string = (import.meta as any).env?.VITE_DESKTOP_DOWNLOAD_MAC ?? "";
@@ -852,6 +754,104 @@ export default function Home() {
             </section>
           );
         })()}
+
+        {/* Pricing Section */}
+        <section id="planes" className="py-24">
+          <div className="container mx-auto px-6">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <h2 className="text-3xl md:text-5xl font-serif font-medium mb-6">{t.pricing.heading}</h2>
+              <p className="text-lg text-muted-foreground mb-8">{t.pricing.sub}</p>
+
+              <div className="flex items-center justify-center gap-4">
+                <span className={`text-sm font-medium ${!annualBilling ? "text-foreground" : "text-muted-foreground"}`}>
+                  {t.pricing.monthly}
+                </span>
+                <Switch
+                  checked={annualBilling}
+                  onCheckedChange={setAnnualBilling}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <span className={`text-sm font-medium ${annualBilling ? "text-foreground" : "text-muted-foreground"}`}>
+                  {t.pricing.annual}{" "}
+                  <span className="ml-1 text-xs text-secondary font-bold px-2 py-0.5 rounded-full bg-secondary/10">
+                    {t.pricing.save}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {/* Tier 1 */}
+              <div className="bg-card rounded-3xl p-8 border border-border shadow-sm flex flex-col">
+                <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[0].name}</h3>
+                <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[0].desc}</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold font-serif">$0</span>
+                  <span className="text-muted-foreground ml-1 text-sm">COP</span>
+                </div>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {t.pricing.tiers[0].features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                      <span className="text-foreground/80">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild variant="outline" className="w-full rounded-full h-12">
+                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[0].cta}</a>
+                </Button>
+              </div>
+
+              {/* Tier 2 */}
+              <div className="bg-primary text-primary-foreground rounded-3xl p-8 shadow-xl relative transform md:-translate-y-4 flex flex-col border-4 border-primary/20">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-accent text-accent-foreground text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide">
+                  {t.pricing.popular}
+                </div>
+                <h3 className="text-2xl font-serif font-medium mb-2 text-white">{t.pricing.tiers[1].name}</h3>
+                <p className="text-primary-foreground/80 text-sm mb-6">{t.pricing.tiers[1].desc}</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold font-serif">
+                    ${annualBilling ? "4.000.000" : "400.000"}
+                  </span>
+                  <span className="text-primary-foreground/60 ml-1">
+                    COP{annualBilling ? t.pricing.perYear : t.pricing.perMonth}
+                  </span>
+                </div>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {t.pricing.tiers[1].features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 text-secondary shrink-0" />
+                      <span className="text-primary-foreground/90">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full rounded-full h-12">
+                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[1].cta}</a>
+                </Button>
+              </div>
+
+              {/* Tier 3 */}
+              <div className="bg-card rounded-3xl p-8 border border-border shadow-sm flex flex-col">
+                <h3 className="text-2xl font-serif font-medium mb-2">{t.pricing.tiers[2].name}</h3>
+                <p className="text-muted-foreground text-sm mb-6">{t.pricing.tiers[2].desc}</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold font-serif">{t.pricing.custom}</span>
+                </div>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {t.pricing.tiers[2].features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm">
+                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                      <span className="text-foreground/80">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild variant="outline" className="w-full rounded-full h-12">
+                  <a href={`${APP_URL}/login`}>{t.pricing.tiers[2].cta}</a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Lifestyle Section */}
         <section className="py-20 bg-muted/50 border-t border-border">

@@ -291,25 +291,34 @@ function setupAutoUpdater(): void {
 // ── IPC handlers ──────────────────────────────────────────────────────────────
 
 function setupIpc(): void {
-  // Called by activation page: validate + activate key
+  // Called by activation page: activate key via POST /api/licenses/activate,
+  // falling back to GET /api/licenses/validate if the user has no auth token.
   ipcMain.handle("license:activate", async (_event, key: string, authToken: string) => {
-    // First validate the key is real and not expired
-    const validation = await validateKeyOnline(key.toUpperCase().trim());
+    const normalizedKey = key.toUpperCase().trim();
+
+    if (authToken) {
+      // Primary path: bind key to user account via POST /activate
+      const result = await activateKeyOnline(normalizedKey, authToken);
+      if (result.ok && result.expiresAt) {
+        writeLicense({ key: normalizedKey, expiresAt: result.expiresAt, validatedAt: new Date().toISOString() });
+        return { ok: true, expiresAt: result.expiresAt };
+      }
+      if (result.error && result.error !== "already_claimed") {
+        // Any error other than already_claimed is fatal
+        return { ok: false, error: result.error };
+      }
+      // already_claimed: key exists and was previously activated — validate it directly
+    }
+
+    // Fallback path: no auth token yet (user hasn't logged in to the web app) —
+    // validate key validity without binding to an account; binding happens on next
+    // authenticated launch via the POST /activate call above.
+    const validation = await validateKeyOnline(normalizedKey);
     if (!validation.valid) {
       return { ok: false, error: validation.reason ?? "invalid" };
     }
-    // Attempt to bind the key to the user account (optional — key can work without binding)
-    if (authToken) {
-      await activateKeyOnline(key, authToken).catch(() => {});
-    }
-    // Store the license locally
-    const data: LicenseData = {
-      key: key.toUpperCase().trim(),
-      expiresAt: validation.expiresAt!,
-      validatedAt: new Date().toISOString(),
-    };
-    writeLicense(data);
-    return { ok: true, expiresAt: data.expiresAt };
+    writeLicense({ key: normalizedKey, expiresAt: validation.expiresAt!, validatedAt: new Date().toISOString() });
+    return { ok: true, expiresAt: validation.expiresAt };
   });
 
   // Called by main window / renewal page: install update and restart
