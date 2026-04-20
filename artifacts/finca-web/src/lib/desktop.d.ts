@@ -66,6 +66,15 @@ export interface MiFincaDesktopAPI {
     entities: Record<string, unknown>[],
   ): Promise<void>;
 
+  /** Upsert a single entity into the fine-grained entity cache */
+  upsertEntity(
+    entityType: string,
+    entity: Record<string, unknown>,
+  ): Promise<void>;
+
+  /** Remove a single entity from the fine-grained entity cache */
+  removeEntity(entityType: string, id: string): Promise<void>;
+
   /** Queue an offline write to be replayed when back online */
   queueOfflineWrite(
     method: string,
@@ -83,6 +92,13 @@ export interface MiFincaDesktopAPI {
   onSyncStatusChange(
     cb: (status: "idle" | "syncing" | "offline" | "error") => void,
   ): void;
+
+  /**
+   * Called by main process at startup when there are pending writes and it needs
+   * the renderer to supply the auth token. Renderer should respond by calling
+   * notifyNetworkChange(true, authToken) so the flush can proceed.
+   */
+  onCheckPending(cb: () => void): void;
 }
 
 declare global {

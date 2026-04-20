@@ -76,6 +76,24 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       if (online) refreshPendingCount();
     });
 
+    // Main process may ask us to supply the auth token at startup so it can
+    // flush a pending queue from the previous session.
+    desktop.onCheckPending?.(() => {
+      if (navigator.onLine && tokenRef.current) {
+        desktop.notifyNetworkChange?.(true, tokenRef.current).catch(() => {});
+      }
+    });
+
+    // On mount: if we're online and there's a pending queue (from a previous offline
+    // session), proactively kick off a flush so the user doesn't have to toggle offline.
+    if (navigator.onLine) {
+      desktop.getQueueCount?.().then((count) => {
+        if (count && count > 0 && tokenRef.current) {
+          desktop.notifyNetworkChange?.(true, tokenRef.current).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+
     // Seed initial pending count
     refreshPendingCount();
 

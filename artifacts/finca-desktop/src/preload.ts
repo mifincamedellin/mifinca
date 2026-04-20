@@ -95,6 +95,14 @@ contextBridge.exposeInMainWorld("miFincaDesktop", {
   cacheEntities: (entityType: string, entities: Record<string, unknown>[]) =>
     ipcRenderer.invoke("offline:cache-entities", entityType, entities),
 
+  /** Upsert a single entity into the fine-grained entity cache */
+  upsertEntity: (entityType: string, entity: Record<string, unknown>) =>
+    ipcRenderer.invoke("offline:upsert-entity", entityType, entity),
+
+  /** Remove a single entity from the fine-grained entity cache */
+  removeEntity: (entityType: string, id: string) =>
+    ipcRenderer.invoke("offline:remove-entity", entityType, id),
+
   /** Queue an offline write to be replayed on reconnect. Returns queue entry id. */
   queueOfflineWrite: (method: string, urlPath: string, body: string | null) =>
     ipcRenderer.invoke("offline:queue-write", method, urlPath, body),
@@ -107,6 +115,15 @@ contextBridge.exposeInMainWorld("miFincaDesktop", {
     cb: (status: "idle" | "syncing" | "offline" | "error") => void,
   ) => {
     ipcRenderer.on("offline:sync-status", (_event, status) => cb(status));
+  },
+
+  /**
+   * Main process calls this once at startup when there are pending queue entries
+   * and needs the renderer to supply the auth token to trigger a flush.
+   * Renderer should respond by calling notifyNetworkChange(true, authToken).
+   */
+  onCheckPending: (cb: () => void) => {
+    ipcRenderer.on("offline:check-pending", () => cb());
   },
 
   // ── App info ───────────────────────────────────────────────────────────────

@@ -19,6 +19,8 @@ import {
   cacheResponse,
   getCachedResponse,
   upsertEntities,
+  upsertSingleEntity,
+  removeEntity,
   getEntities,
   enqueueWrite,
   getPendingQueue,
@@ -50,9 +52,83 @@ function broadcastSyncStatus(status: SyncStatus): void {
   mainWindow?.webContents.send("offline:sync-status", status);
 }
 
+// ── URL → entity type mapping ─────────────────────────────────────────────────
+
+/** Map from API URL segment to canonical entity-cache type name. */
+const URL_SEGMENT_TO_ENTITY: Record<string, string> = {
+  animals: "animals",
+  "milk-records": "milk_records",
+  finances: "finance_transactions",
+  inventory: "inventory_items",
+  contacts: "contacts",
+  events: "farm_events",
+  farms: "farms",
+};
+
+interface ParsedEntityUrl {
+  entityType: string;
+  farmId: string | null;
+  entityId: string | null;
+  /** The URL path to the list endpoint (e.g. /api/farms/:farmId/animals) */
+  listUrl: string;
+}
+
+/**
+ * Attempt to extract entity type + farm/entity IDs from a known API URL pattern.
+ * Returns null for unrecognised paths.
+ */
+function parseEntityUrl(urlPath: string): ParsedEntityUrl | null {
+  // Strip query string for matching
+  const bare = urlPath.split("?")[0];
+
+  // /api/farms/:farmId/segment[/:entityId]
+  const deep = bare.match(/^\/api\/farms\/([^/]+)\/([^/]+)(?:\/([^/]+))?/);
+  if (deep) {
+    const [, farmId, segment, entityId] = deep;
+    const entityType = URL_SEGMENT_TO_ENTITY[segment];
+    if (!entityType) return null;
+    const listUrl = `/api/farms/${farmId}/${segment}`;
+    return { entityType, farmId, entityId: entityId ?? null, listUrl };
+  }
+
+  // /api/farms[/:id]
+  const farmsMatch = bare.match(/^\/api\/farms(?:\/([^/]+))?/);
+  if (farmsMatch) {
+    const entityId = farmsMatch[1] ?? null;
+    return { entityType: "farms", farmId: null, entityId, listUrl: "/api/farms" };
+  }
+
+  return null;
+}
+
+/**
+ * After a successful or conflict-resolved sync, update the entity_cache
+ * and the URL-keyed response_cache list so offline reads reflect server truth.
+ */
+function applyServerEntityToCache(
+  parsed: ParsedEntityUrl,
+  serverEntity: Record<string, unknown>,
+): void {
+  try {
+    // Update the fine-grained entity cache with the authoritative server record
+    upsertSingleEntity(parsed.entityType, serverEntity);
+
+    // Refresh the list cache by reading all entities of this type/farm
+    const allEntities = parsed.farmId
+      ? getEntities(parsed.entityType, parsed.farmId)
+      : getEntities(parsed.entityType);
+    cacheResponse(parsed.listUrl, allEntities);
+  } catch {
+    // Non-fatal — best-effort
+  }
+}
+
 /**
  * Replay queued offline writes against the live API.
- * Called automatically when the app comes back online.
+ * After each write:
+ *   - 2xx  → update entity + list cache with server response; remove from queue.
+ *   - 409  → server version wins; fetch authoritative record, update cache; remove from queue.
+ *   - 5xx/net error → mark error, keep in queue for retry on next reconnect.
  */
 async function flushSyncQueue(authToken: string): Promise<void> {
   if (isSyncing) return;
@@ -71,13 +147,16 @@ async function flushSyncQueue(authToken: string): Promise<void> {
             url: `${API_BASE}${entry.urlPath}`,
           });
           req.setHeader("Content-Type", "application/json");
-          if (authToken) {
-            req.setHeader("Authorization", `Bearer ${authToken}`);
-          }
+          if (authToken) req.setHeader("Authorization", `Bearer ${authToken}`);
           let body = "";
           req.on("response", (res: IncomingMessage) => {
             res.on("data", (chunk: Buffer) => (body += chunk.toString()));
-            res.on("end", () => resolve({ status: (res as { statusCode?: number }).statusCode ?? 200, body }));
+            res.on("end", () =>
+              resolve({
+                status: (res as { statusCode?: number }).statusCode ?? 200,
+                body,
+              }),
+            );
           });
           req.on("error", reject);
           if (entry.body) req.write(entry.body);
@@ -86,18 +165,76 @@ async function flushSyncQueue(authToken: string): Promise<void> {
       );
 
       if (result.status >= 200 && result.status < 300) {
-        // Success: remove from queue and cache the server response
         removeFromQueue(entry.id);
+        // Update entity cache with the authoritative server response
         try {
-          const parsed = JSON.parse(result.body);
-          // Cache the result under the URL path for future reads
-          cacheResponse(entry.urlPath, parsed);
+          const parsed = parseEntityUrl(entry.urlPath);
+          if (parsed) {
+            if (entry.method === "DELETE") {
+              // Remove from entity cache; refresh list cache
+              if (parsed.entityId) removeEntity(parsed.entityType, parsed.entityId);
+              const remaining = parsed.farmId
+                ? getEntities(parsed.entityType, parsed.farmId)
+                : getEntities(parsed.entityType);
+              cacheResponse(parsed.listUrl, remaining);
+            } else {
+              const serverEntity = JSON.parse(result.body) as Record<string, unknown>;
+              if (serverEntity && typeof serverEntity === "object" && "id" in serverEntity) {
+                applyServerEntityToCache(parsed, serverEntity);
+              }
+              // Also cache the raw response URL (e.g. GET /api/farms/:id)
+              cacheResponse(entry.urlPath, serverEntity);
+            }
+          }
         } catch {
-          // Non-JSON response — ignore caching
+          // Non-fatal — best-effort cache update
         }
       } else if (result.status === 409) {
-        // Conflict: server version wins — discard local write
+        // Conflict: server wins. Parse server body or fetch the authoritative record.
         removeFromQueue(entry.id);
+        try {
+          const parsed = parseEntityUrl(entry.urlPath);
+          if (parsed) {
+            // Use server's response body if it contains the entity
+            let serverEntity: Record<string, unknown> | null = null;
+            try {
+              const candidate = JSON.parse(result.body) as unknown;
+              if (candidate && typeof candidate === "object" && "id" in (candidate as object)) {
+                serverEntity = candidate as Record<string, unknown>;
+              }
+            } catch { /* ignore */ }
+
+            if (serverEntity) {
+              applyServerEntityToCache(parsed, serverEntity);
+            } else if (parsed.entityId) {
+              // 409 body didn't contain entity — re-fetch it from the server
+              const fetchRes = await new Promise<{ status: number; body: string }>(
+                (resolve, reject) => {
+                  const req = net.request({
+                    method: "GET",
+                    url: `${API_BASE}${entry.urlPath}`,
+                  });
+                  if (authToken) req.setHeader("Authorization", `Bearer ${authToken}`);
+                  let body = "";
+                  req.on("response", (res: IncomingMessage) => {
+                    res.on("data", (chunk: Buffer) => (body += chunk.toString()));
+                    res.on("end", () =>
+                      resolve({ status: (res as { statusCode?: number }).statusCode ?? 200, body }),
+                    );
+                  });
+                  req.on("error", reject);
+                  req.end();
+                },
+              );
+              if (fetchRes.status === 200) {
+                const refetched = JSON.parse(fetchRes.body) as Record<string, unknown>;
+                applyServerEntityToCache(parsed, refetched);
+              }
+            }
+          }
+        } catch {
+          // Non-fatal
+        }
       } else {
         markQueueError(entry.id, `HTTP ${result.status}`);
         errors++;
@@ -110,6 +247,7 @@ async function flushSyncQueue(authToken: string): Promise<void> {
   }
 
   isSyncing = false;
+  // Brief "up to date" state before settling at idle so renderer can show confirmation
   broadcastSyncStatus(errors > 0 ? "error" : "idle");
 }
 
@@ -321,6 +459,18 @@ function createMainWindow(): void {
     // Trigger silent update check after main window is ready
     setupAutoUpdater();
   });
+
+  // After the renderer has loaded, ask it to supply auth token so we can flush any
+  // queued writes that accumulated from a previous offline session.
+  mainWindow.webContents.once("did-finish-load", () => {
+    if (getQueueCount() > 0) {
+      // Small delay so React and the auth store have time to hydrate from localStorage
+      setTimeout(() => {
+        mainWindow?.webContents.send("offline:check-pending");
+      }, 2000);
+    }
+  });
+
   mainWindow.on("closed", () => { mainWindow = null; });
 
   // Prevent navigation to external URLs — open in system browser instead
@@ -467,6 +617,22 @@ function setupIpc(): void {
     "offline:cache-entities",
     (_event: IpcMainInvokeEvent, entityType: string, entities: Record<string, unknown>[]) => {
       try { upsertEntities(entityType, entities); } catch { /* non-fatal */ }
+    },
+  );
+
+  // Upsert a single entity (used for optimistic cache updates in fetch interceptor)
+  ipcMain.handle(
+    "offline:upsert-entity",
+    (_event: IpcMainInvokeEvent, entityType: string, entity: Record<string, unknown>) => {
+      try { upsertSingleEntity(entityType, entity); } catch { /* non-fatal */ }
+    },
+  );
+
+  // Remove a single entity from the cache (used for offline DELETE)
+  ipcMain.handle(
+    "offline:remove-entity",
+    (_event: IpcMainInvokeEvent, entityType: string, id: string) => {
+      try { removeEntity(entityType, id); } catch { /* non-fatal */ }
     },
   );
 

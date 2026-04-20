@@ -3,7 +3,7 @@ import type Database from "better-sqlite3";
 let db: Database.Database;
 
 export function openDatabase(dbPath: string): void {
-  // Dynamic import so TypeScript types resolve but the module is only loaded at runtime
+  // Dynamic require so TypeScript types resolve but the native module is only loaded at runtime
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const BetterSQLite = require("better-sqlite3") as typeof import("better-sqlite3");
   db = new BetterSQLite(dbPath);
@@ -72,10 +72,10 @@ export function upsertEntities(
     INSERT INTO entity_cache (entity_type, id, farm_id, data, updated_at, cached_at)
     VALUES (?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(entity_type, id) DO UPDATE SET
-      farm_id   = excluded.farm_id,
-      data      = excluded.data,
-      updated_at= excluded.updated_at,
-      cached_at = excluded.cached_at
+      farm_id    = excluded.farm_id,
+      data       = excluded.data,
+      updated_at = excluded.updated_at,
+      cached_at  = excluded.cached_at
   `);
   const runMany = db.transaction((rows: Record<string, unknown>[]) => {
     for (const e of rows) {
@@ -89,6 +89,19 @@ export function upsertEntities(
     }
   });
   runMany(entities);
+}
+
+/** Upsert a single entity into the fine-grained entity cache. */
+export function upsertSingleEntity(
+  entityType: string,
+  entity: Record<string, unknown>,
+): void {
+  upsertEntities(entityType, [entity]);
+}
+
+/** Remove a single entity from the fine-grained entity cache. */
+export function removeEntity(entityType: string, id: string): void {
+  db.prepare("DELETE FROM entity_cache WHERE entity_type = ? AND id = ?").run(entityType, id);
 }
 
 export function getEntities(entityType: string, farmId?: string): Record<string, unknown>[] {
@@ -122,9 +135,11 @@ export function enqueueWrite(method: string, urlPath: string, body: string | nul
 }
 
 export function getPendingQueue(): QueueEntry[] {
-  return (
-    db.prepare("SELECT id, method, url_path as urlPath, body, queued_at as queuedAt, retries, last_error as lastError FROM sync_queue ORDER BY id ASC").all() as QueueEntry[]
-  );
+  return db
+    .prepare(
+      "SELECT id, method, url_path as urlPath, body, queued_at as queuedAt, retries, last_error as lastError FROM sync_queue ORDER BY id ASC",
+    )
+    .all() as QueueEntry[];
 }
 
 export function removeFromQueue(id: number): void {

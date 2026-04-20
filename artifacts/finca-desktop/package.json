@@ -16,13 +16,13 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "better-sqlite3": "^11.6.0",
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "@google-cloud/storage": "^7.16.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "catalog:",
-    "better-sqlite3": "^11.6.0",
     "cross-env": "^7.0.3",
     "electron": "^33.4.0",
     "electron-builder": "^25.1.8",
