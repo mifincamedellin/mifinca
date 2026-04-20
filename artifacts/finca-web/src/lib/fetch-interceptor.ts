@@ -388,7 +388,10 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
       bodyStr = await input.clone().text().catch(() => null);
     }
 
-    // Read baseUpdatedAt from response_cache (detail URL) then entity_cache fallback
+    // Resolve baseUpdatedAt for conflict checks on PUT/PATCH/DELETE.
+    // Tier 1: detail URL in response_cache (set by write-through on online writes)
+    // Tier 2: entity_cache (populated by seeding for top-level entities)
+    // Tier 3: list cache — scan for the record by id (covers sub-resources like milk/medical)
     let baseUpdatedAt: string | null = null;
     const parsedForBase = parseEntityUrl(path);
     if (
@@ -400,8 +403,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
       try {
         const c = await desktop.getCachedResponse!(detailUrl);
         if (c && typeof c === "object" && !Array.isArray(c)) {
-          const rec = c as Record<string, unknown>;
-          const ts = rec.updatedAt ?? rec.updated_at;
+          const ts = (c as Record<string, unknown>).updatedAt ?? (c as Record<string, unknown>).updated_at;
           if (typeof ts === "string") baseUpdatedAt = ts;
         }
       } catch { /* ignore */ }
@@ -411,6 +413,18 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
           if (ent) {
             const ts = ent.updatedAt ?? ent.updated_at;
             if (typeof ts === "string") baseUpdatedAt = ts;
+          }
+        } catch { /* ignore */ }
+      }
+      if (!baseUpdatedAt) {
+        try {
+          const listData = await desktop.getCachedResponse!(listUrl);
+          if (Array.isArray(listData)) {
+            const rec = (listData as Record<string, unknown>[]).find((e) => e.id === entityId);
+            if (rec) {
+              const ts = rec.updatedAt ?? rec.updated_at;
+              if (typeof ts === "string") baseUpdatedAt = ts;
+            }
           }
         } catch { /* ignore */ }
       }

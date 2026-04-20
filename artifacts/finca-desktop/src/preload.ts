@@ -127,9 +127,9 @@ contextBridge.exposeInMainWorld("miFincaDesktop", {
   /** Get the number of pending offline writes */
   getQueueCount: () => ipcRenderer.invoke("offline:get-queue-count"),
 
-  /** Subscribe to sync status updates ("idle" | "syncing" | "offline" | "error") */
+  /** Subscribe to sync status updates ("idle" | "syncing" | "up_to_date" | "offline" | "error") */
   onSyncStatusChange: (
-    cb: (status: "idle" | "syncing" | "offline" | "error") => void,
+    cb: (status: "idle" | "syncing" | "up_to_date" | "offline" | "error") => void,
   ) => {
     ipcRenderer.on("offline:sync-status", (_event, status) => cb(status));
   },
