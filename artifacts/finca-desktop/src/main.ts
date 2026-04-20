@@ -380,16 +380,15 @@ function setupIpc(): void {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
-async function onReady(): Promise<void> {
-  setupApiInterceptor();
-  setupIpc();
-
+// Open the correct window based on current license state.
+// This is safe to call more than once (e.g. on macOS "activate") because IPC
+// handlers and interceptors are registered separately in bootstrap() below.
+async function openAppropriateWindow(): Promise<void> {
   const license = readLicense();
 
   if (!license) {
     // First launch — show activation screen
     createActivationWindow();
-
     ipcMain.once("activation:complete", () => {
       activationWindow?.close();
       createMainWindow();
@@ -397,7 +396,7 @@ async function onReady(): Promise<void> {
     return;
   }
 
-  // Key exists — validate it
+  // Key exists — validate it against the server
   const online = await validateKeyOnline(license.key);
 
   if (online.reason === "offline") {
@@ -416,8 +415,7 @@ async function onReady(): Promise<void> {
   }
 
   if (!online.valid) {
-    // Key was revoked or truly expired (server confirmed)
-    // Update cached data with new expiresAt if present
+    // Key was revoked or truly expired — server confirmed
     if (online.expiresAt) {
       writeLicense({ ...license, expiresAt: online.expiresAt, validatedAt: new Date().toISOString() });
     }
@@ -429,7 +427,7 @@ async function onReady(): Promise<void> {
     return;
   }
 
-  // All good — update cached validatedAt and expiresAt, then open app
+  // Valid — refresh cached dates then open app
   writeLicense({
     key: license.key,
     expiresAt: online.expiresAt ?? license.expiresAt,
@@ -438,14 +436,24 @@ async function onReady(): Promise<void> {
   createMainWindow();
 }
 
-app.whenReady().then(onReady).catch(console.error);
+// One-time bootstrap: register IPC handlers and request interceptors exactly
+// once (ipcMain.handle throws on duplicate registration), then open first window.
+async function bootstrap(): Promise<void> {
+  setupApiInterceptor();
+  setupIpc();
+  await openAppropriateWindow();
+}
+
+app.whenReady().then(bootstrap).catch(console.error);
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
+// macOS: re-open when dock icon clicked with no windows open.
+// Calls openAppropriateWindow() (not bootstrap) to avoid re-registering handlers.
 app.on("activate", () => {
   if (!mainWindow && !activationWindow && !renewalWindow) {
-    onReady().catch(console.error);
+    openAppropriateWindow().catch(console.error);
   }
 });
