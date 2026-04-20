@@ -50,7 +50,10 @@ router.post("/licenses/activate-desktop", async (req, res) => {
 
     const normalised = keyStr.toUpperCase().trim();
 
-    // Mark activatedAt only if this is the first activation; leave userId untouched.
+    // Only allow activation if the key is not yet claimed by a user account.
+    // Once a key is bound to a user (via POST /licenses/activate), desktop
+    // re-activation must go through the authenticated endpoint — this enforces
+    // single-user ownership and prevents key sharing across accounts.
     const result = await pool.query<{
       expires_at: Date;
     }>(
@@ -60,6 +63,7 @@ router.post("/licenses/activate-desktop", async (req, res) => {
         WHERE key         = $1
           AND revoked_at  IS NULL
           AND expires_at  > NOW()
+          AND user_id     IS NULL
         RETURNING expires_at`,
       [normalised],
     );
@@ -73,6 +77,8 @@ router.post("/licenses/activate-desktop", async (req, res) => {
       if (!row) return res.status(404).json({ error: "not_found" });
       if (row.revokedAt) return res.status(403).json({ error: "revoked" });
       if (new Date(row.expiresAt) < new Date()) return res.status(403).json({ error: "expired" });
+      // Key belongs to a user account — must re-activate via POST /licenses/activate
+      if (row.userId) return res.status(409).json({ error: "already_claimed" });
       return res.status(400).json({ error: "invalid" });
     }
 

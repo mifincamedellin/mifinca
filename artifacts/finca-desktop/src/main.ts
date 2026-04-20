@@ -5,9 +5,10 @@ import {
   net,
   session,
   safeStorage,
-  dialog,
   nativeTheme,
   shell,
+  type IpcMainInvokeEvent,
+  type IncomingMessage,
 } from "electron";
 import { autoUpdater } from "electron-updater";
 import path from "path";
@@ -112,8 +113,8 @@ async function activateKeyDesktop(
     });
     req.setHeader("Content-Type", "application/json");
     let body = "";
-    req.on("response", (res: any) => {
-      res.on("data", (c: any) => (body += c));
+    req.on("response", (res: IncomingMessage) => {
+      res.on("data", (chunk: Buffer) => (body += chunk.toString()));
       res.on("end", () => {
         try { resolve(JSON.parse(body)); }
         catch { resolve({ error: "parse_error" }); }
@@ -142,8 +143,8 @@ async function bindKeyToAccount(
     req.setHeader("Content-Type", "application/json");
     req.setHeader("Authorization", `Bearer ${authToken}`);
     let body = "";
-    req.on("response", (res: any) => {
-      res.on("data", (c: any) => (body += c));
+    req.on("response", (res: IncomingMessage) => {
+      res.on("data", (chunk: Buffer) => (body += chunk.toString()));
       res.on("end", () => {
         try { resolve(JSON.parse(body)); }
         catch { resolve({ error: "parse_error" }); }
@@ -326,7 +327,7 @@ function setupAutoUpdater(): void {
 function setupIpc(): void {
   // Called by activation page: always activates via POST /api/licenses/activate-desktop
   // (no auth required) and optionally binds to user account if auth token is present.
-  ipcMain.handle("license:activate", async (_event: any, key: string, authToken: string) => {
+  ipcMain.handle("license:activate", async (_event: IpcMainInvokeEvent, key: string, authToken: string) => {
     const normalizedKey = key.toUpperCase().trim();
 
     // Primary path: POST /activate-desktop — always required for first launch.
@@ -355,7 +356,7 @@ function setupIpc(): void {
 
   // Called by renewal page: user entered a new key. Uses activate-desktop (same
   // as initial activation) so the server records the new activation event.
-  ipcMain.handle("license:renew", async (_event: any, key: string) => {
+  ipcMain.handle("license:renew", async (_event: IpcMainInvokeEvent, key: string) => {
     const normalizedKey = key.toUpperCase().trim();
     const activation = await activateKeyDesktop(normalizedKey);
     if (!activation.ok || !activation.expiresAt) {

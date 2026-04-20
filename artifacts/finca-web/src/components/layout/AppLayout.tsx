@@ -74,9 +74,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [updateDismissed, setUpdateDismissed] = useState(false);
 
   useEffect(() => {
-    const desktop = (window as any).miFincaDesktop;
+    const desktop = window.miFincaDesktop;
     if (!desktop) return;
-    desktop.onUpdateDownloaded?.((info: { version: string }) => {
+    desktop.onUpdateDownloaded((info) => {
       setUpdateReady(info);
     });
   }, []);
@@ -308,7 +308,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={() => (window as any).miFincaDesktop?.installUpdate()}
+                  onClick={() => window.miFincaDesktop?.installUpdate()}
                   className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 font-medium text-xs transition-colors"
                 >
                   <RefreshCw className="h-3 w-3" />
