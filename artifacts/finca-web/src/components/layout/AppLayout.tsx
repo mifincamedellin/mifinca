@@ -76,7 +76,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // Show the sync bar only when in desktop mode AND something notable is happening
   const showSyncBar =
     isDesktop &&
-    (!isOnline || syncStatus === "syncing" || syncStatus === "error" || pendingCount > 0);
+    (!isOnline || syncStatus === "syncing" || syncStatus === "up_to_date" || syncStatus === "error" || pendingCount > 0);
 
   const [editingFarm, setEditingFarm] = useState<{ id: string; name: string } | null>(null);
   const [editName, setEditName] = useState("");
@@ -319,15 +319,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   ? "bg-amber-500 text-white"
                   : syncStatus === "syncing"
                     ? "bg-blue-600 text-white"
-                    : syncStatus === "error"
-                      ? "bg-destructive text-destructive-foreground"
-                      : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+                    : syncStatus === "up_to_date"
+                      ? "bg-green-600 text-white"
+                      : syncStatus === "error"
+                        ? "bg-destructive text-destructive-foreground"
+                        : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
               ].join(" ")}
             >
               {!isOnline ? (
                 <WifiOff className="h-4 w-4 shrink-0" />
               ) : syncStatus === "syncing" ? (
                 <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
+              ) : syncStatus === "up_to_date" ? (
+                <Check className="h-4 w-4 shrink-0" />
               ) : syncStatus === "error" ? (
                 <X className="h-4 w-4 shrink-0" />
               ) : (
@@ -338,11 +342,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   ? t("offline.noConnection", { defaultValue: "Sin conexión — los cambios se guardarán localmente" })
                   : syncStatus === "syncing"
                     ? t("offline.syncing", { defaultValue: "Sincronizando cambios…" })
-                    : syncStatus === "error"
-                      ? t("offline.syncError", { defaultValue: "Error al sincronizar — se reintentará al reconectar" })
-                      : t("offline.pendingChanges", { count: pendingCount, defaultValue: `${pendingCount} cambio(s) pendiente(s)` })}
+                    : syncStatus === "up_to_date"
+                      ? t("offline.upToDate", { defaultValue: "Al día — todos los cambios sincronizados" })
+                      : syncStatus === "error"
+                        ? t("offline.syncError", { defaultValue: "Error al sincronizar — se reintentará al reconectar" })
+                        : t("offline.pendingChanges", { count: pendingCount, defaultValue: `${pendingCount} cambio(s) pendiente(s)` })}
               </span>
-              {pendingCount > 0 && (isOnline && syncStatus === "idle") && (
+              {pendingCount > 0 && isOnline && syncStatus === "idle" && (
                 <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-600/20 text-amber-700 dark:text-amber-300 font-semibold">
                   {pendingCount}
                 </span>

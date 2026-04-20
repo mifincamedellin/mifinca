@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { useStore } from "@/lib/store";
 
-export type SyncStatus = "idle" | "syncing" | "offline" | "error";
+export type SyncStatus = "idle" | "syncing" | "up_to_date" | "offline" | "error";
 
 interface OfflineContextValue {
   /** Whether the app currently has network connectivity */

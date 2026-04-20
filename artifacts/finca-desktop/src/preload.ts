@@ -104,8 +104,8 @@ contextBridge.exposeInMainWorld("miFincaDesktop", {
     ipcRenderer.invoke("offline:remove-entity", entityType, id),
 
   /** Queue an offline write to be replayed on reconnect. Returns queue entry id. */
-  queueOfflineWrite: (method: string, urlPath: string, body: string | null) =>
-    ipcRenderer.invoke("offline:queue-write", method, urlPath, body),
+  queueOfflineWrite: (method: string, urlPath: string, body: string | null, baseUpdatedAt?: string | null) =>
+    ipcRenderer.invoke("offline:queue-write", method, urlPath, body, baseUpdatedAt ?? null),
 
   /** Get the number of pending offline writes */
   getQueueCount: () => ipcRenderer.invoke("offline:get-queue-count"),

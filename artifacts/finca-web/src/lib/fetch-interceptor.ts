@@ -3,10 +3,12 @@
  *
  * Responsibilities:
  * 1. Inject the Authorization header on all /api/* requests (both browser and desktop).
- * 2. Desktop offline reads  → serve from URL-keyed cache (or 503 on cache miss).
+ * 2. Desktop offline reads  → serve from URL-keyed cache (503 on cache miss).
  * 3. Desktop offline writes → queue for later replay AND optimistically update the
  *    local entity + list caches so the UI reflects the change immediately.
  * 4. Desktop online reads   → pass through, then cache the successful response.
+ * 5. Desktop online writes  → pass through, then update entity + list caches with
+ *    the authoritative server response (write-through for offline reads).
  */
 
 const originalFetch = window.fetch.bind(window);
@@ -86,13 +88,7 @@ function parseEntityUrl(path: string): ParsedUrl | null {
 
 /**
  * Optimistically apply an offline write to the local SQLite caches so that
- * subsequent offline GETs reflect the change without waiting for sync.
- *
- * @param method     HTTP method of the queued write
- * @param path       URL path of the write
- * @param bodyStr    Serialised request body (if any)
- * @param syntheticId The fake ID assigned to new entities (used for POST)
- * @param desktop    The contextBridge-exposed desktop API
+ * subsequent offline GETs reflect the change immediately.
  */
 async function applyOptimisticMutation(
   method: string,
@@ -106,20 +102,16 @@ async function applyOptimisticMutation(
 
   const { entityType, farmId, entityId, listUrl } = parsed;
 
-  // Helper: read current list from cache, mutate it, write it back
   async function refreshListCache(
     updater: (list: Record<string, unknown>[]) => Record<string, unknown>[],
   ) {
     const current = await desktop.getCachedResponse!(listUrl).catch(() => null);
     const list: Record<string, unknown>[] = Array.isArray(current) ? current : [];
-    const updated = updater(list);
-    await desktop.cacheResponse!(listUrl, updated).catch(() => {});
+    await desktop.cacheResponse!(listUrl, updater(list)).catch(() => {});
   }
 
   if (method === "DELETE" && entityId) {
-    // Remove from entity cache
     await desktop.removeEntity!(entityType, entityId).catch(() => {});
-    // Remove from list cache
     await refreshListCache((list) => list.filter((e) => e.id !== entityId));
     return;
   }
@@ -131,7 +123,6 @@ async function applyOptimisticMutation(
     const now = new Date().toISOString();
 
     if (method === "POST") {
-      // New entity — assign the synthetic ID and farm ID
       const entity: Record<string, unknown> = {
         ...bodyObj,
         id: syntheticId,
@@ -143,7 +134,6 @@ async function applyOptimisticMutation(
       await desktop.upsertEntity!(entityType, entity).catch(() => {});
       await refreshListCache((list) => [...list, entity]);
     } else {
-      // Update existing entity — keep original id
       const id = entityId ?? (bodyObj.id as string);
       if (!id) return;
       const entity: Record<string, unknown> = {
@@ -158,6 +148,62 @@ async function applyOptimisticMutation(
         list.map((e) => (e.id === id ? { ...e, ...entity } : e)),
       );
     }
+  }
+}
+
+/**
+ * Apply a successful online write response to local caches (write-through).
+ * Keeps SQLite current so offline reads are up to date after every mutation.
+ */
+async function applyOnlineWriteToCache(
+  method: string,
+  path: string,
+  serverEntity: Record<string, unknown>,
+  desktop: NonNullable<typeof window.miFincaDesktop>,
+): Promise<void> {
+  const parsed = parseEntityUrl(path);
+  if (!parsed) return;
+
+  const { entityType, farmId, entityId, listUrl } = parsed;
+
+  if (method === "DELETE") {
+    if (entityId) await desktop.removeEntity!(entityType, entityId).catch(() => {});
+  } else if ("id" in serverEntity) {
+    await desktop.upsertEntity!(entityType, serverEntity).catch(() => {});
+    // Refresh the list cache from the live entity cache
+    // (simpler than trying to splice – entity cache is the source of truth)
+    const current = await desktop.getCachedResponse!(listUrl).catch(() => null);
+    const list: Record<string, unknown>[] = Array.isArray(current) ? current : [];
+    const id = serverEntity.id;
+    if (method === "POST") {
+      await desktop.cacheResponse!(listUrl, [...list, serverEntity]).catch(() => {});
+    } else {
+      await desktop
+        .cacheResponse!(
+          listUrl,
+          list.map((e) => (e.id === id ? { ...e, ...serverEntity } : e)),
+        )
+        .catch(() => {});
+    }
+    // Also update the individual entity URL cache for PUT/PATCH
+    if (method !== "POST" && entityId) {
+      await desktop.cacheResponse!(path, serverEntity).catch(() => {});
+    }
+  }
+
+  // Suppress unused warning — farmId is read by parseEntityUrl callers
+  void farmId;
+}
+
+/** Extract `updated_at` / `updatedAt` from a parsed JSON body string, if present. */
+function extractUpdatedAt(bodyStr: string | null): string | null {
+  if (!bodyStr) return null;
+  try {
+    const obj = JSON.parse(bodyStr) as Record<string, unknown>;
+    const v = obj.updatedAt ?? obj.updated_at;
+    return typeof v === "string" ? v : null;
+  } catch {
+    return null;
   }
 }
 
@@ -204,14 +250,14 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
           headers: { "Content-Type": "application/json" },
         });
       }
-      // No cached response — return 503 so the UI can show a clear offline message
+      // No cache hit — 503 so UI can show a clear offline message instead of rendering broken data
       return new Response(
         JSON.stringify({ error: "offline", message: "Sin conexión — no hay datos en caché" }),
         { status: 503, headers: { "Content-Type": "application/json" } },
       );
     }
 
-    // Write (POST / PUT / PATCH / DELETE) — queue and apply optimistic update
+    // Write — queue and apply optimistic update to local caches
     let bodyStr: string | null = null;
     if (init?.body) {
       bodyStr =
@@ -224,10 +270,12 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
       bodyStr = await input.clone().text().catch(() => null);
     }
 
+    // Capture entity version at write time for server-wins conflict resolution
+    const baseUpdatedAt = extractUpdatedAt(bodyStr);
     const syntheticId = `offline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const queueId = await desktop.queueOfflineWrite!(method, path, bodyStr).catch(() => -1);
+    const queueId = await desktop.queueOfflineWrite!(method, path, bodyStr, baseUpdatedAt).catch(() => -1);
 
-    // Optimistically reflect the write in local caches so the UI stays consistent
+    // Optimistically reflect the write in local caches
     await applyOptimisticMutation(method, path, bodyStr, syntheticId, desktop);
 
     return new Response(
@@ -239,14 +287,42 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
   // ── Online path (browser and desktop) ────────────────────────────────────
   const response = await originalFetch(input, { ...init, headers });
 
-  // Cache successful GET responses in desktop mode for future offline reads
-  if (desktop?.isDesktop && method === "GET" && response.ok) {
+  if (desktop?.isDesktop && response.ok) {
     const path = toPathAndSearch(rawUrl);
-    response
-      .clone()
-      .json()
-      .then((data: unknown) => desktop.cacheResponse!(path, data))
-      .catch(() => {});
+
+    if (method === "GET") {
+      // Cache GET responses for offline reads
+      response
+        .clone()
+        .json()
+        .then((data: unknown) => desktop.cacheResponse!(path, data))
+        .catch(() => {});
+    } else if (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE") {
+      // Write-through: update entity + list caches with the authoritative server response
+      // so SQLite stays current even while online.
+      response
+        .clone()
+        .json()
+        .then((data: unknown) => {
+          if (data && typeof data === "object" && !Array.isArray(data)) {
+            applyOnlineWriteToCache(
+              method,
+              path,
+              data as Record<string, unknown>,
+              desktop,
+            );
+          } else if (method === "DELETE") {
+            // DELETE may return empty body — apply removal anyway
+            applyOnlineWriteToCache(method, path, {}, desktop);
+          }
+        })
+        .catch(() => {
+          // DELETE may return 204 with no body — apply removal from URL
+          if (method === "DELETE") {
+            applyOnlineWriteToCache(method, path, {}, desktop).catch(() => {});
+          }
+        });
+    }
   }
 
   return response;

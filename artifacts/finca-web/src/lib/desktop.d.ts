@@ -80,6 +80,8 @@ export interface MiFincaDesktopAPI {
     method: string,
     urlPath: string,
     body: string | null,
+    /** The entity's updated_at at write time — used for server-wins conflict resolution */
+    baseUpdatedAt?: string | null,
   ): Promise<number>;
 
   /** Returns the number of pending offline writes */
@@ -87,10 +89,10 @@ export interface MiFincaDesktopAPI {
 
   /**
    * Subscribe to sync status updates from the main process.
-   * Status values: "idle" | "syncing" | "offline" | "error"
+   * Status values: "idle" | "syncing" | "up_to_date" | "offline" | "error"
    */
   onSyncStatusChange(
-    cb: (status: "idle" | "syncing" | "offline" | "error") => void,
+    cb: (status: "idle" | "syncing" | "up_to_date" | "offline" | "error") => void,
   ): void;
 
   /**

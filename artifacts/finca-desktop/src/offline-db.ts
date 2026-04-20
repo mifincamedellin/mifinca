@@ -3,7 +3,7 @@ import type Database from "better-sqlite3";
 let db: Database.Database;
 
 export function openDatabase(dbPath: string): void {
-  // Dynamic require so TypeScript types resolve but the native module is only loaded at runtime
+  // Dynamic require so TypeScript types resolve but the native module is loaded at runtime
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const BetterSQLite = require("better-sqlite3") as typeof import("better-sqlite3");
   db = new BetterSQLite(dbPath);
@@ -33,16 +33,36 @@ export function openDatabase(dbPath: string): void {
 
     -- Pending outbound operations queued while offline.
     -- Replayed against the live API in FIFO order on reconnect.
+    -- base_updated_at: the entity's updated_at when the write was queued — used for
+    --   server-wins conflict resolution (server newer → skip write).
     CREATE TABLE IF NOT EXISTS sync_queue (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      method     TEXT NOT NULL,
-      url_path   TEXT NOT NULL,
-      body       TEXT,
-      queued_at  TEXT NOT NULL DEFAULT (datetime('now')),
-      retries    INTEGER NOT NULL DEFAULT 0,
-      last_error TEXT
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      method          TEXT NOT NULL,
+      url_path        TEXT NOT NULL,
+      body            TEXT,
+      base_updated_at TEXT,
+      queued_at       TEXT NOT NULL DEFAULT (datetime('now')),
+      retries         INTEGER NOT NULL DEFAULT 0,
+      last_error      TEXT
+    );
+
+    -- Mapping from synthetic offline IDs to real server IDs.
+    -- Written after a successful POST flush so subsequent offline writes targeting
+    -- the offline ID can be rewritten to the real server ID before replay.
+    CREATE TABLE IF NOT EXISTS id_mapping (
+      offline_id TEXT PRIMARY KEY,
+      server_id  TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // Idempotent migration: add base_updated_at column if it was created without it
+  const cols = (
+    db.prepare("PRAGMA table_info(sync_queue)").all() as { name: string }[]
+  ).map((c) => c.name);
+  if (!cols.includes("base_updated_at")) {
+    db.exec("ALTER TABLE sync_queue ADD COLUMN base_updated_at TEXT");
+  }
 }
 
 // ── Response cache (URL-keyed) ────────────────────────────────────────────────
@@ -115,6 +135,30 @@ export function getEntities(entityType: string, farmId?: string): Record<string,
   return rows.map((r) => JSON.parse(r.data));
 }
 
+// ── ID mapping (synthetic → server) ──────────────────────────────────────────
+
+/**
+ * Store a mapping from an offline synthetic ID to the real server-assigned ID.
+ * Called after a successful POST flush so subsequent writes can be rewritten.
+ */
+export function storeIdMapping(offlineId: string, serverId: string): void {
+  db.prepare(`
+    INSERT INTO id_mapping (offline_id, server_id)
+    VALUES (?, ?)
+    ON CONFLICT(offline_id) DO UPDATE SET server_id = excluded.server_id
+  `).run(offlineId, serverId);
+}
+
+/**
+ * Return the real server ID for a given offline synthetic ID, or null if not found.
+ */
+export function getServerIdForOfflineId(offlineId: string): string | null {
+  const row = db.prepare("SELECT server_id FROM id_mapping WHERE offline_id = ?").get(offlineId) as
+    | { server_id: string }
+    | undefined;
+  return row?.server_id ?? null;
+}
+
 // ── Sync queue ────────────────────────────────────────────────────────────────
 
 export interface QueueEntry {
@@ -122,22 +166,30 @@ export interface QueueEntry {
   method: string;
   urlPath: string;
   body: string | null;
+  baseUpdatedAt: string | null;
   queuedAt: string;
   retries: number;
   lastError: string | null;
 }
 
-export function enqueueWrite(method: string, urlPath: string, body: string | null): number {
+export function enqueueWrite(
+  method: string,
+  urlPath: string,
+  body: string | null,
+  baseUpdatedAt?: string | null,
+): number {
   const result = db
-    .prepare("INSERT INTO sync_queue (method, url_path, body) VALUES (?, ?, ?)")
-    .run(method, urlPath, body);
+    .prepare("INSERT INTO sync_queue (method, url_path, body, base_updated_at) VALUES (?, ?, ?, ?)")
+    .run(method, urlPath, body, baseUpdatedAt ?? null);
   return result.lastInsertRowid as number;
 }
 
 export function getPendingQueue(): QueueEntry[] {
   return db
     .prepare(
-      "SELECT id, method, url_path as urlPath, body, queued_at as queuedAt, retries, last_error as lastError FROM sync_queue ORDER BY id ASC",
+      `SELECT id, method, url_path as urlPath, body, base_updated_at as baseUpdatedAt,
+              queued_at as queuedAt, retries, last_error as lastError
+       FROM sync_queue ORDER BY id ASC`,
     )
     .all() as QueueEntry[];
 }
@@ -156,4 +208,25 @@ export function markQueueError(id: number, error: string): void {
 export function getQueueCount(): number {
   const row = db.prepare("SELECT COUNT(*) as count FROM sync_queue").get() as { count: number };
   return row.count;
+}
+
+/**
+ * Rewrite every queued entry: replace occurrences of offlineId in url_path and body
+ * with the real server ID. Called after a successful POST flush to reconcile IDs.
+ */
+export function rewriteQueueIds(offlineId: string, serverId: string): void {
+  const entries = getPendingQueue();
+  const update = db.prepare(
+    "UPDATE sync_queue SET url_path = ?, body = ? WHERE id = ?",
+  );
+  const run = db.transaction(() => {
+    for (const entry of entries) {
+      const newUrl = entry.urlPath.split(offlineId).join(serverId);
+      const newBody = entry.body ? entry.body.split(offlineId).join(serverId) : null;
+      if (newUrl !== entry.urlPath || newBody !== entry.body) {
+        update.run(newUrl, newBody, entry.id);
+      }
+    }
+  });
+  run();
 }
