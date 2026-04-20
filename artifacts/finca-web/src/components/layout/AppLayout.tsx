@@ -10,6 +10,7 @@ import { useStore, ALL_FARMS_ID } from "@/lib/store";
 import { useGetMe, useListFarms, getGetMeQueryKey, getListFarmsQueryKey } from "@workspace/api-client-react";
 import { useAuth, useClerk } from "@clerk/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOffline, useOfflineSeeding } from "@/lib/offline-context";
 import { 
   Home, 
   PawPrint, 
@@ -28,6 +29,7 @@ import {
   Droplets,
   Layers,
   RefreshCw,
+  WifiOff,
   X,
 } from "lucide-react";
 import { useFarmPermissions } from "@/lib/useFarmPermissions";
@@ -65,6 +67,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useClerk();
   const qc = useQueryClient();
   const { openUpgradeModal } = useUpgradeStore();
+
+  // ── Desktop-only: offline state + seeding ─────────────────────────────────
+  const { isOnline, syncStatus, pendingCount } = useOffline();
+  useOfflineSeeding();
+
+  const isDesktop = !!window.miFincaDesktop?.isDesktop;
+  // Show the sync bar only when in desktop mode AND something notable is happening
+  const showSyncBar =
+    isDesktop &&
+    (!isOnline || syncStatus === "syncing" || syncStatus === "error" || pendingCount > 0);
 
   const [editingFarm, setEditingFarm] = useState<{ id: string; name: string } | null>(null);
   const [editName, setEditName] = useState("");
@@ -298,6 +310,46 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </Sidebar>
 
         <div className="flex flex-col flex-1 min-w-0">
+          {/* Desktop-only sync status bar */}
+          {showSyncBar && (
+            <div
+              className={[
+                "flex items-center gap-2 px-4 py-2 text-sm font-medium z-50",
+                !isOnline
+                  ? "bg-amber-500 text-white"
+                  : syncStatus === "syncing"
+                    ? "bg-blue-600 text-white"
+                    : syncStatus === "error"
+                      ? "bg-destructive text-destructive-foreground"
+                      : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+              ].join(" ")}
+            >
+              {!isOnline ? (
+                <WifiOff className="h-4 w-4 shrink-0" />
+              ) : syncStatus === "syncing" ? (
+                <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
+              ) : syncStatus === "error" ? (
+                <X className="h-4 w-4 shrink-0" />
+              ) : (
+                <RefreshCw className="h-4 w-4 shrink-0" />
+              )}
+              <span>
+                {!isOnline
+                  ? t("offline.noConnection", { defaultValue: "Sin conexión — los cambios se guardarán localmente" })
+                  : syncStatus === "syncing"
+                    ? t("offline.syncing", { defaultValue: "Sincronizando cambios…" })
+                    : syncStatus === "error"
+                      ? t("offline.syncError", { defaultValue: "Error al sincronizar — se reintentará al reconectar" })
+                      : t("offline.pendingChanges", { count: pendingCount, defaultValue: `${pendingCount} cambio(s) pendiente(s)` })}
+              </span>
+              {pendingCount > 0 && (isOnline && syncStatus === "idle") && (
+                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-600/20 text-amber-700 dark:text-amber-300 font-semibold">
+                  {pendingCount}
+                </span>
+              )}
+            </div>
+          )}
+
           {updateReady && !updateDismissed && (
             <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary text-primary-foreground text-sm z-40">
               <div className="flex items-center gap-2">

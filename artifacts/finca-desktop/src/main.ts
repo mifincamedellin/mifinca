@@ -14,6 +14,18 @@ import { autoUpdater } from "electron-updater";
 import path from "path";
 import fs from "fs";
 import { URL } from "url";
+import {
+  openDatabase,
+  cacheResponse,
+  getCachedResponse,
+  upsertEntities,
+  getEntities,
+  enqueueWrite,
+  getPendingQueue,
+  removeFromQueue,
+  markQueueError,
+  getQueueCount,
+} from "./offline-db.js";
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -24,6 +36,82 @@ const API_BASE =
 const IS_DEV = process.env.MIFINCA_DEV === "1" || !app.isPackaged;
 const USER_DATA_DIR = app.getPath("userData");
 const LICENSE_FILE = path.join(USER_DATA_DIR, "license.dat");
+
+// ── Offline / Sync state ──────────────────────────────────────────────────────
+
+/** "idle" = online and not syncing; "syncing" = flush in progress; "offline" = no connection */
+type SyncStatus = "idle" | "syncing" | "offline" | "error";
+
+let currentSyncStatus: SyncStatus = "idle";
+let isSyncing = false;
+
+function broadcastSyncStatus(status: SyncStatus): void {
+  currentSyncStatus = status;
+  mainWindow?.webContents.send("offline:sync-status", status);
+}
+
+/**
+ * Replay queued offline writes against the live API.
+ * Called automatically when the app comes back online.
+ */
+async function flushSyncQueue(authToken: string): Promise<void> {
+  if (isSyncing) return;
+  isSyncing = true;
+  broadcastSyncStatus("syncing");
+
+  const entries = getPendingQueue();
+  let errors = 0;
+
+  for (const entry of entries) {
+    try {
+      const result = await new Promise<{ status: number; body: string }>(
+        (resolve, reject) => {
+          const req = net.request({
+            method: entry.method,
+            url: `${API_BASE}${entry.urlPath}`,
+          });
+          req.setHeader("Content-Type", "application/json");
+          if (authToken) {
+            req.setHeader("Authorization", `Bearer ${authToken}`);
+          }
+          let body = "";
+          req.on("response", (res: IncomingMessage) => {
+            res.on("data", (chunk: Buffer) => (body += chunk.toString()));
+            res.on("end", () => resolve({ status: (res as { statusCode?: number }).statusCode ?? 200, body }));
+          });
+          req.on("error", reject);
+          if (entry.body) req.write(entry.body);
+          req.end();
+        },
+      );
+
+      if (result.status >= 200 && result.status < 300) {
+        // Success: remove from queue and cache the server response
+        removeFromQueue(entry.id);
+        try {
+          const parsed = JSON.parse(result.body);
+          // Cache the result under the URL path for future reads
+          cacheResponse(entry.urlPath, parsed);
+        } catch {
+          // Non-JSON response — ignore caching
+        }
+      } else if (result.status === 409) {
+        // Conflict: server version wins — discard local write
+        removeFromQueue(entry.id);
+      } else {
+        markQueueError(entry.id, `HTTP ${result.status}`);
+        errors++;
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "network_error";
+      markQueueError(entry.id, msg);
+      errors++;
+    }
+  }
+
+  isSyncing = false;
+  broadcastSyncStatus(errors > 0 ? "error" : "idle");
+}
 
 // ── License storage ───────────────────────────────────────────────────────────
 
@@ -355,6 +443,75 @@ function setupIpc(): void {
   ipcMain.handle("open:purchase", async () => {
     shell.openExternal(`${API_BASE}/app/login`);
   });
+
+  // ── Offline / SQLite IPC ────────────────────────────────────────────────────
+
+  // Cache a successful GET response keyed by URL path
+  ipcMain.handle(
+    "offline:cache-response",
+    (_event: IpcMainInvokeEvent, urlPath: string, data: unknown) => {
+      try { cacheResponse(urlPath, data); } catch { /* non-fatal */ }
+    },
+  );
+
+  // Return cached GET response for a URL path (null if not cached)
+  ipcMain.handle(
+    "offline:get-cached-response",
+    (_event: IpcMainInvokeEvent, urlPath: string) => {
+      try { return getCachedResponse(urlPath); } catch { return null; }
+    },
+  );
+
+  // Bulk upsert entities into the fine-grained entity cache (used for seeding)
+  ipcMain.handle(
+    "offline:cache-entities",
+    (_event: IpcMainInvokeEvent, entityType: string, entities: Record<string, unknown>[]) => {
+      try { upsertEntities(entityType, entities); } catch { /* non-fatal */ }
+    },
+  );
+
+  // Read entities from the cache (used for offline fallback)
+  ipcMain.handle(
+    "offline:get-entities",
+    (_event: IpcMainInvokeEvent, entityType: string, farmId?: string) => {
+      try { return getEntities(entityType, farmId); } catch { return []; }
+    },
+  );
+
+  // Queue an offline write; returns the new queue entry ID
+  ipcMain.handle(
+    "offline:queue-write",
+    (_event: IpcMainInvokeEvent, method: string, urlPath: string, body: string | null) => {
+      try { return enqueueWrite(method, urlPath, body); } catch { return -1; }
+    },
+  );
+
+  // Return the number of pending queue entries (displayed in sync bar)
+  ipcMain.handle("offline:get-queue-count", () => {
+    try { return getQueueCount(); } catch { return 0; }
+  });
+
+  // Return current sync status
+  ipcMain.handle("offline:get-sync-status", () => currentSyncStatus);
+
+  // Called by renderer when network connectivity changes.
+  // On reconnect: flush queued writes against the live API.
+  ipcMain.handle(
+    "offline:network-changed",
+    (_event: IpcMainInvokeEvent, isOnline: boolean, authToken: string) => {
+      if (isOnline) {
+        broadcastSyncStatus("idle");
+        if (getQueueCount() > 0) {
+          flushSyncQueue(authToken).catch((err: unknown) => {
+            console.error("sync flush error:", err);
+            broadcastSyncStatus("error");
+          });
+        }
+      } else {
+        broadcastSyncStatus("offline");
+      }
+    },
+  );
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
@@ -418,6 +575,10 @@ async function openAppropriateWindow(): Promise<void> {
 // One-time bootstrap: register IPC handlers and request interceptors exactly
 // once (ipcMain.handle throws on duplicate registration), then open first window.
 async function bootstrap(): Promise<void> {
+  // Open the offline SQLite database before registering IPC handlers
+  const dbPath = path.join(USER_DATA_DIR, "offline.db");
+  openDatabase(dbPath);
+
   setupApiInterceptor();
   setupIpc();
   await openAppropriateWindow();

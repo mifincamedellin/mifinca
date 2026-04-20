@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { useStore } from "@/lib/store";
+import { OfflineProvider } from "@/lib/offline-context";
 
 import "@/lib/fetch-interceptor";
 import "@/lib/i18n";
@@ -136,9 +137,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={basePath}>
-          <AppWithClerk />
-        </WouterRouter>
+        <OfflineProvider>
+          <WouterRouter base={basePath}>
+            <AppWithClerk />
+          </WouterRouter>
+        </OfflineProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
