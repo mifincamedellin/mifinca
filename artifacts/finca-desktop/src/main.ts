@@ -62,16 +62,24 @@ function broadcastSyncStatus(status: SyncStatus): void {
 
 // ── URL → entity type mapping ─────────────────────────────────────────────────
 
-/** Map from API URL segment to canonical entity-cache type name. */
-const URL_SEGMENT_TO_ENTITY: Record<string, string> = {
-  animals: "animals",
-  "milk-records": "milk_records",
-  finances: "finance_transactions",
-  inventory: "inventory_items",
-  contacts: "contacts",
-  events: "farm_events",
-  farms: "farms",
-};
+/**
+ * Entity types that are stored in the fine-grained `entity_cache` table.
+ * For all other entity types (sub-resources like medical_records, weight_records,
+ * animal_milk_records, etc.) we only use the URL-keyed `response_cache`.
+ */
+const ENTITY_CACHE_TYPES = new Set([
+  "animals",
+  "farms",
+  "finance_transactions",
+  "inventory_items",
+  "contacts",
+  "farm_events",
+  "employees",
+  "zones",
+  "farm_milk_records",
+  "farm_members",
+  "farm_invitations",
+]);
 
 interface ParsedEntityUrl {
   entityType: string;
@@ -81,51 +89,183 @@ interface ParsedEntityUrl {
   listUrl: string;
 }
 
+type RouteDescriptor = {
+  re: RegExp;
+  entityType: string;
+  toResult: (m: RegExpMatchArray) => Omit<ParsedEntityUrl, "entityType">;
+};
+
 /**
- * Attempt to extract entity type + farm/entity IDs from a known API URL pattern.
- * Returns null for unrecognised paths.
+ * Route patterns ordered most-specific first. Every real API route must match
+ * exactly one descriptor so no nested route is mis-classified as its parent.
+ */
+const ROUTE_PATTERNS: RouteDescriptor[] = [
+  // ── Animal sub-resources (must precede general /animals/:id) ──────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/medical(?:\/([^/]+))?$/,
+    entityType: "medical_records",
+    toResult: (m) => ({ farmId: m[1], entityId: m[3] ?? null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/medical` }),
+  },
+  {
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/milk$/,
+    entityType: "animal_milk_records",
+    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/milk` }),
+  },
+  {
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/weights$/,
+    entityType: "weight_records",
+    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/weights` }),
+  },
+  {
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/lifecycle-history$/,
+    entityType: "lifecycle_history",
+    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/animals/${m[2]}/lifecycle-history` }),
+  },
+  // Lifecycle patches + other operational patches on an animal → classify as 'animals'
+  // so the animal record is correctly updated/conflict-checked after the patch.
+  {
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)\/(lifecycle|death|lineage|pregnancy)(\/.*)?$/,
+    entityType: "animals",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2], listUrl: `/api/farms/${m[1]}/animals` }),
+  },
+  // Individual animal
+  {
+    re: /^\/api\/farms\/([^/]+)\/animals\/([^/]+)$/,
+    entityType: "animals",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2], listUrl: `/api/farms/${m[1]}/animals` }),
+  },
+  // Animals list
+  {
+    re: /^\/api\/farms\/([^/]+)\/animals$/,
+    entityType: "animals",
+    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/animals` }),
+  },
+  // ── Farm-level milk ───────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/milk$/,
+    entityType: "farm_milk_records",
+    toResult: (m) => ({ farmId: m[1], entityId: null, listUrl: `/api/farms/${m[1]}/milk` }),
+  },
+  // ── Finances ──────────────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/finances(?:\/([^/]+))?$/,
+    entityType: "finance_transactions",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2] ?? null, listUrl: `/api/farms/${m[1]}/finances` }),
+  },
+  // ── Inventory ─────────────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/inventory(?:\/([^/]+))?$/,
+    entityType: "inventory_items",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2] ?? null, listUrl: `/api/farms/${m[1]}/inventory` }),
+  },
+  // ── Contacts ──────────────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/contacts(?:\/([^/]+))?$/,
+    entityType: "contacts",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2] ?? null, listUrl: `/api/farms/${m[1]}/contacts` }),
+  },
+  // ── Events ────────────────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/events(?:\/([^/]+))?$/,
+    entityType: "farm_events",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2] ?? null, listUrl: `/api/farms/${m[1]}/events` }),
+  },
+  // ── Employee attachments (sub-resource, must precede /employees/:id) ──────
+  {
+    re: /^\/api\/farms\/([^/]+)\/employees\/([^/]+)\/attachments(?:\/([^/]+))?(\/.*)?$/,
+    entityType: "employee_attachments",
+    toResult: (m) => ({ farmId: m[1], entityId: m[3] ?? null, listUrl: `/api/farms/${m[1]}/employees/${m[2]}/attachments` }),
+  },
+  // ── Employees ─────────────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/employees(?:\/([^/]+))?$/,
+    entityType: "employees",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2] ?? null, listUrl: `/api/farms/${m[1]}/employees` }),
+  },
+  // ── Zones ─────────────────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/zones(?:\/([^/]+))?$/,
+    entityType: "zones",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2] ?? null, listUrl: `/api/farms/${m[1]}/zones` }),
+  },
+  // ── Farm members ──────────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/members(?:\/([^/]+))?$/,
+    entityType: "farm_members",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2] ?? null, listUrl: `/api/farms/${m[1]}/members` }),
+  },
+  // ── Farm invitations ──────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)\/invitations(?:\/([^/]+))?$/,
+    entityType: "farm_invitations",
+    toResult: (m) => ({ farmId: m[1], entityId: m[2] ?? null, listUrl: `/api/farms/${m[1]}/invitations` }),
+  },
+  // ── Farm operational endpoints (stats, activity, seed, location, pay-day) ─
+  // These patch the farm itself; map to farms so the farm record is refreshed.
+  {
+    re: /^\/api\/farms\/([^/]+)\/(stats|activity|seed|location|pay-day)$/,
+    entityType: "farms",
+    toResult: (m) => ({ farmId: m[1], entityId: m[1], listUrl: "/api/farms" }),
+  },
+  // ── Individual farm ───────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms\/([^/]+)$/,
+    entityType: "farms",
+    toResult: (m) => ({ farmId: m[1], entityId: m[1], listUrl: "/api/farms" }),
+  },
+  // ── Farm list ─────────────────────────────────────────────────────────────
+  {
+    re: /^\/api\/farms$/,
+    entityType: "farms",
+    toResult: () => ({ farmId: null, entityId: null, listUrl: "/api/farms" }),
+  },
+];
+
+/**
+ * Classify an API URL path into entity metadata.
+ * Patterns are tested most-specific first, so nested routes are never
+ * mis-classified as their parent resource.
+ * Returns null for unrecognised paths (e.g. /api/auth/*, /api/chat/*).
  */
 function parseEntityUrl(urlPath: string): ParsedEntityUrl | null {
-  // Strip query string for matching
   const bare = urlPath.split("?")[0];
-
-  // /api/farms/:farmId/segment[/:entityId]
-  const deep = bare.match(/^\/api\/farms\/([^/]+)\/([^/]+)(?:\/([^/]+))?/);
-  if (deep) {
-    const [, farmId, segment, entityId] = deep;
-    const entityType = URL_SEGMENT_TO_ENTITY[segment];
-    if (!entityType) return null;
-    const listUrl = `/api/farms/${farmId}/${segment}`;
-    return { entityType, farmId, entityId: entityId ?? null, listUrl };
+  for (const descriptor of ROUTE_PATTERNS) {
+    const m = bare.match(descriptor.re);
+    if (m) {
+      return { entityType: descriptor.entityType, ...descriptor.toResult(m) };
+    }
   }
-
-  // /api/farms[/:id]
-  const farmsMatch = bare.match(/^\/api\/farms(?:\/([^/]+))?/);
-  if (farmsMatch) {
-    const entityId = farmsMatch[1] ?? null;
-    return { entityType: "farms", farmId: null, entityId, listUrl: "/api/farms" };
-  }
-
   return null;
 }
 
 /**
- * After a successful or conflict-resolved sync, update the entity_cache
- * and the URL-keyed response_cache list so offline reads reflect server truth.
+ * After a successful write or conflict resolution, update local caches
+ * so subsequent offline reads reflect server truth.
+ *
+ * Top-level entities (in ENTITY_CACHE_TYPES):
+ *   → upsert into entity_cache + refresh the list URL in response_cache
+ * Sub-resources (medical_records, weight_records, etc.):
+ *   → only update the individual entity URL in response_cache;
+ *     the list will be refreshed on the next online GET
  */
 function applyServerEntityToCache(
   parsed: ParsedEntityUrl,
   serverEntity: Record<string, unknown>,
 ): void {
   try {
-    // Update the fine-grained entity cache with the authoritative server record
-    upsertSingleEntity(parsed.entityType, serverEntity);
-
-    // Refresh the list cache by reading all entities of this type/farm
-    const allEntities = parsed.farmId
-      ? getEntities(parsed.entityType, parsed.farmId)
-      : getEntities(parsed.entityType);
-    cacheResponse(parsed.listUrl, allEntities);
+    if (ENTITY_CACHE_TYPES.has(parsed.entityType)) {
+      // Full entity-cache upsert + refresh the farm-scoped list URL
+      upsertSingleEntity(parsed.entityType, serverEntity);
+      const allEntities = parsed.farmId
+        ? getEntities(parsed.entityType, parsed.farmId)
+        : getEntities(parsed.entityType);
+      cacheResponse(parsed.listUrl, allEntities);
+    } else if (parsed.entityId && "id" in serverEntity) {
+      // Sub-resource: update only the individual entity URL
+      const detailUrl = `${parsed.listUrl}/${serverEntity.id as string}`;
+      cacheResponse(detailUrl, serverEntity);
+    }
+    // else: no entity ID (e.g. list-level POST to a sub-resource) — skip
   } catch {
     // Non-fatal — best-effort
   }
@@ -251,11 +391,17 @@ async function flushSyncQueue(authToken: string): Promise<void> {
         try {
           if (parsed) {
             if (entry.method === "DELETE") {
-              if (parsed.entityId) removeEntity(parsed.entityType, parsed.entityId);
-              const remaining = parsed.farmId
-                ? getEntities(parsed.entityType, parsed.farmId)
-                : getEntities(parsed.entityType);
-              cacheResponse(parsed.listUrl, remaining);
+              if (ENTITY_CACHE_TYPES.has(parsed.entityType)) {
+                // Top-level entity: remove from entity_cache and refresh list
+                if (parsed.entityId) removeEntity(parsed.entityType, parsed.entityId);
+                const remaining = parsed.farmId
+                  ? getEntities(parsed.entityType, parsed.farmId)
+                  : getEntities(parsed.entityType);
+                cacheResponse(parsed.listUrl, remaining);
+              } else if (parsed.entityId) {
+                // Sub-resource: invalidate the URL-keyed response_cache entry
+                cacheResponse(`${parsed.listUrl}/${parsed.entityId}`, null);
+              }
             } else {
               const serverEntity = tryParseJson(result.body);
               if (serverEntity && "id" in serverEntity) {

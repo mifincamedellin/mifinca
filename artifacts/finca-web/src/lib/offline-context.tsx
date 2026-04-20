@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { useStore } from "@/lib/store";
+import { useListFarms } from "@workspace/api-client-react";
 
 export type SyncStatus = "idle" | "syncing" | "up_to_date" | "offline" | "error";
 
@@ -115,59 +116,90 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Seed hook: fetches all core farm entities from the API and caches them
- * in SQLite so the user starts with a fresh local copy before going offline.
- * Runs once per authenticated desktop session (when online).
+ * Seed hook: fetches all core entity data for ALL of the user's farms from the API
+ * and caches it in SQLite on every app launch while online.
+ *
+ * This ensures a full local copy is available before the user goes offline,
+ * regardless of which farm they last had active.
+ *
+ * Session deduplication: uses sessionStorage so seeding runs exactly once per
+ * app launch (Electron session), not once per React mount.
  */
 export function useOfflineSeeding() {
   const desktop = window.miFincaDesktop;
-  const { token, activeFarmId } = useStore();
-  const seededRef = useRef(false);
+  const { token } = useStore();
+  const seedingRef = useRef(false);
+
+  // Fetch all farms the user has access to so we can seed each one.
+  // Only enabled when running in the desktop app and connected.
+  const { data: farms } = useListFarms({
+    query: {
+      enabled: !!(desktop?.isDesktop && token && navigator.onLine),
+    },
+  });
 
   useEffect(() => {
     if (!desktop?.isDesktop) return;
-    if (!token && !navigator.onLine) return;
-    if (seededRef.current) return;
-    if (!activeFarmId || activeFarmId === "__all__") return;
+    if (!navigator.onLine) return;
+    if (!farms?.length) return;
+    if (seedingRef.current) return;
+    // One seed per browser/Electron session (survives re-mounts, cleared on app restart)
+    if (sessionStorage.getItem("offline-seeded") === "1") return;
 
-    seededRef.current = true;
+    seedingRef.current = true;
 
-    async function seed() {
-      if (!navigator.onLine) return;
+    async function seedAll() {
+      sessionStorage.setItem("offline-seeded", "1");
 
-      // Helper: fetch + cache a list endpoint
+      /** Fetch a URL and cache it in both response_cache and entity_cache. */
       async function fetchAndCache(urlPath: string, entityType: string) {
         try {
           const res = await fetch(urlPath);
           if (!res.ok) return;
-          const data = await res.json();
-          // Cache the raw response for fast offline GET serving
+          const data: unknown = await res.json();
+          // Always cache the raw URL response
           await desktop!.cacheResponse!(urlPath, data);
-          // Also store individual entities for conflict resolution
-          const entities = Array.isArray(data) ? data : data.data ?? data.items ?? [];
-          if (entities.length > 0) {
-            await desktop!.cacheEntities!(entityType, entities);
+          // For top-level entities also populate the fine-grained entity_cache
+          const entities: unknown[] = Array.isArray(data)
+            ? data
+            : (data as Record<string, unknown>)?.data ?? [];
+          if ((entities as Record<string, unknown>[]).length > 0) {
+            await desktop!.cacheEntities!(entityType, entities as Record<string, unknown>[]);
           }
         } catch {
-          // Non-fatal — offline seeding is best-effort
+          // Non-fatal — best-effort offline seeding
         }
       }
 
-      const farmId = activeFarmId;
-      if (!farmId || farmId === "__all__") return;
+      // Seed the farms list itself
+      await fetchAndCache("/api/farms", "farms");
 
-      // Seed all core entities for the active farm in parallel
-      await Promise.allSettled([
-        fetchAndCache(`/api/farms`, "farms"),
-        fetchAndCache(`/api/farms/${farmId}/animals`, "animals"),
-        fetchAndCache(`/api/farms/${farmId}/milk-records`, "milk_records"),
-        fetchAndCache(`/api/farms/${farmId}/finances`, "finance_transactions"),
-        fetchAndCache(`/api/farms/${farmId}/inventory`, "inventory_items"),
-        fetchAndCache(`/api/farms/${farmId}/contacts`, "contacts"),
-        fetchAndCache(`/api/farms/${farmId}/events`, "farm_events"),
-      ]);
+      // Seed core entities for every farm the user has access to
+      for (const farm of farms!) {
+        const fid = farm.id as string;
+        if (!fid) continue;
+
+        // Cache the individual farm record
+        await fetchAndCache(`/api/farms/${fid}`, "farms").catch(() => {});
+
+        // Seed all entity types in parallel per farm
+        await Promise.allSettled([
+          fetchAndCache(`/api/farms/${fid}/animals`, "animals"),
+          fetchAndCache(`/api/farms/${fid}/milk`, "farm_milk_records"),
+          fetchAndCache(`/api/farms/${fid}/finances`, "finance_transactions"),
+          fetchAndCache(`/api/farms/${fid}/inventory`, "inventory_items"),
+          fetchAndCache(`/api/farms/${fid}/contacts`, "contacts"),
+          fetchAndCache(`/api/farms/${fid}/events`, "farm_events"),
+          fetchAndCache(`/api/farms/${fid}/employees`, "employees"),
+          fetchAndCache(`/api/farms/${fid}/zones`, "zones"),
+        ]);
+      }
     }
 
-    seed().catch(() => {});
-  }, [desktop, token, activeFarmId]);
+    seedAll().catch(() => {
+      // Reset so a failed seed attempt can retry on next launch
+      sessionStorage.removeItem("offline-seeded");
+      seedingRef.current = false;
+    });
+  }, [desktop, farms]);
 }
