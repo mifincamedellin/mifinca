@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  # ── Step 1: Build the web app on Linux (Rollup/Vite works fine here) ────────
+  # ── Step 1: Build the web app on Linux (avoids macOS/Windows Rollup binary issues) ──
   build-web:
     runs-on: ubuntu-latest
     steps:
@@ -40,14 +40,18 @@ jobs:
           NODE_ENV: production
           VITE_API_BASE: ${{ secrets.MIFINCA_API_URL }}
 
-      - name: Upload compiled artifacts
+      # Upload each output directly to its destination path
+      - name: Upload web-dist
         uses: actions/upload-artifact@v4
         with:
-          name: compiled-artifacts
-          path: |
-            artifacts/finca-desktop/dist/
-            artifacts/finca-web/dist/public/
-          retention-days: 1
+          name: web-dist
+          path: artifacts/finca-web/dist/public/
+
+      - name: Upload electron-dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-dist
+          path: artifacts/finca-desktop/dist/
 
   # ── Step 2a: Package macOS .dmg ─────────────────────────────────────────────
   build-mac:
@@ -68,16 +72,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Download compiled artifacts
+      # Download directly to the right locations — no copy needed
+      - name: Download web-dist
         uses: actions/download-artifact@v4
         with:
-          name: compiled-artifacts
-          path: .
+          name: web-dist
+          path: artifacts/finca-desktop/web-dist/
 
-      - name: Place web build into desktop package
-        run: |
-          mkdir -p artifacts/finca-desktop/web-dist
-          cp -r artifacts/finca-web/dist/public/. artifacts/finca-desktop/web-dist/
+      - name: Download electron-dist
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-dist
+          path: artifacts/finca-desktop/dist/
 
       - name: Rebuild native modules for Electron
         run: pnpm --filter @workspace/finca-desktop exec electron-builder install-app-deps
@@ -120,17 +126,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Download compiled artifacts
+      - name: Download web-dist
         uses: actions/download-artifact@v4
         with:
-          name: compiled-artifacts
-          path: .
+          name: web-dist
+          path: artifacts/finca-desktop/web-dist/
 
-      - name: Place web build into desktop package
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path artifacts/finca-desktop/web-dist | Out-Null
-          Copy-Item -Recurse -Force artifacts/finca-web/dist/public/* artifacts/finca-desktop/web-dist/
+      - name: Download electron-dist
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-dist
+          path: artifacts/finca-desktop/dist/
 
       - name: Rebuild native modules for Electron
         run: pnpm --filter @workspace/finca-desktop exec electron-builder install-app-deps
