@@ -32,7 +32,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile --ignore-scripts
+        run: pnpm install --no-frozen-lockfile
 
       - name: Rebuild native modules for Electron
         run: pnpm --filter @workspace/finca-desktop exec electron-builder install-app-deps
@@ -81,7 +81,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile --ignore-scripts
+        run: pnpm install --no-frozen-lockfile
 
       - name: Rebuild native modules for Electron
         run: pnpm --filter @workspace/finca-desktop exec electron-builder install-app-deps
