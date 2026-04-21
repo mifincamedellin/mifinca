@@ -26,6 +26,14 @@ author = "agent"
 task = "workflow.run"
 args = "artifacts/finca-desktop: TypeScript (watch)"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test-finca-desktop"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test-finca-web"
+
 [[workflows.workflow]]
 name = "artifacts/finca-desktop: TypeScript (watch)"
 author = "agent"
@@ -36,6 +44,28 @@ args = "pnpm --filter @workspace/finca-desktop exec tsc --watch --noEmit false"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "test-finca-desktop"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/finca-desktop test"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test-finca-web"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/finca-web test"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"
