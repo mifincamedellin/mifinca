@@ -34,6 +34,10 @@ args = "test-finca-desktop"
 task = "workflow.run"
 args = "test-finca-web"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "api-server-test"
+
 [[workflows.workflow]]
 name = "artifacts/finca-desktop: TypeScript (watch)"
 author = "agent"
@@ -63,6 +67,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/finca-web test"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "api-server-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server test"
 
 [workflows.workflow.metadata]
 isValidation = true
