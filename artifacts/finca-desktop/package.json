@@ -14,6 +14,7 @@
     "build": "tsx scripts/build.mts",
     "electron:build": "electron-builder --config electron-builder.yml",
     "postinstall": "electron-builder install-app-deps",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },

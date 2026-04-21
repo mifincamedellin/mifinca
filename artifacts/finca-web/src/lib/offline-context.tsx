@@ -7,7 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { useStore } from "@/lib/store";
-import { useListFarms } from "@workspace/api-client-react";
+import { useListFarms, getListFarmsQueryKey } from "@workspace/api-client-react";
 
 export type SyncStatus = "idle" | "syncing" | "up_to_date" | "offline" | "error";
 
@@ -144,6 +144,7 @@ export function useOfflineSeeding() {
   // Only enabled when running in the desktop app and connected.
   const { data: farms } = useListFarms({
     query: {
+      queryKey: getListFarmsQueryKey(),
       enabled: !!(desktop?.isDesktop && token && navigator.onLine),
     },
   });
@@ -172,7 +173,7 @@ export function useOfflineSeeding() {
           // For top-level entities also populate the fine-grained entity_cache
           const entities: unknown[] = Array.isArray(data)
             ? data
-            : (data as Record<string, unknown>)?.data ?? [];
+            : ((data as Record<string, unknown>)?.data as unknown[] | undefined) ?? [];
           if ((entities as Record<string, unknown>[]).length > 0) {
             await desktop!.cacheEntities!(entityType, entities as Record<string, unknown>[]);
           }

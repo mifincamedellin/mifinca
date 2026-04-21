@@ -38,6 +38,14 @@ args = "test-finca-web"
 task = "workflow.run"
 args = "api-server-test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "typecheck-finca-desktop"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "typecheck-finca-web"
+
 [[workflows.workflow]]
 name = "artifacts/finca-desktop: TypeScript (watch)"
 author = "agent"
@@ -78,6 +86,28 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/api-server test"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "typecheck-finca-desktop"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/finca-desktop typecheck"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "typecheck-finca-web"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/finca-web typecheck"
 
 [workflows.workflow.metadata]
 isValidation = true
