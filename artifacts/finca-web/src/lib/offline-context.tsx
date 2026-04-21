@@ -18,12 +18,15 @@ interface OfflineContextValue {
   syncStatus: SyncStatus;
   /** Number of writes waiting to be synced */
   pendingCount: number;
+  /** Manually trigger a sync flush (no-op when offline or already syncing) */
+  triggerSync: () => void;
 }
 
 const OfflineContext = createContext<OfflineContextValue>({
   isOnline: true,
   syncStatus: "idle",
   pendingCount: 0,
+  triggerSync: () => {},
 });
 
 export function useOffline(): OfflineContextValue {
@@ -103,13 +106,20 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     };
   }, [desktop, refreshPendingCount]);
 
+  const triggerSync = useCallback(() => {
+    if (!desktop?.notifyNetworkChange) return;
+    if (!navigator.onLine) return;
+    if (syncStatus === "syncing") return;
+    desktop.notifyNetworkChange(true, tokenRef.current ?? "").catch(() => {});
+  }, [desktop, syncStatus]);
+
   // If not in the desktop app, render children without any context overhead
   if (!desktop) {
     return <>{children}</>;
   }
 
   return (
-    <OfflineContext.Provider value={{ isOnline, syncStatus, pendingCount }}>
+    <OfflineContext.Provider value={{ isOnline, syncStatus, pendingCount, triggerSync }}>
       {children}
     </OfflineContext.Provider>
   );

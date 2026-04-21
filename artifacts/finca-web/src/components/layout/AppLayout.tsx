@@ -69,7 +69,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { openUpgradeModal } = useUpgradeStore();
 
   // ── Desktop-only: offline state + seeding ─────────────────────────────────
-  const { isOnline, syncStatus, pendingCount } = useOffline();
+  const { isOnline, syncStatus, pendingCount, triggerSync } = useOffline();
   useOfflineSeeding();
 
   const isDesktop = !!window.miFincaDesktop?.isDesktop;
@@ -348,9 +348,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
                         ? t("offline.syncError", { defaultValue: "Error al sincronizar — se reintentará al reconectar" })
                         : t("offline.pendingChanges", { count: pendingCount, defaultValue: `${pendingCount} cambio(s) pendiente(s)` })}
               </span>
-              {pendingCount > 0 && isOnline && syncStatus === "idle" && (
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-600/20 text-amber-700 dark:text-amber-300 font-semibold">
-                  {pendingCount}
+              {pendingCount > 0 && isOnline && (
+                <span className="ml-auto flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-600/20 text-amber-700 dark:text-amber-300 font-semibold">
+                    {pendingCount}
+                  </span>
+                  <button
+                    onClick={triggerSync}
+                    disabled={syncStatus === "syncing"}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-xs font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${syncStatus === "syncing" ? "animate-spin" : ""}`} />
+                    {t("offline.syncNow", { defaultValue: "Sincronizar ahora" })}
+                  </button>
                 </span>
               )}
             </div>

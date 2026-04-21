@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   Settings as SettingsIcon, AlertTriangle, User, CreditCard,
-  Star, Check, Plus, Trash2, Mail, Lock, Coins,
+  Star, Check, Plus, Trash2, Mail, Lock, Coins, RefreshCw, WifiOff,
 } from "lucide-react";
+import { useOffline } from "@/lib/offline-context";
 import { formatCurrency } from "@/lib/currency";
 import { SelectFarmPrompt } from "@/components/SelectFarmPrompt";
 import { useForm } from "react-hook-form";
@@ -80,6 +81,8 @@ const DEMO_PAYMENT_METHODS: PaymentMethod[] = [];
 export function Settings() {
   const { t, i18n } = useTranslation();
   const { activeFarmId, currency, setCurrency } = useStore();
+  const { isOnline, syncStatus, pendingCount, triggerSync } = useOffline();
+  const isDesktop = !!window.miFincaDesktop?.isDesktop;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEMO_PAYMENT_METHODS);
@@ -350,6 +353,49 @@ export function Settings() {
           </div>
         </div>
       </Card>
+
+      {/* ── OFFLINE SYNC ── (desktop only) */}
+      {isDesktop && (
+        <Card className="p-8 rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-6 border-b border-border/50 pb-4">
+            <RefreshCw className="h-5 w-5 text-primary" />
+            <h2 className="text-2xl font-serif text-primary">
+              {lang === "en" ? "Sync" : "Sincronización"}
+            </h2>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              {!isOnline ? (
+                <div className="flex items-center gap-2 text-amber-600">
+                  <WifiOff className="h-4 w-4 shrink-0" />
+                  <p className="text-sm font-medium">
+                    {lang === "en" ? "No connection — changes will sync when back online." : "Sin conexión — los cambios se sincronizarán al reconectar."}
+                  </p>
+                </div>
+              ) : pendingCount > 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {lang === "en"
+                    ? `${pendingCount} pending change${pendingCount === 1 ? "" : "s"} waiting to sync.`
+                    : `${pendingCount} cambio${pendingCount === 1 ? "" : "s"} pendiente${pendingCount === 1 ? "" : "s"} por sincronizar.`}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {lang === "en" ? "All changes are up to date." : "Todos los cambios están sincronizados."}
+                </p>
+              )}
+            </div>
+            <Button
+              onClick={triggerSync}
+              disabled={!isOnline || syncStatus === "syncing" || pendingCount === 0}
+              className="rounded-xl gap-2 shrink-0"
+              variant="outline"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncStatus === "syncing" ? "animate-spin" : ""}`} />
+              {lang === "en" ? "Sync Now" : "Sincronizar ahora"}
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* ── SUBSCRIPTION PLAN ── */}
       <Card id="subscription-plan" className="p-8 rounded-2xl border-none shadow-md bg-card/60 backdrop-blur-sm">
