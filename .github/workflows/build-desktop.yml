@@ -1,7 +1,5 @@
 name: Build Desktop Installers
 
-# Runs whenever you push a version tag like v1.0.0
-# Also runs on every push to main so you can verify the build works
 on:
   push:
     tags:
@@ -10,23 +8,20 @@ on:
       - main
 
 permissions:
-  contents: write   # required to create GitHub Releases and upload assets
+  contents: write
 
-# ── macOS (.dmg — Intel + Apple Silicon) ─────────────────────────────────────
 jobs:
+  # ── macOS (.dmg — Intel + Apple Silicon) ───────────────────────────────────
   build-mac:
     runs-on: macos-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
@@ -34,27 +29,37 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Compile Electron TypeScript
+        run: pnpm --filter @workspace/finca-desktop compile
+
+      - name: Build finca-web for Electron
+        run: pnpm --filter @workspace/finca-web build
+        env:
+          BASE_PATH: "/"
+          PORT: "3000"
+          NODE_ENV: production
+          VITE_API_BASE: ${{ secrets.MIFINCA_API_URL }}
+
+      - name: Copy web build into desktop package
+        run: |
+          rm -rf artifacts/finca-desktop/web-dist
+          cp -r artifacts/finca-web/dist/public artifacts/finca-desktop/web-dist
+
       - name: Rebuild native modules for Electron
         run: pnpm --filter @workspace/finca-desktop exec electron-builder install-app-deps
 
-      - name: Build .dmg
+      - name: Package .dmg
+        run: pnpm --filter @workspace/finca-desktop electron:build
         env:
-          # Point the app at your production API — set this secret in GitHub:
-          # repo Settings → Secrets → Actions → New repository secret
-          MIFINCA_API_URL: ${{ secrets.MIFINCA_API_URL }}
-          # Placeholder — auto-update can be wired up later
           MIFINCA_UPDATE_URL: "https://github.com/${{ github.repository }}/releases/latest"
-        run: pnpm --filter @workspace/finca-desktop build
 
-      # On a version tag: attach .dmg files to a GitHub Release
       - name: Upload .dmg to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/finca-desktop/release/*.dmg
 
-      # On a branch push: save as a downloadable workflow artifact (7-day expiry)
-      - name: Upload .dmg as workflow artifact
+      - name: Save .dmg as workflow artifact
         if: "!startsWith(github.ref, 'refs/tags/v')"
         uses: actions/upload-artifact@v4
         with:
@@ -62,20 +67,17 @@ jobs:
           path: artifacts/finca-desktop/release/*.dmg
           retention-days: 7
 
-# ── Windows (.exe installer) ─────────────────────────────────────────────────
+  # ── Windows (.exe installer) ────────────────────────────────────────────────
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
@@ -83,14 +85,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Compile Electron TypeScript
+        run: pnpm --filter @workspace/finca-desktop compile
+
+      - name: Build finca-web for Electron
+        run: pnpm --filter @workspace/finca-web build
+        env:
+          BASE_PATH: "/"
+          PORT: "3000"
+          NODE_ENV: production
+          VITE_API_BASE: ${{ secrets.MIFINCA_API_URL }}
+
+      - name: Copy web build into desktop package
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue artifacts/finca-desktop/web-dist
+          Copy-Item -Recurse artifacts/finca-web/dist/public artifacts/finca-desktop/web-dist
+
       - name: Rebuild native modules for Electron
         run: pnpm --filter @workspace/finca-desktop exec electron-builder install-app-deps
 
-      - name: Build .exe installer
+      - name: Package .exe
+        run: pnpm --filter @workspace/finca-desktop electron:build
         env:
-          MIFINCA_API_URL: ${{ secrets.MIFINCA_API_URL }}
           MIFINCA_UPDATE_URL: "https://github.com/${{ github.repository }}/releases/latest"
-        run: pnpm --filter @workspace/finca-desktop build
 
       - name: Upload .exe to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -98,7 +116,7 @@ jobs:
         with:
           files: artifacts/finca-desktop/release/*.exe
 
-      - name: Upload .exe as workflow artifact
+      - name: Save .exe as workflow artifact
         if: "!startsWith(github.ref, 'refs/tags/v')"
         uses: actions/upload-artifact@v4
         with:
