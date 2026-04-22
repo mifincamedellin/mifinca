@@ -332,8 +332,8 @@ export default function Home() {
       >
         <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={`${getBaseUrl()}/images/logo-icon.png`} alt="miFinca" className="h-9 w-9 object-contain rounded-lg" />
-            <span className="font-serif text-2xl tracking-tight text-primary"><span className="font-medium">mi</span><span className="font-bold">Finca</span></span>
+            <img src={`${getBaseUrl()}/images/logo-icon.png`} alt="laFinca" className="h-9 w-9 object-contain rounded-lg" />
+            <span className="font-serif text-2xl tracking-tight text-primary"><span className="font-medium">la</span><span className="font-bold">Finca</span></span>
           </div>
 
           <nav className="hidden md:flex items-center gap-8">
@@ -883,8 +883,8 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
             <div className="col-span-2 lg:col-span-2">
               <div className="flex items-center gap-2 mb-6">
-                <img src={`${getBaseUrl()}/images/logo-icon.png`} alt="miFinca" className="h-9 w-9 object-contain rounded-lg" />
-                <span className="font-serif text-2xl tracking-tight text-primary"><span className="font-medium">mi</span><span className="font-bold">Finca</span></span>
+                <img src={`${getBaseUrl()}/images/logo-icon.png`} alt="laFinca" className="h-9 w-9 object-contain rounded-lg" />
+                <span className="font-serif text-2xl tracking-tight text-primary"><span className="font-medium">la</span><span className="font-bold">Finca</span></span>
               </div>
               <p className="text-muted-foreground mb-6 max-w-sm">{t.footer.tagline}</p>
             </div>
