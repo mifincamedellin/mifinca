@@ -28,9 +28,11 @@ mac:
         - arm64
   # icon: resources/icons/icon.icns  — place a 512x512 .icns here before shipping
   category: public.app-category.business
-  hardenedRuntime: true
-  # entitlementsInherit: resources/entitlements.mac.plist  — required for notarization
   darkModeSupport: true
+  # Code signing disabled — users must right-click → Open on first launch,
+  # or run: xattr -c miFinca-*.dmg  in Terminal before opening.
+  # Enable hardenedRuntime + entitlements only when a Developer ID cert is available.
+  identity: null
 
 dmg:
   title: miFinca

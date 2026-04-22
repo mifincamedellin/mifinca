@@ -92,6 +92,7 @@ jobs:
         run: pnpm --filter @workspace/finca-desktop electron:build
         env:
           MIFINCA_UPDATE_URL: "https://github.com/${{ github.repository }}/releases/latest"
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload .dmg to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
