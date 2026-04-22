@@ -36,6 +36,8 @@ mac:
 
 dmg:
   title: miFinca
+  format: UDZO
+  writeUpdateInfo: false
   window:
     width: 540
     height: 380

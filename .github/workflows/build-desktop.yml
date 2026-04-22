@@ -56,7 +56,7 @@ jobs:
   # ── Step 2a: Package macOS .dmg ─────────────────────────────────────────────
   build-mac:
     needs: build-web
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
