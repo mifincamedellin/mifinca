@@ -112,7 +112,7 @@ export function Finances() {
   const farmList = farms as Array<{ id: string; name: string }> | undefined ?? [];
   const farmIds  = farmList.map(f => f.id);
   const farmNameMap: Record<string, string> = Object.fromEntries(farmList.map(f => [f.id, f.name]));
-  const farmName = farmNameMap[activeFarmId ?? ""] ?? "miFinca";
+  const farmName = farmNameMap[activeFarmId ?? ""] ?? "laFinca";
 
   const { data: transactions = [], isLoading: singleLoading } = useQuery<Transaction[]>({
     queryKey: ["finances", activeFarmId],

@@ -83,11 +83,11 @@ export function UpgradeModal() {
           <div className="absolute inset-0 bg-primary/75" />
 
           <div className="relative flex flex-col items-center text-center gap-3">
-            {/* miFinca logo icon */}
+            {/* laFinca logo icon */}
             <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30 mb-1 overflow-hidden">
               <img
                 src={`${import.meta.env.BASE_URL}images/logo-icon.png`}
-                alt="miFinca"
+                alt="laFinca"
                 className="h-11 w-11 object-contain rounded-xl"
               />
             </div>

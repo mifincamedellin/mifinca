@@ -120,7 +120,7 @@ export function InventoryList() {
   }, [allItems, category]);
 
   const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
-  const farmName = (farms as Array<{ id: string; name: string }> | undefined)?.find(f => f.id === activeFarmId)?.name ?? "miFinca";
+  const farmName = (farms as Array<{ id: string; name: string }> | undefined)?.find(f => f.id === activeFarmId)?.name ?? "laFinca";
 
   const exportOptions = useMemo(() => {
     const date = new Date().toISOString().slice(0, 10);

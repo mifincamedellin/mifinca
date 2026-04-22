@@ -73,8 +73,8 @@ export function Login() {
         <Card className="p-8 shadow-2xl bg-card/95 backdrop-blur-xl border-white/20 rounded-2xl">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <img src={`${import.meta.env.BASE_URL}images/logo-icon.png`} alt="miFinca" className="h-9 w-9 object-contain rounded-lg" />
-              <h1 className="text-4xl font-serif text-primary font-bold">miFinca</h1>
+              <img src={`${import.meta.env.BASE_URL}images/logo-icon.png`} alt="laFinca" className="h-9 w-9 object-contain rounded-lg" />
+              <h1 className="text-4xl font-serif text-primary font-bold"><span className="font-medium">la</span><span className="font-bold">Finca</span></h1>
             </div>
             <p className="text-muted-foreground text-sm">
               {isEn ? "Sign in to manage your farm" : "Inicia sesión para gestionar tu finca"}

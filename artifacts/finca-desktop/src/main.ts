@@ -608,7 +608,7 @@ function createActivationWindow(): void {
     resizable: false,
     maximizable: false,
     center: true,
-    title: "miFinca — Activar licencia",
+    title: "laFinca — Activar licencia",
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#1a120b" : "#fdfaf7",
     webPreferences: {
       preload: getPreloadPath(),
@@ -630,7 +630,7 @@ function createRenewalWindow(): void {
     resizable: false,
     maximizable: false,
     center: true,
-    title: "miFinca — Licencia vencida",
+    title: "laFinca — Licencia vencida",
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#1a120b" : "#fdfaf7",
     webPreferences: {
       preload: getPreloadPath(),
@@ -651,7 +651,7 @@ function createMainWindow(): void {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: "miFinca",
+    title: "laFinca",
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#1a120b" : "#fdfaf7",
     webPreferences: {
       preload: getPreloadPath(),
@@ -805,7 +805,7 @@ function setupIpc(): void {
     return { ok: true };
   });
 
-  // Open the miFinca website for purchasing / renewal
+  // Open the laFinca website for purchasing / renewal
   ipcMain.handle("open:purchase", async () => {
     shell.openExternal(`${API_BASE}/app/login`);
   });

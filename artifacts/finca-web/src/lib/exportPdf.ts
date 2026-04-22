@@ -66,7 +66,7 @@ export function exportToPdf({ title, subtitle, farmName, columns, rows, filename
   });
 
   const pageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
-  const footerLabel = farmName ?? "miFinca";
+  const footerLabel = farmName ?? "laFinca";
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(7.5);
@@ -370,7 +370,7 @@ export function exportAnimalToPdf({ animal, weights, milkRecords, lifecycleStage
   }
 
   const pageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
-  const footerLabel = farmName ?? "miFinca";
+  const footerLabel = farmName ?? "laFinca";
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(7.5);
@@ -495,7 +495,7 @@ export function exportMilkLogToPdf({ animal, milkRecords, farmName, isEn = true 
   });
 
   const pageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
-  const footerLabel = farmName ?? "miFinca";
+  const footerLabel = farmName ?? "laFinca";
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(7.5);
@@ -616,7 +616,7 @@ export function exportFarmMilkToPdf({ animals, summary, farmName, isEn = true }:
   });
 
   const farmPageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
-  const farmFooterLabel = farmName ?? "miFinca";
+  const farmFooterLabel = farmName ?? "laFinca";
   for (let i = 1; i <= farmPageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(7.5);

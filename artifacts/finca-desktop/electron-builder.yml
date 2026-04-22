@@ -1,6 +1,6 @@
 appId: com.mifinca.desktop
-productName: miFinca
-copyright: Copyright © 2024 miFinca
+productName: laFinca
+copyright: Copyright © 2024 laFinca
 
 directories:
   output: release
@@ -30,12 +30,12 @@ mac:
   category: public.app-category.business
   darkModeSupport: true
   # Code signing disabled — users must right-click → Open on first launch,
-  # or run: xattr -c miFinca-*.dmg  in Terminal before opening.
+  # or run: xattr -c laFinca-*.dmg  in Terminal before opening.
   # Enable hardenedRuntime + entitlements only when a Developer ID cert is available.
   identity: null
 
 dmg:
-  title: miFinca
+  title: laFinca
   format: UDZO
   writeUpdateInfo: false
   window:
@@ -48,7 +48,7 @@ win:
       arch:
         - x64
   icon: resources/icons/icon.ico
-  publisherName: miFinca
+  publisherName: laFinca
   signingHashAlgorithms:
     - sha256
 

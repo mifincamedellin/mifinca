@@ -119,7 +119,7 @@ const translations = {
     },
     download: {
       badge: "Aplicación de escritorio",
-      heading: "Lleve miFinca\na su computador.",
+      heading: "Lleve laFinca\na su computador.",
       sub: "Trabaje sin conexión a internet y sincronice cuando vuelva la señal. La app se actualiza sola en segundo plano. Requiere licencia anual.",
       macBtn: "Descargar para Mac",
       winBtn: "Descargar para Windows",
@@ -249,7 +249,7 @@ const translations = {
     },
     download: {
       badge: "Desktop app",
-      heading: "Bring miFinca\nto your computer.",
+      heading: "Bring laFinca\nto your computer.",
       sub: "Work without an internet connection and sync when you're back online. The app updates silently in the background. Requires an annual license.",
       macBtn: "Download for Mac",
       winBtn: "Download for Windows",
@@ -482,7 +482,7 @@ export default function Home() {
                 <div className="rounded-[44px] overflow-hidden border-[10px] border-foreground/[0.12] bg-foreground/5 shadow-[0_40px_80px_-8px_rgba(0,0,0,0.28),0_0_0_1px_rgba(0,0,0,0.06)]" style={{ aspectRatio: "9/19.5" }}>
                   <img
                     src={`${getBaseUrl()}/images/dashboard-mobile.png`}
-                    alt="miFinca dashboard en móvil"
+                    alt="laFinca dashboard en móvil"
                     className="w-full h-full object-cover object-top"
                   />
                 </div>
@@ -507,7 +507,7 @@ export default function Home() {
                 <img
                   key={lang}
                   src={`${getBaseUrl()}/images/${lang === "en" ? "dashboard-ui-en.png" : "dashboard-ui.png"}`}
-                  alt="miFinca dashboard"
+                  alt="laFinca dashboard"
                   className="w-full block"
                 />
               </div>
@@ -720,7 +720,7 @@ export default function Home() {
                           {/* Sidebar + content mockup */}
                           <div className="flex gap-4">
                             <div className="w-28 shrink-0 space-y-3">
-                              {["miFinca","Fincas","Cultivos","Inventario","Gastos","Reportes"].map((l, i) => (
+                              {["laFinca","Fincas","Cultivos","Inventario","Gastos","Reportes"].map((l, i) => (
                                 <div key={i} className={`h-7 rounded-lg ${i === 0 ? "bg-primary/20" : "bg-muted"} flex items-center px-2`}>
                                   <span className="text-[10px] font-medium text-foreground/60 truncate">{l}</span>
                                 </div>

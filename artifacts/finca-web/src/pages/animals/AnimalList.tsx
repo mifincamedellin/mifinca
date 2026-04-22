@@ -196,7 +196,7 @@ export function AnimalList() {
 
   const { data: farms } = useListFarms({ query: { queryKey: getListFarmsQueryKey(), enabled: !!activeFarmId } });
   const farmsList = (farms as Array<{ id: string; name: string }> | undefined) ?? [];
-  const farmName = farmsList.find(f => f.id === activeFarmId)?.name ?? "miFinca";
+  const farmName = farmsList.find(f => f.id === activeFarmId)?.name ?? "laFinca";
   const isAllFarms = activeFarmId === ALL_FARMS_ID;
   const farmIds = farmsList.map(f => f.id);
 
