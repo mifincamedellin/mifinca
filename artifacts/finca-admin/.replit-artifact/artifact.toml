@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/admin/"
-title = "miFinca - Admin Dashboard"
+title = "laFinca - Admin Dashboard"
 version = "1.0.0"
 id = "artifacts/finca-admin"
 router = "path"

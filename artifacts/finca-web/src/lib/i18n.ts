@@ -980,7 +980,7 @@ const resources = {
   }
 };
 
-const savedLang = localStorage.getItem("mifinca-lang");
+const savedLang = localStorage.getItem("lafinca-lang");
 const browserLang = navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
 const initialLang = (savedLang === "es" || savedLang === "en") ? savedLang : browserLang;
 

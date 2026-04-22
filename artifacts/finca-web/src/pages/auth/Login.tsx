@@ -19,7 +19,7 @@ export function Login() {
   const toggleLang = () => {
     const newLang = isEn ? "es" : "en";
     i18n.changeLanguage(newLang);
-    localStorage.setItem("mifinca-lang", newLang);
+    localStorage.setItem("lafinca-lang", newLang);
   };
 
   const handleGoogleSignIn = () => {

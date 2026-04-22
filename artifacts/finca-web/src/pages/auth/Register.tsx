@@ -17,7 +17,7 @@ export function Register() {
   const toggleLang = () => {
     const newLang = i18n.language === "es" ? "en" : "es";
     i18n.changeLanguage(newLang);
-    localStorage.setItem("mifinca-lang", newLang);
+    localStorage.setItem("lafinca-lang", newLang);
   };
   
   const form = useForm<RegisterData>({

@@ -5,12 +5,12 @@
   "description": "laFinca Desktop App — farm management for the Colombian countryside",
   "author": {
     "name": "laFinca",
-    "email": "soporte@mifinca.com"
+    "email": "soporte@lafinca.app"
   },
   "main": "dist/main.js",
   "scripts": {
     "compile": "tsc -p tsconfig.json",
-    "dev": "cross-env MIFINCA_DEV=1 electron dist/main.js",
+    "dev": "cross-env LAFINCA_DEV=1 electron dist/main.js",
     "build": "tsx scripts/build.mts",
     "electron:build": "electron-builder --config electron-builder.yml",
     "postinstall": "electron-builder install-app-deps",

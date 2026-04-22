@@ -82,7 +82,7 @@ export function Settings() {
   const { t, i18n } = useTranslation();
   const { activeFarmId, currency, setCurrency } = useStore();
   const { isOnline, syncStatus, pendingCount, triggerSync } = useOffline();
-  const isDesktop = !!window.miFincaDesktop?.isDesktop;
+  const isDesktop = !!window.laFincaDesktop?.isDesktop;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEMO_PAYMENT_METHODS);

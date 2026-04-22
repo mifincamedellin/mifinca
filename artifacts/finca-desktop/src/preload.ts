@@ -18,7 +18,7 @@ window.addEventListener("offline", () => {
 // ── Exposed API surface ───────────────────────────────────────────────────────
 // Only whitelisted channels are accessible from the renderer process.
 
-contextBridge.exposeInMainWorld("miFincaDesktop", {
+contextBridge.exposeInMainWorld("laFincaDesktop", {
   // ── License ────────────────────────────────────────────────────────────────
 
   /** Activate a license key (called from activation.html) */

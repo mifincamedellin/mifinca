@@ -289,7 +289,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [annualBilling, setAnnualBilling] = useState(true);
   const [lang, setLang] = useState<Lang>(() => {
-    const saved = localStorage.getItem("mifinca-lang") as Lang | null;
+    const saved = localStorage.getItem("lafinca-lang") as Lang | null;
     if (saved === "es" || saved === "en") return saved;
     return navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
   });
@@ -316,7 +316,7 @@ export default function Home() {
 
   const toggleLang = () => setLang((l) => {
     const next = l === "es" ? "en" : "es";
-    localStorage.setItem("mifinca-lang", next);
+    localStorage.setItem("lafinca-lang", next);
     return next;
   });
 
@@ -499,7 +499,7 @@ export default function Home() {
                   <div className="w-3 h-3 rounded-full bg-[#28C840]/80"></div>
                 </div>
                 <div className="flex-1 mx-2 bg-background/70 rounded-full h-6 flex items-center px-3 border border-border/40">
-                  <span className="text-xs text-muted-foreground/70 font-medium">app.mifinca.com</span>
+                  <span className="text-xs text-muted-foreground/70 font-medium">app.lafinca.app</span>
                 </div>
               </div>
               {/* Screenshot — switches with language */}

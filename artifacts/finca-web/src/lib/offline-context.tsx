@@ -35,7 +35,7 @@ export function useOffline(): OfflineContextValue {
 
 /** Wraps the app when running inside the Electron desktop shell. */
 export function OfflineProvider({ children }: { children: React.ReactNode }) {
-  const desktop = window.miFincaDesktop;
+  const desktop = window.laFincaDesktop;
   const { token } = useStore();
 
   const [isOnline, setIsOnline] = useState(desktop?.getNetworkStatus?.() ?? navigator.onLine);
@@ -136,7 +136,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
  * app launch (Electron session), not once per React mount.
  */
 export function useOfflineSeeding() {
-  const desktop = window.miFincaDesktop;
+  const desktop = window.laFincaDesktop;
   const { token } = useStore();
   const seedingRef = useRef(false);
 

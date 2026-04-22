@@ -196,7 +196,7 @@ function parseEntityUrl(path: string): ParsedUrl | null {
 
 // ── Cache helpers ─────────────────────────────────────────────────────────────
 
-type Desktop = NonNullable<typeof window.miFincaDesktop>;
+type Desktop = NonNullable<typeof window.laFincaDesktop>;
 
 async function applyOptimisticMutation(
   method: string,
@@ -344,7 +344,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
     init?.method ?? (input instanceof Request ? input.method : "GET")
   ).toUpperCase();
 
-  const desktop = window.miFincaDesktop;
+  const desktop = window.laFincaDesktop;
 
   // ── Desktop offline path ──────────────────────────────────────────────────
   if (desktop?.isDesktop && !navigator.onLine) {

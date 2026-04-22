@@ -258,7 +258,7 @@
     </button>
 
     <div class="secondary-action">
-      <a class="secondary-link" onclick="handlePurchase()" id="purchaseLink">Renovar licencia en mifinca.com →</a>
+      <a class="secondary-link" onclick="handlePurchase()" id="purchaseLink">Renovar licencia en lafinca.appm →</a>
     </div>
   </div>
 
@@ -270,7 +270,7 @@
         sub: "Tu licencia anual ha vencido. Adquiere una nueva clave para continuar usando laFinca Desktop o ingresa una clave nueva si ya la tienes.",
         label: "Nueva clave de licencia",
         btn: "Activar nueva clave",
-        purchase: "Renovar licencia en mifinca.com →",
+        purchase: "Renovar licencia en lafinca.appm →",
         errors: {
           empty: "Ingresa tu nueva clave.",
           short: "La clave debe tener el formato XXXXXX-XXXXXX-XXXXXX-XXXXXX.",
@@ -289,7 +289,7 @@
         sub: "Your annual license has expired. Purchase a new key to continue using laFinca Desktop, or enter a new key if you already have one.",
         label: "New license key",
         btn: "Activate new key",
-        purchase: "Renew license at mifinca.com →",
+        purchase: "Renew license at lafinca.appm →",
         errors: {
           empty: "Enter your new license key.",
           short: "Key must follow the format XXXXXX-XXXXXX-XXXXXX-XXXXXX.",
@@ -362,9 +362,9 @@
 
       setLoading(true);
       try {
-        const result = await window.miFincaDesktop.renewLicense(key);
+        const result = await window.laFincaDesktop.renewLicense(key);
         if (result.ok) {
-          window.miFincaDesktop.renewalComplete();
+          window.laFincaDesktop.renewalComplete();
         } else {
           const reason = result.error ?? "invalid";
           showError(s.errors[reason] ?? s.errors.invalid);
@@ -377,7 +377,7 @@
     }
 
     function handlePurchase() {
-      window.miFincaDesktop.openPurchase();
+      window.laFincaDesktop.openPurchase();
     }
 
     input.addEventListener("keydown", (e) => {

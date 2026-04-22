@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 /**
- * miFinca Desktop Build Script
+ * laFinca Desktop Build Script
  *
  * Usage (run from repo root):
- *   MIFINCA_API_URL=https://your-api.replit.app \
- *   MIFINCA_UPDATE_URL=https://storage.googleapis.com/your-bucket/desktop/updates \
+ *   LAFINCA_API_URL=https://your-api.replit.app \
+ *   LAFINCA_UPDATE_URL=https://storage.googleapis.com/your-bucket/desktop/updates \
  *   pnpm --filter @workspace/finca-desktop build
  *
  * Prerequisites:
@@ -32,8 +32,8 @@ const WEB_DIST = path.resolve(WEB_DIR, "dist", "public");
 const DESKTOP_WEB_DIST = path.resolve(DESKTOP_DIR, "web-dist");
 const RELEASE_DIR = path.resolve(DESKTOP_DIR, "release");
 
-const API_URL = process.env.MIFINCA_API_URL;
-const UPDATE_URL = process.env.MIFINCA_UPDATE_URL;
+const API_URL = process.env.LAFINCA_API_URL;
+const UPDATE_URL = process.env.LAFINCA_UPDATE_URL;
 const BUCKET_ID = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -82,15 +82,15 @@ console.log(`  ✓ Copied web-dist (${countFiles(DESKTOP_WEB_DIST)} files)`);
 step("3/4  Building installers with electron-builder");
 
 if (!API_URL) {
-  console.warn("  ⚠  MIFINCA_API_URL not set — desktop app will use default placeholder");
+  console.warn("  ⚠  LAFINCA_API_URL not set — desktop app will use default placeholder");
 }
 
 run(
   "pnpm --filter @workspace/finca-desktop electron:build",
   ROOT,
   {
-    MIFINCA_API_URL: API_URL ?? "https://mifinca.replit.app",
-    MIFINCA_UPDATE_URL: UPDATE_URL ?? "",
+    LAFINCA_API_URL: API_URL ?? "https://lafinca.app",
+    LAFINCA_UPDATE_URL: UPDATE_URL ?? "",
   }
 );
 
@@ -169,5 +169,5 @@ async function uploadArtifacts(bucketId: string): Promise<void> {
   }
 
   console.log(`\n  Update manifest URL: https://storage.googleapis.com/${bucketId}/${prefix}`);
-  console.log("  Set MIFINCA_UPDATE_URL to this URL for auto-updates.\n");
+  console.log("  Set LAFINCA_UPDATE_URL to this URL for auto-updates.\n");
 }

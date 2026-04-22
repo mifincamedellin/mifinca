@@ -34,11 +34,11 @@ import {
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
-/** Production API base. Set MIFINCA_API_URL at build time or via env. */
+/** Production API base. Set LAFINCA_API_URL at build time or via env. */
 const API_BASE =
-  process.env.MIFINCA_API_URL ?? "https://mifinca.replit.app";
+  process.env.LAFINCA_API_URL ?? "https://lafinca.app";
 
-const IS_DEV = process.env.MIFINCA_DEV === "1" || !app.isPackaged;
+const IS_DEV = process.env.LAFINCA_DEV === "1" || !app.isPackaged;
 const USER_DATA_DIR = app.getPath("userData");
 const LICENSE_FILE = path.join(USER_DATA_DIR, "license.dat");
 
@@ -662,8 +662,8 @@ function createMainWindow(): void {
   });
 
   // In dev mode, load from the Vite dev server
-  if (IS_DEV && process.env.MIFINCA_DEV_URL) {
-    mainWindow.loadURL(process.env.MIFINCA_DEV_URL);
+  if (IS_DEV && process.env.LAFINCA_DEV_URL) {
+    mainWindow.loadURL(process.env.LAFINCA_DEV_URL);
   } else {
     const indexPath = path.join(getWebDistPath(), "index.html");
     mainWindow.loadFile(indexPath);
@@ -737,7 +737,7 @@ function setupApiInterceptor(): void {
 function setupAutoUpdater(): void {
   if (IS_DEV) return;
 
-  const updateUrl = process.env.MIFINCA_UPDATE_URL;
+  const updateUrl = process.env.LAFINCA_UPDATE_URL;
   if (updateUrl) {
     autoUpdater.setFeedURL({ provider: "generic", url: updateUrl });
   }

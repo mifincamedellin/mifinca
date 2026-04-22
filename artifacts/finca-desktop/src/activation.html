@@ -291,7 +291,7 @@
           expired: "Esta clave ha vencido. Renueva tu licencia para continuar.",
           revoked: "Esta clave ha sido revocada. Contáctanos para soporte.",
           already_claimed: "Esta clave ya está asociada a otra cuenta.",
-          login_required: "Esta clave está vinculada a una cuenta. Inicia sesión en mifinca.replit.app, luego vuelve a intentarlo.",
+          login_required: "Esta clave está vinculada a una cuenta. Inicia sesión en lafinca.app, luego vuelve a intentarlo.",
           offline: "Sin conexión. Verifica tu internet e intenta de nuevo.",
           invalid: "Clave inválida. Verifica que la escribiste correctamente.",
           network: "Error de red. Intenta de nuevo.",
@@ -312,7 +312,7 @@
           expired: "This key has expired. Renew your license to continue.",
           revoked: "This key has been revoked. Contact us for support.",
           already_claimed: "This key is already associated with another account.",
-          login_required: "This key is linked to an account. Sign in at mifinca.replit.app first, then try again.",
+          login_required: "This key is linked to an account. Sign in at lafinca.app first, then try again.",
           offline: "No connection. Check your internet and try again.",
           invalid: "Invalid key. Check that you typed it correctly.",
           network: "Network error. Please try again.",
@@ -381,9 +381,9 @@
 
       setLoading(true);
       try {
-        const result = await window.miFincaDesktop.activateLicense(key);
+        const result = await window.laFincaDesktop.activateLicense(key);
         if (result.ok) {
-          window.miFincaDesktop.activationComplete();
+          window.laFincaDesktop.activationComplete();
         } else {
           const reason = result.error ?? "invalid";
           showError(s.errors[reason] ?? s.errors.invalid);
@@ -396,7 +396,7 @@
     }
 
     function handlePurchase() {
-      window.miFincaDesktop.openPurchase();
+      window.laFincaDesktop.openPurchase();
     }
 
     // Allow Enter key to submit

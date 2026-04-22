@@ -72,7 +72,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { isOnline, syncStatus, pendingCount, triggerSync } = useOffline();
   useOfflineSeeding();
 
-  const isDesktop = !!window.miFincaDesktop?.isDesktop;
+  const isDesktop = !!window.laFincaDesktop?.isDesktop;
   // Show the sync bar only when in desktop mode AND something notable is happening
   const showSyncBar =
     isDesktop &&
@@ -86,7 +86,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [updateDismissed, setUpdateDismissed] = useState(false);
 
   useEffect(() => {
-    const desktop = window.miFincaDesktop;
+    const desktop = window.laFincaDesktop;
     if (!desktop) return;
     desktop.onUpdateDownloaded((info) => {
       setUpdateReady(info);
@@ -225,7 +225,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const toggleLanguage = () => {
     const newLang = i18n.language === 'es' ? 'en' : 'es';
     i18n.changeLanguage(newLang);
-    localStorage.setItem("mifinca-lang", newLang);
+    localStorage.setItem("lafinca-lang", newLang);
   };
 
   const displayName = user?.isDemo
@@ -376,7 +376,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={() => window.miFincaDesktop?.installUpdate()}
+                  onClick={() => window.laFincaDesktop?.installUpdate()}
                   className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 font-medium text-xs transition-colors"
                 >
                   <RefreshCw className="h-3 w-3" />

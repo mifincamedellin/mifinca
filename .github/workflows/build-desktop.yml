@@ -38,7 +38,7 @@ jobs:
           BASE_PATH: "/"
           PORT: "3000"
           NODE_ENV: production
-          VITE_API_BASE: ${{ secrets.MIFINCA_API_URL }}
+          VITE_API_BASE: ${{ secrets.LAFINCA_API_URL }}
 
       # Upload each output directly to its destination path
       - name: Upload web-dist
@@ -91,7 +91,7 @@ jobs:
       - name: Package .dmg
         run: pnpm --filter @workspace/finca-desktop electron:build
         env:
-          MIFINCA_UPDATE_URL: "https://github.com/${{ github.repository }}/releases/latest"
+          LAFINCA_UPDATE_URL: "https://github.com/${{ github.repository }}/releases/latest"
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload .dmg to GitHub Release
@@ -104,7 +104,7 @@ jobs:
         if: "!startsWith(github.ref, 'refs/tags/v')"
         uses: actions/upload-artifact@v4
         with:
-          name: mifinca-mac
+          name: lafinca-mac
           path: artifacts/finca-desktop/release/*.dmg
           retention-days: 7
 
@@ -145,7 +145,7 @@ jobs:
       - name: Package .exe
         run: pnpm --filter @workspace/finca-desktop electron:build
         env:
-          MIFINCA_UPDATE_URL: "https://github.com/${{ github.repository }}/releases/latest"
+          LAFINCA_UPDATE_URL: "https://github.com/${{ github.repository }}/releases/latest"
 
       - name: Upload .exe to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -157,6 +157,6 @@ jobs:
         if: "!startsWith(github.ref, 'refs/tags/v')"
         uses: actions/upload-artifact@v4
         with:
-          name: mifinca-windows
+          name: lafinca-windows
           path: artifacts/finca-desktop/release/*.exe
           retention-days: 7

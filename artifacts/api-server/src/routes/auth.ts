@@ -245,7 +245,7 @@ router.get("/auth/me", requireAuth, async (req, res) => {
 
     // Demo accounts always show a fixed email and flag isDemo
     if (profile[0].clerkId?.startsWith("demo:")) {
-      return res.json({ ...profile[0], email: "demo@mifinca.co", isDemo: true });
+      return res.json({ ...profile[0], email: "demo@lafinca.app", isDemo: true });
     }
 
     let email = profile[0].email;

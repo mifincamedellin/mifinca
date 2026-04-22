@@ -1,6 +1,6 @@
 kind = "web"
   previewPath = "/"
-  title = "miFinca - landing page"
+  title = "laFinca - landing page"
   version = "1.0.0"
   id = "artifacts/finca-landing"
   router = "path"

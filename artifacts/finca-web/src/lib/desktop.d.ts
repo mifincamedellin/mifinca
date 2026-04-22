@@ -1,10 +1,10 @@
 /**
- * Type declarations for the miFinca Desktop API exposed via Electron's contextBridge.
+ * Type declarations for the laFinca Desktop API exposed via Electron's contextBridge.
  * These are automatically available via the preload script when running inside the
- * desktop app. Always check `window.miFincaDesktop?.isDesktop` before using any API.
+ * desktop app. Always check `window.laFincaDesktop?.isDesktop` before using any API.
  */
 
-export interface MiFincaDesktopAPI {
+export interface LaFincaDesktopAPI {
   readonly isDesktop: true;
   readonly version: string;
 
@@ -114,6 +114,6 @@ export interface MiFincaDesktopAPI {
 
 declare global {
   interface Window {
-    miFincaDesktop?: MiFincaDesktopAPI;
+    laFincaDesktop?: LaFincaDesktopAPI;
   }
 }

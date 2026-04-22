@@ -5,7 +5,7 @@
  * to patch window.fetch.  All subsequent calls to window.fetch go through the
  * production interceptor code, not a replica or stub.
  *
- * window.miFincaDesktop is replaced with a JS in-memory stub that mirrors the
+ * window.laFincaDesktop is replaced with a JS in-memory stub that mirrors the
  * IPC bridge's observable contract (getCachedResponse, queueOfflineWrite, …).
  * navigator.onLine is controlled per-test so the same patched fetch exercises
  * both the offline and online paths.
@@ -17,7 +17,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { createServer, request as httpRequest, type IncomingMessage, type ServerResponse, type Server } from "http";
 import type { AddressInfo } from "net";
-import type { MiFincaDesktopAPI } from "@/lib/desktop.d";
+import type { LaFincaDesktopAPI } from "@/lib/desktop.d";
 
 // ── In-memory IPC bridge stub ─────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ type SyncQueueEntry = {
 
 let responseCache: Map<string, unknown>;
 let syncQueue: SyncQueueEntry[];
-let desktopStub: MiFincaDesktopAPI;
+let desktopStub: LaFincaDesktopAPI;
 let idSeq: number;
 
 function resetStubs() {
@@ -81,9 +81,9 @@ function resetStubs() {
     onSyncStatusChange: vi.fn(),
     onNetworkChange: vi.fn(() => () => {}),
     onCheckPending: vi.fn(),
-  } as unknown as MiFincaDesktopAPI;
+  } as unknown as LaFincaDesktopAPI;
 
-  (window as { miFincaDesktop?: MiFincaDesktopAPI }).miFincaDesktop = desktopStub;
+  (window as { laFincaDesktop?: LaFincaDesktopAPI }).laFincaDesktop = desktopStub;
 }
 
 // ── Real mock HTTP server (Node.js) ───────────────────────────────────────────
@@ -144,7 +144,7 @@ beforeAll(async () => {
   }
 
   // 4. Set up stubs before the module loads so they are present when the module
-  //    executes its top-level window.miFincaDesktop assignment.
+  //    executes its top-level window.laFincaDesktop assignment.
   resetStubs();
 
   // 5. Import the REAL fetch-interceptor.ts.  This patches window.fetch.

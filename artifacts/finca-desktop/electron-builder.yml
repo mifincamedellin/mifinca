@@ -1,4 +1,4 @@
-appId: com.mifinca.desktop
+appId: com.lafinca.app
 productName: laFinca
 copyright: Copyright © 2024 laFinca
 
@@ -18,7 +18,7 @@ extraResources:
 # Auto-update feed — hosted in object storage
 publish:
   - provider: generic
-    url: ${env.MIFINCA_UPDATE_URL}
+    url: ${env.LAFINCA_UPDATE_URL}
     channel: latest
 
 mac:

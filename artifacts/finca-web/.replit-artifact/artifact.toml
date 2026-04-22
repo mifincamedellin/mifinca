@@ -1,6 +1,6 @@
 kind = "web"
   previewPath = "/app/"
-  title = "miFinca - app"
+  title = "laFinca - app"
   version = "1.0.0"
   id = "artifacts/finca-web"
   router = "path"

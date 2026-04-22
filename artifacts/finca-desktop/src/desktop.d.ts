@@ -1,13 +1,13 @@
 /**
- * Type declaration for the miFincaDesktop API exposed via the preload script.
+ * Type declaration for the laFincaDesktop API exposed via the preload script.
  * Copy this file (or import it) into finca-web to get typed access to the
  * desktop-only APIs when the app is running inside Electron.
  *
  * Usage in finca-web:
- *   const isDesktop = !!(window as any).miFincaDesktop?.isDesktop;
+ *   const isDesktop = !!(window as any).laFincaDesktop?.isDesktop;
  */
 
-export interface MiFincaDesktopAPI {
+export interface LaFincaDesktopAPI {
   /** true when running inside the Electron desktop app */
   isDesktop: true;
   /** App version string */
@@ -50,6 +50,6 @@ export interface MiFincaDesktopAPI {
 
 declare global {
   interface Window {
-    miFincaDesktop?: MiFincaDesktopAPI;
+    laFincaDesktop?: LaFincaDesktopAPI;
   }
 }
