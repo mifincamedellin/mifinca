@@ -26,7 +26,7 @@ mac:
     - target: dmg
       arch:
         - arm64
-  # icon: resources/icons/icon.icns  — place a 512x512 .icns here before shipping
+  icon: resources/icons/icon.icns
   category: public.app-category.business
   darkModeSupport: true
   # Code signing disabled — users must right-click → Open on first launch,
@@ -47,7 +47,7 @@ win:
     - target: nsis
       arch:
         - x64
-  # icon: resources/icons/icon.ico  — place a 256x256 .ico here before shipping
+  icon: resources/icons/icon.ico
   publisherName: miFinca
   signingHashAlgorithms:
     - sha256
