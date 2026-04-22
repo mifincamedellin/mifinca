@@ -9,7 +9,6 @@ directories:
 files:
   - dist/**/*
   - src/*.html
-  - web-dist/**/*
   - package.json
 
 extraResources:
@@ -26,7 +25,6 @@ mac:
   target:
     - target: dmg
       arch:
-        - x64
         - arm64
   # icon: resources/icons/icon.icns  — place a 512x512 .icns here before shipping
   category: public.app-category.business
